@@ -50,7 +50,7 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 		
 		generateDeleteFuncs("cityobject", "citydb");
 		
-		writeToFile(new File(config.getTransformationOutputPath() + File.separator + "3dcitydb-delete-script"));
+		writeToFile(new File(config.getTransformationOutputPath() + File.separator + "3dcitydb-delete-script.sql"));
 	}
 	
 	protected abstract void generateDeleteFuncs(String initTableName, String schemaName) throws DsgException;
