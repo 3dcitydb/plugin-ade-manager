@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<schemaMapping xmlns="http://www.3dcitydb.org/database/schema/3.0">
+    <metadata>
+        <name>TestADE</name>
+        <version>1.0</version>
+        <description>Test ADE</description>
+        <dbPrefix>test</dbPrefix>
+    </metadata>
+    <applicationSchemas>
+        <schema id="test" isADERoot="true">
+            <namespace context="citygml-2.0">http://www.citygml.org/ade/TestADE/1.0</namespace>
+        </schema>
+    </applicationSchemas>
+    <complexTypes>
+        <complexType id="test_EnergyPerformanceCertificationType" table="test_EnergyPerformanceCer" path="EnergyPerformanceCertification" schema="test">
+            <attribute column="certificationName" type="string" path="certificationName" schema="test"/>
+            <attribute column="certificationid" type="string" path="certificationid" schema="test"/>
+        </complexType>
+    </complexTypes>
+    <featureTypes>
+        <featureType abstract="true" id="test__AbstractBuildingUnitType" table="test_BuildingUnit" objectClassId="20000" path="_AbstractBuildingUnit" schema="test">
+            <extension base="AbstractCityObjectType">
+                <join table="cityobject" fromColumn="ID" toColumn="ID" toRole="parent"/>
+            </extension>
+            <complexAttribute path="class" schema="test">
+                <attribute column="class_codespace" type="string" path="@codespace" schema="test"/>
+                <attribute column="class" type="string" path="." schema="test"/>
+            </complexAttribute>
+            <complexAttribute path="usage" schema="test">
+                <attribute column="usage_codespace" type="string" path="@codespace" schema="test"/>
+                <attribute column="usage" type="string" path="." schema="test"/>
+            </complexAttribute>
+            <complexAttribute path="function" schema="test">
+                <attribute column="function_codespace" type="string" path="@codespace" schema="test"/>
+                <attribute column="function" type="string" path="." schema="test"/>
+            </complexAttribute>
+            <complexProperty refType="test_EnergyPerformanceCertificationType" path="energyPerformanceCertification" schema="test">
+                <join table="test_EnergyPerformanceCer" fromColumn="ID" toColumn="BuildingUnit_energyPerfor_ID" toRole="child"/>
+            </complexProperty>
+            <geometryProperty inlineColumn="lod2MultiCurve" type="MultiCurve" path="lod2MultiCurve" schema="test"/>
+            <geometryProperty inlineColumn="lod3MultiCurve" type="MultiCurve" path="lod3MultiCurve" schema="test"/>
+            <geometryProperty inlineColumn="lod4MultiCurve" type="MultiCurve" path="lod4MultiCurve" schema="test"/>
+            <geometryProperty refColumn="lod1MultiSurface_ID" type="MultiSurface" path="lod1MultiSurface" schema="test"/>
+            <geometryProperty refColumn="lod2MultiSurface_ID" type="MultiSurface" path="lod2MultiSurface" schema="test"/>
+            <geometryProperty refColumn="lod3MultiSurface_ID" type="MultiSurface" path="lod3MultiSurface" schema="test"/>
+            <geometryProperty refColumn="lod4MultiSurface_ID" type="MultiSurface" path="lod4MultiSurface" schema="test"/>
+            <geometryProperty refColumn="lod1Solid_ID" type="AbstractSolid" path="lod1Solid" schema="test"/>
+            <geometryProperty refColumn="lod2Solid_ID" type="AbstractSolid" path="lod2Solid" schema="test"/>
+            <geometryProperty refColumn="lod3Solid_ID" type="AbstractSolid" path="lod3Solid" schema="test"/>
+            <geometryProperty refColumn="lod4Solid_ID" type="AbstractSolid" path="lod4Solid" schema="test"/>
+            <featureProperty target="AddressType" path="address" schema="test">
+                <joinTable table="test_BuildingU_to_address">
+                    <join table="test_BuildingUnit" fromColumn="BuildingUnit_ID" toColumn="ID" toRole="parent"/>
+                    <inverseJoin table="address" fromColumn="address_ID" toColumn="ID" toRole="parent"/>
+                </joinTable>
+            </featureProperty>
+            <featureProperty target="test_FacilitiesType" path="equippedWith" schema="test">
+                <join table="test_Facilities" fromColumn="ID" toColumn="BuildingUnit_equippedWith_ID" toRole="child">
+                    <condition column="objectclass_id" value="${target.objectclass_id}" type="integer"/>
+                </join>
+            </featureProperty>
+            <featureProperty target="test_BuildingUnitPartType" path="consistsOf" schema="test">
+                <join table="test_BuildingUnit" fromColumn="ID" toColumn="BuildingUnit_Parent_ID" toRole="child">
+                    <condition column="objectclass_id" value="${target.objectclass_id}" type="integer"/>
+                    <treeHierarchy rootColumn="BuildingUnit_Root_ID"/>
+                </join>
+            </featureProperty>
+        </featureType>
+        <featureType abstract="true" id="test_FacilitiesType" table="test_Facilities" objectClassId="20001" path="Facilities" schema="test">
+            <extension base="AbstractFeatureType">
+                <join table="cityobject" fromColumn="ID" toColumn="ID" toRole="parent"/>
+            </extension>
+            <complexAttribute path="totalValue" schema="test">
+                <attribute column="totalValue_uom" type="string" path="@uom" schema="test"/>
+                <attribute column="totalValue" type="double" path="." schema="test"/>
+            </complexAttribute>
+        </featureType>
+        <featureType id="test_BuildingUnitPartType" table="test_BuildingUnit" objectClassId="20002" path="BuildingUnitPart" schema="test">
+            <extension base="test__AbstractBuildingUnitType"/>
+        </featureType>
+        <featureType id="test_BuildingUnitType" table="test_BuildingUnit" objectClassId="20003" path="BuildingUnit" schema="test">
+            <extension base="test__AbstractBuildingUnitType"/>
+        </featureType>
+        <featureType id="test_DHWFacilitiesType" table="test_Facilities" objectClassId="20004" path="DHWFacilities" schema="test">
+            <extension base="test_FacilitiesType"/>
+        </featureType>
+        <featureType id="test_IndustrialBuildingType" table="test_IndustrialBuilding" objectClassId="20005" topLevel="true" path="IndustrialBuilding" schema="test">
+            <extension base="AbstractBuildingType">
+                <join table="building" fromColumn="ID" toColumn="ID" toRole="parent"/>
+            </extension>
+            <attribute column="remark" type="string" path="remark" schema="test"/>
+        </featureType>
+        <featureType id="test_IndustrialBuildingPartType" table="test_IndustrialBuildingPa" objectClassId="20006" path="IndustrialBuildingPart" schema="test">
+            <extension base="BuildingPartType">
+                <join table="building" fromColumn="ID" toColumn="ID" toRole="parent"/>
+            </extension>
+            <attribute column="remark" type="string" path="remark" schema="test"/>
+        </featureType>
+        <featureType id="test_IndustrialBuildingRoofSurfaceType" table="test_IndustrialBuildingRo" objectClassId="20007" path="IndustrialBuildingRoofSurface" schema="test">
+            <extension base="RoofSurfaceType">
+                <join table="thematic_surface" fromColumn="ID" toColumn="ID" toRole="parent"/>
+            </extension>
+            <attribute column="remark" type="string" path="remark" schema="test"/>
+        </featureType>
+        <featureType id="test_LightingFacilitiesType" table="test_Facilities" objectClassId="20008" path="LightingFacilities" schema="test">
+            <extension base="test_FacilitiesType"/>
+        </featureType>
+        <featureType id="test_OtherConstructionType" table="test_OtherConstruction" objectClassId="20009" topLevel="true" path="OtherConstruction" schema="test">
+            <extension base="AbstractSiteType">
+                <join table="cityobject" fromColumn="ID" toColumn="ID" toRole="parent"/>
+            </extension>
+            <featureProperty target="AbstractBoundarySurfaceType" path="boundedBy" schema="test">
+                <joinTable table="test_Other_to_thema_surfa">
+                    <join table="test_OtherConstruction" fromColumn="OtherConstruction_ID" toColumn="ID" toRole="parent"/>
+                    <inverseJoin table="thematic_surface" fromColumn="thematic_surface_ID" toColumn="ID" toRole="parent"/>
+                </joinTable>
+            </featureProperty>
+        </featureType>
+    </featureTypes>
+    <propertyInjections>
+        <propertyInjection table="test_building" defaultBase="AbstractBuildingType">
+            <join table="test_building" fromColumn="ID" toColumn="ID" toRole="child"/>
+            <attribute column="ownerName" type="string" path="ownerName" schema="test"/>
+            <complexAttribute path="floorArea" schema="test">
+                <attribute column="floorArea_uom" type="string" path="@uom" schema="test"/>
+                <attribute column="floorArea" type="double" path="." schema="test"/>
+            </complexAttribute>
+            <complexProperty path="energyPerformanceCertification" schema="test">
+                <type path="EnergyPerformanceCertification" schema="test">
+                    <attribute column="EnergyPerforma_certification" type="string" path="certificationName" schema="test"/>
+                    <attribute column="EnergyPerform_certificatio_1" type="string" path="certificationid" schema="test"/>
+                </type>
+            </complexProperty>
+            <featureProperty target="test__AbstractBuildingUnitType" path="buildingUnit" schema="test">
+                <join table="test_BuildingUnit" fromColumn="ID" toColumn="building_buildingUnit_ID" toRole="child">
+                    <condition column="objectclass_id" value="${target.objectclass_id}" type="integer"/>
+                </join>
+            </featureProperty>
+        </propertyInjection>
+    </propertyInjections>
+</schemaMapping>
