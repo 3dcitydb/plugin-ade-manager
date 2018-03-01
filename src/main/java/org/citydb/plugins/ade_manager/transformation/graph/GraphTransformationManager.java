@@ -1,5 +1,13 @@
 package org.citydb.plugins.ade_manager.transformation.graph;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citygml4j.xml.schema.Schema;
@@ -43,7 +51,7 @@ public class GraphTransformationManager {
 
     	// execute graph transformation
     	graTra.transform();
-    	marshallingEdGraphGrammer(config.getOutputGraphPath());
+    	marshallingEdGraphGrammer(config.getTmpGraphDirPath() + File.separator + "Output_Graph_Tmp.ggx");
     	
     	return aggGraphGrammar;
 	}
@@ -51,8 +59,22 @@ public class GraphTransformationManager {
 	private void createGraphFromXMLSchema() {		
 		// loaded predefined edGraph grammar
 		XMLHelper xmlh = new XMLHelper();
-		String workingGraphDir = config.getInputGraphPath();
-		if (xmlh.read_from_xml(workingGraphDir)) {
+		BufferedReader in = new BufferedReader(
+				new InputStreamReader(this.getClass().getResourceAsStream(config.getInputGraphPath())));
+
+		File tmpFile = new File(config.getTmpGraphDirPath() + File.separator + "Input_Graph_Tmp.ggx");
+	    OutputStream outStream;
+		try {
+			outStream = new FileOutputStream(tmpFile);
+			 String line = null;	
+				while ((line = in.readLine()) != null) {
+					outStream.write(line.getBytes());
+				}
+		} catch (IOException e) {
+			//
+		}
+	
+		if (xmlh.read_from_xml(tmpFile.getAbsolutePath())) {
 			GraGra graphGrammar = BaseFactory.theFactory().createGraGra(false);				
 			xmlh.getTopObject(graphGrammar);			
 			this.edGraphGrammar = new EdGraGra(graphGrammar);
