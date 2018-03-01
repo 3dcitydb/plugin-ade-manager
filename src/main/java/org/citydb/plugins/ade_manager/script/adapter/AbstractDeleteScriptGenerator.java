@@ -13,6 +13,7 @@ import java.util.Map;
 import javax.xml.namespace.QName;
 
 import org.citydb.database.connection.DatabaseConnectionPool;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.script.DsgException;
 import org.citydb.plugins.ade_manager.script.IDeleteScriptGenerator;
 import org.citydb.plugins.ade_manager.script.RelationType;
@@ -35,7 +36,7 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 	protected DatabaseConnectionPool dbPool;
 		
 	@Override
-	public void doProcess(DatabaseConnectionPool dbPool, File outputFile) throws DsgException {	
+	public void doProcess(DatabaseConnectionPool dbPool, ConfigImpl config) throws DsgException {	
 		this.deleteFuncNames = new HashMap<String, String>();
 		this.deleteFuncDefs = new HashMap<String, String>();
 		this.tableAggregationInfo = new HashMap<QName, Boolean>();
@@ -49,7 +50,7 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 		
 		generateDeleteFuncs("cityobject", "citydb");
 		
-		writeToFile(outputFile);
+		writeToFile(new File(config.getTransformationOutputPath() + File.separator + "3dcitydb-delete-script"));
 	}
 	
 	protected abstract void generateDeleteFuncs(String initTableName, String schemaName) throws DsgException;
@@ -165,7 +166,8 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 		} catch (IOException e) {
 			throw new DsgException("Failed to open file '" + outputFile.getName() + "' for writing.", e);
 		} finally {
-			writer.close();	
+			if (writer != null)
+				writer.close();				
 		}	
 	}
 	

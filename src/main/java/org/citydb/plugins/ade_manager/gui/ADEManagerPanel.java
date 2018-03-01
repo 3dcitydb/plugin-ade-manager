@@ -742,10 +742,9 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			DatabaseType databaseType = dbPool.getActiveDatabaseAdapter().getDatabaseType();
 			DeleteScriptGeneratorFactory factory = new DeleteScriptGeneratorFactory();
 			IDeleteScriptGenerator cleanupScriptGenerator = factory.createDatabaseAdapter(databaseType);
-			
-			File outputFile = new File("tmp/test.sql");
+
 			try {
-				cleanupScriptGenerator.doProcess(dbPool, outputFile);
+				cleanupScriptGenerator.doProcess(dbPool, config);
 			} catch (DsgException e) {
 				LOG.error("Failed to generate delect-scripts for the connected 3DCityDB instance");
 				Throwable cause = e.getCause();
