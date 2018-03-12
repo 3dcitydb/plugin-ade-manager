@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import javax.xml.namespace.QName;
 import org.citydb.database.schema.mapping.GeometryType;
 import org.citydb.database.schema.mapping.SimpleType;
+import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.transformation.graph.ADEschemaHelper.ComplexAttributeType;
 import org.citydb.plugins.ade_manager.transformation.graph.ADEschemaHelper.SimpleAttribute;
@@ -40,6 +41,7 @@ public class GraphCreator {
 	private Map<String, Node> globalClassNodes;
 	private Node hostSchemaNode;
 	private ConfigImpl config;
+	private final Logger LOG = Logger.getInstance();
 
 	public GraphCreator(Schema schema, SchemaHandler schemaHandler, GraGra graphGrammar, ConfigImpl config){
 		this.schemaHandler = schemaHandler;			
@@ -192,7 +194,6 @@ public class GraphCreator {
 			propertyNode = this.createSimpleAttributeNode(propertyNodeType, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, primitiveDataType);
 		} 		
 		else if (propertyDecl.isImplicitGeometryProperty()) {
-			System.out.println(propertyDecl.getLocalName());
 			propertyNode = this.createGeometryPropertyNode(GraphNodeArcType.ImplicitGeometryProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, GeometryType.ABSTRACT_GEOMETRY.value());
 		}
 		else if (propertyDecl.isBrepGeometryProperty()) {    
@@ -224,11 +225,17 @@ public class GraphCreator {
 			this.processComplexAttributeNode(propertyNode, propertyDecl);
 		}
 		else {
-			System.out.println("Not supported Porperty element: \"" + propertyDecl.getLocalName() + "\"; Type name: \"" + propertyDecl.getXSElementDecl().getType().getName() + "\"");
-			propertyNode = this.createPropertyNode(GraphNodeArcType.GenericAttribute, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace);
+			String propertyTypeName = propertyDecl.getXSElementDecl().getType().getName();
+			if (propertyTypeName.equalsIgnoreCase("TimePeriodPropertyType")) {
+				propertyNode = this.createPropertyNode(GraphNodeArcType.GenericAttribute, nameAndPath, isForeign, propertyTypeName, minOccurs, maxOccurs, namespace);				
+			}			
+			else {
+				LOG.warn("Unsupported Porperty element: \"" + propertyDecl.getLocalName() + "\"; Type name: \"" + propertyTypeName + "\"");
+			}
 		}
-
-		this.createArc(GraphNodeArcType.Contains, parentNode, propertyNode);        	      
+		
+		if (propertyNode != null)
+			this.createArc(GraphNodeArcType.Contains, parentNode, propertyNode);   		     	      
 	}
 
 	private Node getOrCreateADEHookClass (String className, ADEschemaElement parentDecl) {	
@@ -288,7 +295,9 @@ public class GraphCreator {
 			classNode = this.createComplexTypeNode(path, isForeign, className, namespaceUri, isAbstract, derivedFrom, topLevel);							
 		}
 		else {
-			System.out.println("Error --> Unsupported/Unknown Class Type: " + decl.getXSElementDecl().getType().getName());
+			LOG.warn("Unsupported XML/GML Type '" 
+					+ decl.getXSElementDecl().getType().getName()
+					+ "' for the ADE class '" + decl.getXSElementDecl().getName() + "'. (skipped).");
 		}
 
 		if (ADEschemaHelper.CityGML_Namespaces.contains(namespaceUri) || namespaceUri.equalsIgnoreCase("http://www.opengis.net/gml")) 
