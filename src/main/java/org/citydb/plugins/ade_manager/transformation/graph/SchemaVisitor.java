@@ -48,9 +48,11 @@ public abstract class SchemaVisitor implements XSVisitor {
 	}
 
 	@Override
-	public void particle(XSParticle p) {			
-		XSTerm pterm = p.getTerm();		
-		pterm.visit(this);		
+	public void particle(XSParticle p) {	
+		if (p != null) {
+			XSTerm pterm = p.getTerm();		
+			pterm.visit(this);
+		}				
 	}
 
 	@Override
