@@ -23,7 +23,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.citydb:impexp-client:4.0.0-PRE-2'
+    compile 'org.citydb:impexp-client:4.0.0-PRE-3'
 	compile fileTree(dir: 'lib', include: '*.jar')
 }
 
