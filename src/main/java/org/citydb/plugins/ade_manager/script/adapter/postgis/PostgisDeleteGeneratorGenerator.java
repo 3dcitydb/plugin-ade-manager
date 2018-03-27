@@ -63,9 +63,9 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		// Main Delete for the current table
 		delete_block += create_local_delete(tableName);
 		
-		// Code-block for deleting referenced tables with N:0..1 aggregation, composition 
-		// or normal association. e.g. the composition relationship between building and surface geometry,
-		// the aggregation relationship between a feature and its referenced implicit geometry	
+		// Code-block for deleting referenced tables with 1:0..1 composition or N: 0..1 aggregation 
+		// e.g. the composition relationship between building and surface geometry,
+		// the aggregation relationship between features and their shared implicit geometry	
 		String[] tmp = create_ref_to_delete(tableName, schemaName);
 		String vars = tmp[0]; 
 		String returning_block = tmp[1]; 
@@ -194,7 +194,6 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			String rootTableName = ref.getRootTableName();			
 			String n_table_name = ref.getnTableName();
 			String n_fk_column_name = ref.getnFkColumnName();
-			String n_fk_name = ref.getnFkName();
 			String m_table_name = ref.getmTableName();
 			String m_fk_column_name = ref.getmFkColumnName();
 			String m_ref_column_name = ref.getmRefColumnName();
@@ -205,7 +204,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			if (!deleteFuncDefs.containsKey(n_table_name) && m_table_name == null)
 				createDeleteFunc(n_table_name, schemaName);
 
-			// PF = FK case e.g. ADE hook and inheritance relationships
+			// PF = FK is the case e.g. ADE hook and inheritance relationships
 			if (n_fk_column_name.equalsIgnoreCase("id")) { 						
 				ref_child_block += brDent1 + "IF $2 <> 2 THEN"
 								 	+ brDent2 + "-- delete " + n_table_name + "s"
@@ -217,7 +216,10 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 					ref_block += create_n_ref_delete(n_table_name, n_fk_column_name, schemaName);
 				}		
 				else {
-					// in this case, the table n is an associative table for M:N relation
+					// If the n_fk_column is nullable, the n_fk_column could be a foreign key column like
+					// lodx_multi_surf_fk in the BUILDING table, or like building_id_fk in the THEMATIC_SURFACE table 
+					// In both these cases, the foreign key on this column shall be defined as "ON DELETE SET NULL"					
+					/**
 					if (!n_column_is_not_null) { 
 						updateConstraintsSql += "select citydb_pkg.update_table_constraint('"
 								+ n_fk_name + "', '"
@@ -225,18 +227,22 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 								+ n_fk_column_name + "', '"
 								+ rootTableName + "', '"
 								+ "id', '"
-								+ "NOT NULL', '"
+								+ "SET NULL', '"
 								+ schemaName + "');" + br;
-					}											
+					}	
+					**/					
 				}
 			}	
-			
-			if (m_table_name != null) {												
+			// If the n_fk_column is not nullable and the table m exists, the table n should be an associative table 
+			// between the root table and table m
+			if (n_column_is_not_null && m_table_name != null) {												
 				if (!deleteFuncDefs.containsKey(m_table_name))
 					createDeleteFunc(m_table_name, schemaName);
 
 				RelationType mRootRelation = checkTableRelation(m_table_name, rootTableName);
-
+				
+				// In case of composition or aggregation between the root table and table m, the corresponding 
+				// records in the tables n and m should be deleted using an explicit code-block created below 
 				if (mRootRelation != RelationType.no_agg_comp) {
 					vars += brDent1 + m_table_name + "_ids int[] := '{}';";
 					ref_block += create_n_m_ref_delete(n_table_name, 
@@ -247,7 +253,12 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 														schemaName, 
 														mRootRelation);
 				}	
+				// Otherwise, the reverse relation between the root table and table m could be a composition 
+				// or aggregation relationship or the two tables have a normal association relationship. In these 
+				// both cases, the records in the table n can be directly deleted by means of ON DELETE CASCADE.  
+				// The referenced records in the table m shall not be deleted 
 				else {
+					/**
 					updateConstraintsSql += "select citydb_pkg.update_table_constraint('"
 							+ n_fk_name + "', '"
 							+ n_table_name + "', '"
@@ -256,6 +267,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 							+ "id', '"
 							+ "CASCADE', '"
 							+ schemaName + "');" + br;
+					**/	
 				}
 			}
 		} 
@@ -482,7 +494,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		
 		// In the case of composition, the sub-features shall be directly deleted 
 		// without needing to check if they are referenced by another super features
-		// In other cases (aggregation or normal association), this check is required.
+		// In other cases (aggregation), this check is required.
 		if (tableRelation != RelationType.composition) {
 			code_block += brDent2 + join_block
 						+ brDent2 + "WHERE " + where_block + ";";
@@ -638,8 +650,9 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			String[] fk_columns = entry.getFkColumns();
 
 			RelationType tableRelation = checkTableRelation(ref_table_name, tableName);
-			if (tableRelation != RelationType.no_agg_comp) {
-				
+			
+			// Exclude the case of normal associations for which the referenced features should be not be deleted. 
+			if (tableRelation != RelationType.no_agg_comp) {				
 				vars += brDent1 + ref_table_name + "_ids int[] := '{}';";
 				collect_block += "," 
 							  + brDent2;
@@ -659,6 +672,8 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				if (!deleteFuncDefs.containsKey(ref_table_name))
 					createDeleteFunc(ref_table_name, schemaName);
 				
+				// Check if we need add additional code-block for cleaning up the sub-features
+				// for the case of aggregation relationship. 
 				fk_block += this.create_m_ref_delete(ref_table_name, ref_column_name, schemaName, tableRelation);
 			}
 		}

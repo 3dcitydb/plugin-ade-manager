@@ -3,9 +3,6 @@ package org.citydb.plugins.ade_manager.script.adapter;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +28,107 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 	protected String updateConstraintsSql = "";
 	protected Map<String, String> deleteFuncNames;
 	protected Map<String, String> deleteFuncDefs;
-	protected Map<QName, Boolean> tableAggregationInfo;
+
+	@SuppressWarnings("serial")
+	protected final Map<QName, Boolean> tableAggregationInfo = new HashMap<QName, Boolean>() {
+		{
+			put(new QName("cityobject", "citymodel"), false);
+			put(new QName("external_reference", "cityobject"), true);
+			put(new QName("surface_geometry", "cityobject"), true);
+			put(new QName("surface_geometry", "surface_geometry"), true);
+			put(new QName("surface_geometry", "implict_geometry"), true);
+			put(new QName("appearance", "citymodel"), true);
+			put(new QName("appearance", "cityobject"), true);
+			put(new QName("surface_data", "appearance"), false);
+			put(new QName("textureparam", "surface_data"), false);
+			put(new QName("tex_image", "surface_data"), false);
+			put(new QName("cityobject", "cityobjectgroup"), false);
+			put(new QName("implicit_geometry", "cityobjectgroup"), true);
+			put(new QName("implicit_geometry", "city_furniture"), false);
+			put(new QName("surface_geometry", "city_furniture"), true);
+			put(new QName("cityobject_genericattrib", "cityobject_genericattrib"), false);
+			put(new QName("cityobject_genericattrib", "cityobject"), true);
+			put(new QName("surface_geometry", "cityobject_genericattrib"), true);
+			put(new QName("surface_geometry", "generic_cityobject"), true);
+			put(new QName("implicit_geometry", "generic_cityobject"), false);
+			put(new QName("surface_geometry", "land_use"), false);
+			put(new QName("relief_component", "relief_feature"), false);
+			put(new QName("surface_geometry", "tin_relief"), true);
+			put(new QName("grid_coverage", "raster_relief"), true);
+			put(new QName("traffic_area", "transportation_complex"), true);
+			put(new QName("surface_geometry", "traffic_area"), true);
+			put(new QName("surface_geometry", "transportation_complex"), true);
+			put(new QName("surface_geometry", "solitary_vegetat_object"), true);
+			put(new QName("implicit_geometry", "solitary_vegetat_object"), false);
+			put(new QName("surface_geometry", "plant_cover"), true);
+			put(new QName("waterboundary_surface", "waterbody"), false);
+			put(new QName("surface_geometry", "waterbody"), true);
+			put(new QName("surface_geometry", "waterboundary_surface"), true);
+			put(new QName("address", "bridge"), false);
+			put(new QName("address", "bridge_opening"), false);
+			put(new QName("bridge", "bridge"), true);
+			put(new QName("bridge_constr_element", "bridge"), true);
+			put(new QName("bridge_furniture", "bridge_room"), true);
+			put(new QName("bridge_installation", "bridge_room"), true);
+			put(new QName("bridge_installation", "bridge"), true);
+			put(new QName("bridge_opening", "bridge_thematic_surface"), true);
+			put(new QName("bridge_room", "bridge"), true);
+			put(new QName("bridge_thematic_surface", "bridge_room"), true);
+			put(new QName("bridge_thematic_surface", "bridge"), true);
+			put(new QName("bridge_thematic_surface", "bridge_installation"), true);
+			put(new QName("bridge_thematic_surface", "bridge_thematic_surface"), true);
+			put(new QName("surface_geometry", "bridge"), true);
+			put(new QName("surface_geometry", "bridge_furniture"), true);
+			put(new QName("surface_geometry", "bridge_installation"), true);
+			put(new QName("surface_geometry", "bridge_opening"), true);
+			put(new QName("surface_geometry", "bridge_thematic_surface"), true);
+			put(new QName("surface_geometry", "bridge_room"), true);
+			put(new QName("surface_geometry", "bridge_constr_element"), true);
+			put(new QName("implicit_geometry", "bridge_furniture"), true);
+			put(new QName("implicit_geometry", "bridge_installation"), true);
+			put(new QName("implicit_geometry", "bridge_opening"), true);
+			put(new QName("implicit_geometry", "bridge_constr_element"), true);
+			put(new QName("address", "building"), false);
+			put(new QName("address", "opening"), false);
+			put(new QName("building", "building"), true);
+			put(new QName("building_furniture", "room"), true);
+			put(new QName("building_installation", "room"), true);
+			put(new QName("building_installation", "building"), true);
+			put(new QName("opening", "thematic_surface"), false);
+			put(new QName("room", "building"), true);
+			put(new QName("thematic_surface", "room"), true);
+			put(new QName("thematic_surface", "building_installation"), true);
+			put(new QName("thematic_surface", "building"), true);
+			put(new QName("surface_geometry", "building"), true);
+			put(new QName("surface_geometry", "building_furniture"), true);
+			put(new QName("surface_geometry", "building_installation"), true);
+			put(new QName("surface_geometry", "opening"), true);
+			put(new QName("surface_geometry", "thematic_surface"), true);
+			put(new QName("surface_geometry", "room"), true);
+			put(new QName("implicit_geometry", "building_furniture"), true);
+			put(new QName("implicit_geometry", "building_installation"), true);
+			put(new QName("implicit_geometry", "opening"), true);
+			put(new QName("tunnel", "tunnel"), true);
+			put(new QName("tunnel_furniture", "tunnel_hollow_space"), true);
+			put(new QName("tunnel_installation", "tunnel_hollow_space"), true);
+			put(new QName("tunnel_installation", "tunnel"), true);
+			put(new QName("tunnel_opening", "tunnel_thematic_surface"), false);
+			put(new QName("tunnel_hollow_space", "tunnel"), true);
+			put(new QName("tunnel_thematic_surface", "tunnel_hollow_space"), true);
+			put(new QName("tunnel_thematic_surface", "tunnel"), true);
+			put(new QName("tunnel_thematic_surface", "tunnel_installation"), true);
+			put(new QName("surface_geometry", "tunnel"), true);
+			put(new QName("surface_geometry", "tunnel_furniture"), true);
+			put(new QName("surface_geometry", "tunnel_installation"), true);
+			put(new QName("surface_geometry", "tunnel_opening"), true);
+			put(new QName("surface_geometry", "tunnel_thematic_surface"), true);
+			put(new QName("surface_geometry", "tunnel_hollow_space"), true);
+			put(new QName("implicit_geometry", "tunnel_furniture"), true);
+			put(new QName("implicit_geometry", "tunnel_installation"), true);
+			put(new QName("implicit_geometry", "tunnel_opening"), true);
+		}
+	};
+	
 	
 	protected DatabaseConnectionPool dbPool;
 		
@@ -39,15 +136,8 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 	public void doProcess(DatabaseConnectionPool dbPool, ConfigImpl config) throws DsgException {	
 		this.deleteFuncNames = new HashMap<String, String>();
 		this.deleteFuncDefs = new HashMap<String, String>();
-		this.tableAggregationInfo = new HashMap<QName, Boolean>();
 		this.dbPool = dbPool;
-		
-		try {
-			queryTableAggregationInfo();
-		} catch (SQLException e) {
-			throw new DsgException("Failed to fetch the table aggregation information from 3dcitydb", e);
-		}
-		
+
 		generateDeleteFuncs("cityobject", "citydb");
 		
 		writeToFile(new File(config.getTransformationOutputPath() + File.separator + "3dcitydb-delete-script.sql"));
@@ -85,48 +175,6 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 		return funcName;
 	}
 	
-	protected void queryTableAggregationInfo() throws SQLException {
-		PreparedStatement pstsmt = null;
-		ResultSet rs = null;
-		Connection conn = null;
-		
-		try {
-			conn = dbPool.getConnection();
-			pstsmt = conn.prepareStatement("Select * from citydb_table");
-			rs = pstsmt.executeQuery();
-						
-			while (rs.next()) {
-				String childTable = rs.getString(1).toLowerCase();
-				String parentTable = rs.getString(2).toLowerCase();
-				boolean isComposite = (rs.getInt(3) == 1);
-				tableAggregationInfo.put(new QName(childTable, parentTable), isComposite);
-			}							
-		} 
-		finally {			
-			if (rs != null) { 
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					throw e;
-				}
-			}	
-			if (pstsmt != null) { 
-				try {
-					pstsmt.close();
-				} catch (SQLException e) {
-					throw e;
-				} 
-			}			
-			if (conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					throw e;
-				}
-			}
-		}
-	}
-	
 	protected RelationType checkTableRelation(String childTable, String parentTable) {
 		QName key = new QName(childTable, parentTable);
 		if (tableAggregationInfo.containsKey(key)) {
@@ -145,9 +193,7 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 		PrintWriter writer = null;
 		try {
 			// header part
-			writer = new PrintWriter(outputFile);
-			writer.println(buildComment("Automatically generated SQL statements for updating some certain FK constraints"));
-			writer.println(updateConstraintsSql);			
+			writer = new PrintWriter(outputFile);		
 			writer.println(buildComment("Automatically generated 3DcityDB-delete-functions"));
 			for (String funcName: deleteFuncNames.values()) {
 				writer.println("--" + funcName);
