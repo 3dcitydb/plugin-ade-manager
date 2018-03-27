@@ -51,7 +51,7 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 			put(new QName("surface_geometry", "cityobject_genericattrib"), true);
 			put(new QName("surface_geometry", "generic_cityobject"), true);
 			put(new QName("implicit_geometry", "generic_cityobject"), false);
-			put(new QName("surface_geometry", "land_use"), false);
+			put(new QName("surface_geometry", "land_use"), true);
 			put(new QName("relief_component", "relief_feature"), false);
 			put(new QName("surface_geometry", "tin_relief"), true);
 			put(new QName("grid_coverage", "raster_relief"), true);
