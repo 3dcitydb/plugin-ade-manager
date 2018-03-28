@@ -241,7 +241,10 @@ public class DBScriptGenerator {
 		}
 		
 		String fkName = (String) joinNode.getAttribute().getValueAt("name");
-		ForeignKey fk = new ForeignKey();
+		String ondelete = (String) joinNode.getAttribute().getValueAt("ondelete");
+
+		CitydbForeignKey fk = new CitydbForeignKey();
+		fk.setOndelete(ondelete);
 		fk.setName(fkName);
 		fk.setForeignTableName(joinToTableName);	
 		Reference refer = new Reference();
@@ -512,10 +515,7 @@ public class DBScriptGenerator {
 			while (iterator.hasNext()) {
 				Table table = iterator.next();
 				if (!isMappedFromforeignClass(table.getName()) && table.getForeignKeyCount() > 0) {
-					printComment("--------------------------------------------------------------------", databasePlatform, writer);						
-					printComment(table.getName(), databasePlatform, writer);
-					printComment("--------------------------------------------------------------------", databasePlatform, writer);
-					sqlBuilder.createExternalForeignKeys(database, table);	
+					this.printForeignkeyConstraints(table, writer);
 				}
 			}
 			
@@ -676,6 +676,48 @@ public class DBScriptGenerator {
 		writer.println();
 		writer.println("prompt Used SRID for spatial indexes: &SRSNO ");
 		writer.println();
+	}
+	
+	private void printForeignkeyConstraints(Table table, PrintWriter writer) throws IOException {
+		String tablenName = table.getName();
+		boolean flag = false;
+		for (int idx = 0; idx < table.getForeignKeyCount(); idx++)
+        {
+			CitydbForeignKey fk = (CitydbForeignKey) table.getForeignKey(idx);
+			String fkName = fk.getName();
+			String fkColumnName = fk.getFirstReference().getLocalColumnName();
+			String refTableName = fk.getForeignTableName();
+			String refColumnName = fk.getFirstReference().getForeignColumnName();
+			String ondelete = fk.getOndelete();
+           
+            if (!flag) {
+        		printComment("--------------------------------------------------------------------", databasePlatform, writer);						
+				printComment(table.getName(), databasePlatform, writer);
+				printComment("--------------------------------------------------------------------", databasePlatform, writer);
+				flag = true;
+        	}            
+			writer.print("ALTER TABLE ");
+			writer.print(tablenName);
+			writer.print(" ADD CONSTRAINT ");
+			writer.print(fkName);
+			writer.print(" FOREIGN KEY (");
+			writer.print(fkColumnName);
+			writer.print(")");
+			writer.println();
+			writer.print("REFERENCES ");
+			writer.print(refTableName);
+			writer.print(" (");
+			writer.print(refColumnName);
+			writer.print(")");
+			if (ondelete != null) {
+				writer.println();
+				writer.print("ON DELETE ");
+				writer.print(ondelete);				
+			}
+			writer.print(";");			 
+        	writer.println();
+        	writer.println();
+        } 
 	}
 	
 	private void printIndexes(Table table, PrintWriter writer) throws IOException {

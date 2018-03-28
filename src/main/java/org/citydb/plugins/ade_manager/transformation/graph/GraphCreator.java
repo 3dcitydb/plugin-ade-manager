@@ -182,7 +182,31 @@ public class GraphCreator {
 
 		String propertyNodeType = null;
 		Node propertyNode = null;
+		
+		String relationType = null;
 
+		// read the tagged value of "relationType" from XML annotation
+		XSAnnotation annotation = propertyDecl.getXSElementDecl().getAnnotation();
+		if (annotation != null) {
+			Element annotationElement = (Element) annotation.getAnnotation();       	
+			if (annotationElement != null) {
+				NodeList annotationNodeList = annotationElement.getElementsByTagName("appinfo");
+				if (annotationNodeList.getLength() > 0) {
+					NodeList appinfoNodeList = annotationNodeList.item(0).getChildNodes();
+					for (int i = 0; i < appinfoNodeList.getLength(); i++) {
+						org.w3c.dom.Node taggedValueNode = appinfoNodeList.item(0).getNextSibling();
+						org.w3c.dom.Node node = taggedValueNode.getAttributes().getNamedItem("tag");
+						if (node != null) {
+							String taggedValueName = node.getNodeValue();
+							if (taggedValueName.equalsIgnoreCase("relationType")) {
+								relationType = taggedValueNode.getFirstChild().getNodeValue();								
+							}
+						}						
+					}	    			
+				}
+			}
+		}
+				
 		if (propertyDecl.isEnumerationProperty()) {
 			propertyNodeType = GraphNodeArcType.EnumerationProperty;
 			String primitiveDataType = SimpleType.STRING.value();
@@ -210,14 +234,17 @@ public class GraphCreator {
 		}
 		else if (propertyDecl.isCityGMLnonPorperty()) {
 			propertyNode = this.createPropertyNode(GraphNodeArcType.ComplexTypeProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace);
+			this.setNodeAttributeValue(propertyNode, "relationType", relationType);
 			this.processCityGMLnonPropertyNode(propertyNode, propertyDecl);
 		}
 		else if (propertyDecl.isGMLreferenceProperty()) {
 			propertyNode = this.createPropertyNode(GraphNodeArcType.ComplexTypeProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace);
+			this.setNodeAttributeValue(propertyNode, "relationType", relationType);
 			this.processGMLreferencePropertyNode(propertyNode, propertyDecl);
 		}
 		else if (propertyDecl.isFeatureOrObjectProperty() || propertyDecl.isUnionProperty() || propertyDecl.isComplexDataProperty()) {
 			propertyNode = this.createPropertyNode(GraphNodeArcType.ComplexTypeProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace);
+			this.setNodeAttributeValue(propertyNode, "relationType", relationType);
 			this.processComplexTypePropertyNode(propertyNode, propertyDecl);                 		
 		} 
 		else if (propertyDecl.isComplexAttribute()) {
@@ -257,7 +284,6 @@ public class GraphCreator {
 	private Node getOrCreateElementTypeNode (ADEschemaElement decl) {
 		String className = decl.getXSElementDecl().getType().getName();
 		String path = decl.getLocalName();
-
 		if (globalClassNodes.containsKey(className))
 			return globalClassNodes.get(className);	
 
@@ -400,6 +426,13 @@ public class GraphCreator {
 		ValueMember attr = (ValueMember) valueTuple.getValueMemberAt("primitiveDataType");
 		attr.setExprAsObject(type);
 		return propertyNode;
+	}
+	
+	private void setNodeAttributeValue(Node node, String attrName, Object value) {
+		AttrInstance attrInstance = node.getAttribute();
+		ValueTuple valueTuple = (ValueTuple) attrInstance;
+		ValueMember attr = (ValueMember) valueTuple.getValueMemberAt(attrName);
+		attr.setExprAsObject(value);
 	}
 
 	// CityGML _CityObject and ExternalReference which do not have globally defined property. 
