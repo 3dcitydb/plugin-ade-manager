@@ -87,7 +87,6 @@ public class DBScriptGenerator {
 		}
 		
 		Database database = new Database();	
-		this.addDefaul3DCityDBTablesToDatabase(database);
 		List<Table> list = new ArrayList<Table>(databaseTables.values());
 		database.addTables(list);
 		
@@ -255,24 +254,6 @@ public class DBScriptGenerator {
 		fk.addReference(refer);		
 		Table localTable = databaseTables.get(joinFromTableName);
 		localTable.addForeignKey(fk);
-	}
-	
-	private void addDefaul3DCityDBTablesToDatabase(Database database) {
-		Table surfaceGeometryTable = new Table();
-		Column pkColumn = new Column();
-		pkColumn.setName("ID");
-		pkColumn.setTypeCode(Types.NUMERIC);
-		surfaceGeometryTable.addColumn(pkColumn);
-		surfaceGeometryTable.setName("SURFACE_GEOMETRY");
-		database.addTable(surfaceGeometryTable);
-		
-		Table implicitGeometryTable = new Table();
-		pkColumn = new Column();
-		pkColumn.setName("ID");
-		pkColumn.setTypeCode(Types.NUMERIC);
-		implicitGeometryTable.addColumn(pkColumn);
-		implicitGeometryTable.setName("IMPLICIT_GEOMETRY");
-		database.addTable(implicitGeometryTable);
 	}
 	
 	private void printComment(String text, Platform platform, PrintWriter writer) throws IOException
