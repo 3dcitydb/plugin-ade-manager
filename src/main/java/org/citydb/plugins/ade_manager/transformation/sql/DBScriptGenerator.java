@@ -18,7 +18,6 @@ import org.apache.ddlutils.Platform;
 import org.apache.ddlutils.PlatformInfo;
 import org.apache.ddlutils.model.Column;
 import org.apache.ddlutils.model.Database;
-import org.apache.ddlutils.model.ForeignKey;
 import org.apache.ddlutils.model.Reference;
 import org.apache.ddlutils.model.Table;
 import org.apache.ddlutils.platform.SqlBuilder;
@@ -66,7 +65,7 @@ public class DBScriptGenerator {
 		this.config = config;
 	}
 
-	public void createDatabaseScripts() {
+	public Database createDatabaseScripts() {
 		// shorten database object name;
 		this.shrotenDatabaseObjectName();
 
@@ -98,6 +97,8 @@ public class DBScriptGenerator {
 		// PgSQL version
 		databasePlatform = new PostgreSqlPlatform();		
 		this.marshallingDatabaseSchema(databasePlatform, database);
+		
+		return database;
 	}
 	
 	public Platform getDatabasePlatform () {

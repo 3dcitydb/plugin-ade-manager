@@ -495,12 +495,15 @@ public class SchemaMappingCreator {
 				Join propertyJoin = this.createJoin(localType.getTable(), targetNode);
 				property.setJoin(propertyJoin);
 			}
-			
+
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.JoinTable)) {
 				JoinTable propertyJoinTable = this.createJoinTable(targetNode, localType.getTable());
 				property.setJoin(propertyJoinTable);
 			}
-		}		
+		}	
+		String relationType = (String) featureOrObjectOrComplexTypePropertyNode.getAttribute().getValueAt("relationType");
+		System.out.println(property.getPath() + " -->" + relationType);
+		
 	}
 	
 	private JoinTable createJoinTable(Node joinTableNode, String parentTableName) {
