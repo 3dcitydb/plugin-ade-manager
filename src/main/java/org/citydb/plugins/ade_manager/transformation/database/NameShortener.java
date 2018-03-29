@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.transformation.sql;
+package org.citydb.plugins.ade_manager.transformation.database;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

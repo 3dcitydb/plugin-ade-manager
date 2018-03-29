@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.transformation.sql;
+package org.citydb.plugins.ade_manager.transformation.database.schema;
 
 import org.apache.ddlutils.model.ForeignKey;
 

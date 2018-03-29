@@ -25,9 +25,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.citydb.plugins.ade_manager.metadata;
+package org.citydb.plugins.ade_manager.transformation.database.delete;
 
-public enum DBSequenceType {
-	schema_seq,
-	ade_seq
+public enum RelationType {
+	aggregation,
+	composition,
+	no_agg_comp
 }

@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.script.adapter;
+package org.citydb.plugins.ade_manager.transformation.database.delete.adapter;
 
 import java.io.File;
 import javax.xml.bind.JAXBException;
@@ -7,7 +7,7 @@ import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.database.schema.mapping.SchemaMappingException;
 import org.citydb.database.schema.mapping.SchemaMappingValidationException;
 import org.citydb.database.schema.util.SchemaMappingUtil;
-import org.citydb.plugins.ade_manager.script.DsgException;
+import org.citydb.plugins.ade_manager.transformation.database.delete.DsgException;
 import org.citydb.util.CoreConstants;
 
 public class Test {

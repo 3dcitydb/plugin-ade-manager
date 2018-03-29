@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.script.adapter.postgis;
+package org.citydb.plugins.ade_manager.transformation.database.delete.adapter.postgis;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -7,9 +7,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.citydb.plugins.ade_manager.script.DsgException;
-import org.citydb.plugins.ade_manager.script.RelationType;
-import org.citydb.plugins.ade_manager.script.adapter.AbstractDeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.transformation.database.delete.DsgException;
+import org.citydb.plugins.ade_manager.transformation.database.delete.RelationType;
+import org.citydb.plugins.ade_manager.transformation.database.delete.adapter.AbstractDeleteScriptGenerator;
 
 public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerator {
 

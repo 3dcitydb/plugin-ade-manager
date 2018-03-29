@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.script;
+package org.citydb.plugins.ade_manager.transformation.database.delete;
 
 public class DsgException extends Exception {
 

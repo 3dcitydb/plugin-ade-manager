@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.metadata;
+package org.citydb.plugins.ade_manager.registry;
 
 import java.io.IOException;
 import java.nio.file.Files;

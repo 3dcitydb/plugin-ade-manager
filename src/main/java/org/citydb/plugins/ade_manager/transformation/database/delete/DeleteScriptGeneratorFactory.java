@@ -1,9 +1,9 @@
-package org.citydb.plugins.ade_manager.script;
+package org.citydb.plugins.ade_manager.transformation.database.delete;
 
 
 import org.citydb.config.project.database.DatabaseType;
-import org.citydb.plugins.ade_manager.script.adapter.oracle.OracleDeleteScriptGenerator;
-import org.citydb.plugins.ade_manager.script.adapter.postgis.PostgisDeleteGeneratorGenerator;
+import org.citydb.plugins.ade_manager.transformation.database.delete.adapter.oracle.OracleDeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.transformation.database.delete.adapter.postgis.PostgisDeleteGeneratorGenerator;
 
 public class DeleteScriptGeneratorFactory {
 	

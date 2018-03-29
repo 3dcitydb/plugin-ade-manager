@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.transformation.sql;
+package org.citydb.plugins.ade_manager.transformation.database.schema;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +25,7 @@ import org.apache.ddlutils.platform.oracle.Oracle10Platform;
 import org.apache.ddlutils.platform.postgresql.PostgreSqlPlatform;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.transformation.database.NameShortener;
 import org.citydb.plugins.ade_manager.transformation.graph.ADEschemaHelper;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
 
