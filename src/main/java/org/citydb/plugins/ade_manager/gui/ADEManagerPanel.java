@@ -605,21 +605,25 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			viewController.errorMessage("Incorrect Information", "Then initial objectclass ID must be greater than or equal to 10000");
 			return;
 		}
+				
+		checkAndConnectToDB();
 		
-		TransformationManager manager = new TransformationManager(schemaHandler, schema, config);		
-		try {
-			manager.doProcess();
-		} catch (TransformationException e) {
-			LOG.error(e.getMessage());			
-			Throwable cause = e.getCause();
-			while (cause != null) {
-				LOG.error("Cause: " + cause.getMessage());
-				cause = cause.getCause();
+		if (dbPool.isConnected()) {
+			TransformationManager manager = new TransformationManager(schemaHandler, schema, dbPool, config);		
+			try {
+				manager.doProcess();
+			} catch (TransformationException e) {
+				LOG.error(e.getMessage());			
+				Throwable cause = e.getCause();
+				while (cause != null) {
+					LOG.error("Cause: " + cause.getMessage());
+					cause = cause.getCause();
+				}
+				return;
 			}
-			return;
-		}
 
-		LOG.info("Transformation finished");
+			LOG.info("Transformation finished");
+		}
 	}
 
 	private void registerADEintoDB() {
@@ -735,24 +739,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 	}
 	
 	private void generateDeleteScripts() {
-		checkAndConnectToDB();
 		
-		if (dbPool.isConnected()) {
-			DatabaseType databaseType = dbPool.getActiveDatabaseAdapter().getDatabaseType();
-			DeleteScriptGeneratorFactory factory = new DeleteScriptGeneratorFactory();
-			IDeleteScriptGenerator cleanupScriptGenerator = factory.createDatabaseAdapter(databaseType);
-
-			try {
-				cleanupScriptGenerator.doProcess(dbPool, config);
-			} catch (DsgException e) {
-				LOG.error("Failed to generate delect-scripts for the connected 3DCityDB instance");
-				Throwable cause = e.getCause();
-				while (cause != null) {
-					LOG.error("Cause: " + cause.getMessage());
-					cause = cause.getCause();
-				}
-			}
-		}
 	}
 	
 	private void checkAndConnectToDB() {

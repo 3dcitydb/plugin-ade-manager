@@ -15,6 +15,7 @@ import javax.xml.namespace.QName;
 
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.transformation.TransformationManager;
 import org.citydb.plugins.ade_manager.transformation.database.delete.DsgException;
 import org.citydb.plugins.ade_manager.transformation.database.delete.IDeleteScriptGenerator;
 import org.citydb.plugins.ade_manager.transformation.database.delete.RelationType;
@@ -35,13 +36,15 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 	protected Map<QName, Boolean> tableAggregationInfo;
 	
 	protected DatabaseConnectionPool dbPool;
+	protected TransformationManager manager;
 		
 	@Override
-	public void doProcess(DatabaseConnectionPool dbPool, ConfigImpl config) throws DsgException {	
+	public void doProcess(TransformationManager manager, DatabaseConnectionPool dbPool, ConfigImpl config) throws DsgException {	
 		this.deleteFuncNames = new HashMap<String, String>();
 		this.deleteFuncDefs = new HashMap<String, String>();
 		this.tableAggregationInfo = new HashMap<QName, Boolean>();
 		this.dbPool = dbPool;
+		this.manager = manager;
 
 		try {
 			queryTableAggregationInfo();
