@@ -38,6 +38,7 @@ public interface GraphNodeArcType {
     String TargetColumn = "targetColumn";
     String TargetTable = "targetTable";
     String Contains = "contains";
+    String InlineType = "inlineType";
     String MapsTo = "mapsTo";
     String Extends = "extends";
     String TargetType = "targetType";

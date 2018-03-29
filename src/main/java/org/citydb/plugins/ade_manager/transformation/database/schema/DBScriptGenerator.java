@@ -225,6 +225,8 @@ public class DBScriptGenerator {
 		String joinToTableName = null;
 		Node joinFromColumnNode = null;
 		Node joinToColumnNode = null;
+		boolean joinFromColumnIsPk = false;
+		boolean joinToColumnIsPk = false;
 		while (iter.hasNext()) {
 			Arc arc = iter.next();
 			if (arc.getType().getName().equalsIgnoreCase(GraphNodeArcType.JoinFrom)) {
@@ -232,12 +234,18 @@ public class DBScriptGenerator {
 				Node joinFromTableNode = (Node)joinFromColumnNode.getOutgoingArcs().next().getTarget();
 				joinFromColumnName = (String)joinFromColumnNode.getAttribute().getValueAt("name");
 				joinFromTableName= (String)joinFromTableNode.getAttribute().getValueAt("name");
+				if (joinFromColumnNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.PrimaryKeyColumn)) {
+					joinFromColumnIsPk = true;
+				}
 			}
 			else if (arc.getType().getName().equalsIgnoreCase(GraphNodeArcType.JoinTo)) {
 				joinToColumnNode = (Node) arc.getTarget();
 				Node joinToTableNode = (Node)joinToColumnNode.getOutgoingArcs().next().getTarget();
 				joinToColumnName = (String)joinToColumnNode.getAttribute().getValueAt("name");
 				joinToTableName= (String)joinToTableNode.getAttribute().getValueAt("name");
+				if (joinToColumnNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.PrimaryKeyColumn)) {
+					joinToColumnIsPk = true;
+				}
 			}
 		}
 		
@@ -249,8 +257,18 @@ public class DBScriptGenerator {
 		fk.setName(fkName);
 		fk.setForeignTableName(joinToTableName);	
 		Reference refer = new Reference();
-		refer.setLocalColumnName(joinFromColumnName);
-		refer.setForeignColumnName(joinToColumnName);
+		
+		Column localColumn = new Column();
+		localColumn.setName(joinFromColumnName);
+		localColumn.setPrimaryKey(joinFromColumnIsPk);
+		localColumn.setRequired(joinFromColumnIsPk);
+		Column foreignColumn = new Column();
+		foreignColumn.setName(joinToColumnName);
+		foreignColumn.setPrimaryKey(joinToColumnIsPk);
+		foreignColumn.setRequired(joinToColumnIsPk);
+		
+		refer.setLocalColumn(localColumn);
+		refer.setForeignColumn(foreignColumn);
 		fk.addReference(refer);		
 		Table localTable = databaseTables.get(joinFromTableName);
 		localTable.addForeignKey(fk);

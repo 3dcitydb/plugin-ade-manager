@@ -500,10 +500,7 @@ public class SchemaMappingCreator {
 				JoinTable propertyJoinTable = this.createJoinTable(targetNode, localType.getTable());
 				property.setJoin(propertyJoinTable);
 			}
-		}	
-		String relationType = (String) featureOrObjectOrComplexTypePropertyNode.getAttribute().getValueAt("relationType");
-		System.out.println(property.getPath() + " -->" + relationType);
-		
+		}			
 	}
 	
 	private JoinTable createJoinTable(Node joinTableNode, String parentTableName) {

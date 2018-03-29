@@ -4,7 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import java.sql.Connection;
@@ -13,12 +17,22 @@ import java.sql.ResultSet;
 
 import javax.xml.namespace.QName;
 
+import org.apache.ddlutils.model.Database;
+import org.apache.ddlutils.model.ForeignKey;
+import org.apache.ddlutils.model.Table;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.transformation.TransformationManager;
 import org.citydb.plugins.ade_manager.transformation.database.delete.DsgException;
 import org.citydb.plugins.ade_manager.transformation.database.delete.IDeleteScriptGenerator;
 import org.citydb.plugins.ade_manager.transformation.database.delete.RelationType;
+import org.citydb.plugins.ade_manager.transformation.database.delete.adapter.AbstractDeleteScriptGenerator.ReferencingEntry;
+import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
+
+import agg.xt_basis.Arc;
+import agg.xt_basis.GraGra;
+import agg.xt_basis.Node;
+import agg.xt_basis.Type;
 
 public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGenerator {
 	private final int MAX_FUNCNAME_LENGTH = 30;
@@ -47,7 +61,7 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 		this.manager = manager;
 
 		try {
-			queryTableAggregationInfo();
+			queryTableAggregationInfoFromDb();
 		} catch (SQLException e) {
 			throw new DsgException("Failed to fetch the table aggregation information from 3dcitydb", e);
 		}
@@ -89,7 +103,78 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 		return funcName;
 	}
 	
-	protected void queryTableAggregationInfo() throws SQLException {
+	private void queryTableAggregationinfoFromADEGraph() {
+		GraGra adeGraph = manager.getAdeGraph();
+		Enumeration<Type> e = adeGraph.getTypes();		
+		while(e.hasMoreElements()){
+			Type nodeType = e.nextElement();				
+			if (nodeType.getName().equalsIgnoreCase(GraphNodeArcType.ComplexType)) {
+				List<Node> nodes = adeGraph.getGraph().getNodes(nodeType);
+				for (Node objectNode: nodes) {
+					String parentTableName = getMappedTableName(objectNode);				
+					Iterator<Arc> propertyArcIter = objectNode.getOutgoingArcs();
+					while(propertyArcIter.hasNext()) {
+						Arc propertyArc = propertyArcIter.next();
+						Node propertyNode = (Node) propertyArc.getTarget();							
+						// process featureOrObjectOrDataProperty
+						if (propertyNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexTypeProperty)) {
+							Iterator<Arc> targetArcIter = propertyNode.getOutgoingArcs();
+							while (targetArcIter.hasNext()) {
+								Arc targetArc = targetArcIter.next();
+								Node targetObjectNode = (Node) targetArc.getTarget();
+								if (targetObjectNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexType)) {
+									String derivedFrom = (String) targetObjectNode.getAttribute().getValueAt("derivedFrom");
+									String childTableName = getMappedTableName(targetObjectNode);
+									if (derivedFrom.equalsIgnoreCase("_Object") ) {
+										if (targetArc.getType().getName().equalsIgnoreCase(GraphNodeArcType.TargetType)) {
+											tableAggregationInfo.put(new QName(childTableName, parentTableName), true);
+										}
+									}
+										
+									if (targetArc.getType().getName().equalsIgnoreCase(GraphNodeArcType.TargetType)) {
+										
+										String relationType = (String)propertyNode.getAttribute().getValueAt("relationType");
+										if (relationType != null) {
+											if (relationType.equalsIgnoreCase("composition"))
+												tableAggregationInfo.put(new QName(childTableName, parentTableName), true);
+											else if (relationType.equalsIgnoreCase("aggregation"))
+												tableAggregationInfo.put(new QName(childTableName, parentTableName), false);
+										}										
+									}							
+								}
+							}
+						}	
+						// process geometry property
+						if (propertyNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.BrepGeometryProperty)) {
+							tableAggregationInfo.put(new QName("surface_geometry", parentTableName), true);
+						}
+						// process implicit geometry property
+						if (propertyNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ImplicitGeometryProperty)) {
+							tableAggregationInfo.put(new QName("implicit_geometry", parentTableName), false);
+						}
+					}	
+				}
+			};
+		}
+	}
+	
+	private String getMappedTableName(Node objectNode) {
+		String tableName = null;
+		Iterator<Arc> arcIter = objectNode.getOutgoingArcs();		
+		while(arcIter.hasNext()) {
+			Arc arc = arcIter.next();
+			Node targetNode = (Node) arc.getTarget();							
+			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.DataTable)) {
+				tableName = (String) targetNode.getAttribute().getValueAt("name");
+			}		
+		}
+		
+		return tableName;
+	}
+
+	protected void queryTableAggregationInfoFromDb() throws SQLException {
+		queryTableAggregationinfoFromADEGraph();
+		
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
 		Connection conn = null;
@@ -158,6 +243,118 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 			return RelationType.no_agg_comp;
 		} 			
 	}	
+	
+	protected List<String> query_selfref_fk_from_external_db(String localTableName) {
+		Database adeDbSchema = this.manager.getAdeDatabaseSchema();
+		List<String> result = new ArrayList<String>();
+		for (Table table: adeDbSchema.getTables()) {
+			if (table.getName().equalsIgnoreCase(localTableName)) {
+				for (ForeignKey fk: table.getForeignKeys()) {
+					if (fk.getForeignTableName().equalsIgnoreCase(localTableName)
+							&& fk.getFirstReference().getForeignColumnName().equalsIgnoreCase("id")) {
+						result.add(fk.getFirstReference().getLocalColumnName());
+					}
+				}
+			}
+			
+		}
+		return result;
+	}
+	
+	protected List<MnRefEntry> query_ref_fk_from_external_db(String rootTableName) {
+		Database adeDbSchema = this.manager.getAdeDatabaseSchema();
+		List<MnRefEntry> result = new ArrayList<MnRefEntry>();		
+		for (Table table: adeDbSchema.getTables()) {
+			if (!table.getName().equalsIgnoreCase(rootTableName)) {
+				for (ForeignKey fk: table.getForeignKeys()) {
+					if (fk.getForeignTableName().equalsIgnoreCase(rootTableName)) {
+						MnRefEntry entry = new MnRefEntry();
+						entry.setRootTableName(rootTableName);
+						entry.setnTableName(table.getName());
+						entry.setnFkName(fk.getName());
+						entry.setnFkColumnName(fk.getFirstReference().getLocalColumnName());
+						entry.setnColIsNotNull(fk.getFirstReference().getLocalColumn().isRequired());
+						if (entry.isnColIsNotNull()) {
+							for (ForeignKey mFk: table.getForeignKeys()) {
+								if (!mFk.getName().equalsIgnoreCase(fk.getName())
+										&& mFk.getFirstReference().getLocalColumn().isRequired()) {
+									entry.setmTableName(mFk.getForeignTableName());
+									entry.setmFkColumnName(mFk.getFirstReference().getLocalColumnName());
+									entry.setmFkName(mFk.getName());
+									entry.setmRefColumnName(mFk.getFirstReference().getForeignColumnName());
+								}
+							}						
+						}
+						result.add(entry);
+					}
+				}
+			}		
+		}		
+		return result;
+	}
+
+	protected List<ReferencedEntry> query_ref_to_fk_external_db (String rootTableName) {
+		Database adeDbSchema = this.manager.getAdeDatabaseSchema();
+		List<ReferencedEntry> result = new ArrayList<ReferencedEntry>();		
+		for (Table table: adeDbSchema.getTables()) {
+			if (table.getName().equalsIgnoreCase(rootTableName)) {
+				Map<String, List<String>> foreignTables = new HashMap<String, List<String>>();  
+				for (ForeignKey fk: table.getForeignKeys()) {
+					String foreignTableName = fk.getForeignTableName();
+					if (!foreignTableName.equalsIgnoreCase(rootTableName) && !foreignTableName.equalsIgnoreCase("cityobject")) {
+						if (foreignTables.containsKey(foreignTableName)) {
+							foreignTables.get(foreignTableName).add(fk.getFirstReference().getLocalColumnName());
+						}
+						else {
+							List<String> fkList = new ArrayList<String>();
+							fkList.add(fk.getFirstReference().getLocalColumnName());
+							foreignTables.put(foreignTableName, fkList);
+						}						
+					}
+				}
+
+				for (String foreignTableName: foreignTables.keySet()) {
+					List<String> fkList = foreignTables.get(foreignTableName);
+					ReferencedEntry entry = new ReferencedEntry(foreignTableName, "id", fkList.toArray(new String[fkList.size()]));
+					result.add(entry);
+				}
+			}		
+		}		
+		return result;
+	}
+	
+	protected List<ReferencingEntry> query_ref_tables_and_columns_from_external_db(String rootTableName) {
+		Database adeDbSchema = this.manager.getAdeDatabaseSchema();
+		List<ReferencingEntry> result = new ArrayList<ReferencingEntry>();		
+		for (Table table: adeDbSchema.getTables()) {
+			for (ForeignKey fk: table.getForeignKeys()) {
+				String fkTableName = table.getName();
+				String foreignTableName = fk.getForeignTableName();
+				String foreignKeyColumnName = fk.getFirstReference().getLocalColumnName();
+				if (foreignTableName.equalsIgnoreCase(rootTableName) && !foreignKeyColumnName.equalsIgnoreCase("id")) {
+					result.add(new ReferencingEntry(fkTableName, foreignKeyColumnName));
+				}
+			}	
+		}		
+		return result;
+	}
+	
+	protected String query_ref_to_parent_fk_from_external_db(String rootTableName) {
+		Database adeDbSchema = this.manager.getAdeDatabaseSchema();	
+		for (Table table: adeDbSchema.getTables()) {
+			if (table.getName().equalsIgnoreCase(rootTableName)) {
+				for (ForeignKey fk: table.getForeignKeys()) {
+					String fkLocalColumnName = fk.getFirstReference().getLocalColumnName();
+					String fkForeignColumnName = fk.getFirstReference().getForeignColumnName();
+					if (fkLocalColumnName.equalsIgnoreCase("id") && fkForeignColumnName.equalsIgnoreCase("id")) {
+						return fk.getForeignTableName();
+					}
+				}	
+			}
+			
+		}		
+		return null;
+	}
 	
 	private void writeToFile(File outputFile) throws DsgException {
 		PrintWriter writer = null;

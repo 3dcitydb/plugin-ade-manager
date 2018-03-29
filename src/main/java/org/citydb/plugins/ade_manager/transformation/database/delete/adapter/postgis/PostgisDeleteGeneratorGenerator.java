@@ -18,6 +18,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		try {
 			createDeleteFunc(initTableName, schemaName);
 		} catch (SQLException e) {
+			e.printStackTrace();
 			throw new DsgException ("Failed to create generate delete functions from the database", e);
 		}
 	}
@@ -133,10 +134,12 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 	
 	private List<String> query_selfref_fk(String tableName, String schemaName) throws SQLException {
+		// first check in the input ADE database schema
+		List<String> result = query_selfref_fk_from_external_db(tableName);
+		
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
 		Connection conn = null;
-		List<String> result = new ArrayList<>();
 		
 		StringBuilder strBuilder = new StringBuilder(); 
 		strBuilder.append("SELECT a.attname ")
@@ -144,7 +147,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				  .append("JOIN pg_attribute a ")
 				      .append("ON a.attrelid = c.conrelid ")
 				      .append("AND a.attnum = ANY (c.conkey) ")
-				  .append("WHERE c.conrelid = ('").append(schemaName).append(".").append(tableName).append("')::regclass::oid ")
+				  .append("WHERE c.conrelid::regclass::text = '").append(tableName).append("' ")
 				      .append("AND c.conrelid = c.confrelid ")
 				      .append("AND c.contype = 'f'");
 	
@@ -281,7 +284,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
 		Connection conn = null;
-		List<MnRefEntry> result = new ArrayList<MnRefEntry>();
+		List<MnRefEntry> result = query_ref_fk_from_external_db(tableName);
 		
 		StringBuilder strBuilder = new StringBuilder(); 
 		strBuilder.append("select ")
@@ -318,7 +321,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				  	  	       .append("FROM ")
 				  	  	           .append("pg_constraint ")
 				  	  	       .append("WHERE ")
-				  	  	           .append("confrelid = ('" + schemaName + "." + tableName + "')::regclass::oid ")
+				  	  	           .append("confrelid::regclass::text = '" + tableName + "' ")
 				  	  	           .append("AND conrelid <> confrelid ")
 				  	  	           .append("AND contype = 'f' ")
 				  	  	       .append("UNION ALL ")
@@ -344,7 +347,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				  	  	   .append(") n ")
 				  	  	   .append("ON n.parent_table = c.conrelid ")
 				  	  .append("WHERE ")
-				  	       .append("c.confrelid = ('" + schemaName + "." + tableName + "')::regclass::oid ")
+				  	       .append("c.confrelid::regclass::text = '" + tableName + "' ")
 				  	       .append("AND c.conrelid <> c.confrelid ")
 				  	       .append("AND c.contype = 'f' ")
 				 .append(") ref ")
@@ -372,7 +375,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 					     .append("mn.conrelid = ref.n_table_name ")
 					     .append("AND mn.confrelid <> ref.n_table_name ")
 					     .append("AND mn.contype = 'f' ")
-					     .append("AND mn.confrelid <> ('"+ schemaName + "." + tableName + "')::regclass::oid ")
+					     .append("AND mn.confrelid::regclass::text <> '"+ tableName + "' ")
 					     .append("AND pk.contype = 'p'")
 					 .append(") m ON (true) ")
 					 .append("ORDER BY ")
@@ -513,8 +516,8 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		ResultSet rs = null;
 		Connection conn = null;
 		
-		List<ReferencingEntry> result = new ArrayList<ReferencingEntry>();
-		
+		List<ReferencingEntry> result = query_ref_tables_and_columns_from_external_db(tableName);
+	
 		StringBuilder strBuilder = new StringBuilder();
 		strBuilder.append("SELECT ")
 				      .append("c.conrelid::regclass::text, ")
@@ -526,7 +529,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				      .append("ON a.attrelid = c.conrelid ")
 				      .append("AND a.attnum = ANY (c.conkey) ")
 				  .append("WHERE ")
-				      .append("c.confrelid = ('").append(schemaName).append(".").append(tableName).append("')::regclass::oid ")
+				      .append("c.confrelid::regclass::text = '").append(tableName).append("' ")
 				      .append("AND a.attname::text <> 'id' ")
 				      .append("AND c.contype = 'f'");
 		try {
@@ -586,7 +589,10 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
 		Connection conn = null;
-		String result = null;
+		
+		String result = query_ref_to_parent_fk_from_external_db(tableName);
+		if (result != null)
+			return result;
 		
 		StringBuilder strBuilder = new StringBuilder();
 		strBuilder.append("SELECT ")
@@ -595,8 +601,8 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				      .append("pg_constraint f, ")
 				      .append("pg_constraint p ")
 				  .append("WHERE ")
-				      .append("f.conrelid = ('").append(schemaName).append(".").append(tableName).append("')::regclass::oid ")
-				      .append("AND p.conrelid = ('").append(schemaName).append(".").append(tableName).append("')::regclass::oid ")
+				      .append("f.conrelid::regclass::text = '").append(tableName).append("' ")
+				      .append("AND p.conrelid::regclass::text = '").append(tableName).append("' ")
 				      .append("AND f.conkey = p.conkey ")
 				      .append("AND f.contype = 'f' ")
 				      .append("AND p.contype = 'p'");
@@ -642,6 +648,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		String collect_block = "";
 		String into_block = "";
 		String fk_block = "";
+		
 		List<ReferencedEntry> refEntries = query_ref_to_fk(tableName, schemaName);
 		
 		for (ReferencedEntry entry : refEntries) {
@@ -693,7 +700,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
 		Connection conn = null;
-		List<ReferencedEntry> result = new ArrayList<ReferencedEntry>();
+		List<ReferencedEntry> result = query_ref_to_fk_external_db(tableName);
 		
 		StringBuilder strBuilder = new StringBuilder();
 		strBuilder.append("SELECT ")
@@ -711,10 +718,10 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				      .append("ON a_ref.attrelid = c.confrelid ")
 				      .append("AND a_ref.attnum = ANY (c.confkey) ")
 				  .append("WHERE ")
-				      .append("c.conrelid = ('").append(schemaName).append(".").append(tableName).append("')::regclass::oid ")
+				      .append("c.conrelid::regclass::text = '").append(tableName).append("' ")
 				      .append("AND c.conrelid <> c.confrelid ")
 				      .append("AND c.contype = 'f' ")
-				      .append("AND c.confrelid::regclass::text NOT LIKE '%cityobject' ")
+				      .append("AND c.confrelid::regclass::text <> 'cityobject' ")
 				  .append("GROUP BY ")
 				      .append("c.confrelid, ")
 				      .append("a_ref.attname");
