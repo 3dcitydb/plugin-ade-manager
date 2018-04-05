@@ -186,7 +186,7 @@ public class DBScriptGenerator {
 			column.setSize("1000");
 		}
 		else if (columnSourceType.equalsIgnoreCase("boolean")) {
-			column.setTypeCode(Types.BOOLEAN);
+			column.setTypeCode(Types.NUMERIC);
 		}
 		else if (columnSourceType.equalsIgnoreCase("double")) {
 			column.setTypeCode(Types.NUMERIC);
