@@ -412,11 +412,7 @@ public class SchemaMappingCreator {
 		Node joinToTableNode = null;
 		if (!fkTableName.equalsIgnoreCase(pkTableName)) {
 			if (fkTableName.equalsIgnoreCase(localTableName)) {
-				if (!fkColumnName.equalsIgnoreCase("id") && pkColumnName.equalsIgnoreCase("id") 
-						&& !fkTableNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.JoinTable))
-					join = new Join(pkTableName, fkColumnName, pkColumnName, TableRole.CHILD);
-				else 
-					join = new Join(pkTableName, fkColumnName, pkColumnName, TableRole.PARENT);				
+				join = new Join(pkTableName, fkColumnName, pkColumnName, TableRole.PARENT);				
 				joinToTableNode = pkTableNode;
 			} 
 			else {
