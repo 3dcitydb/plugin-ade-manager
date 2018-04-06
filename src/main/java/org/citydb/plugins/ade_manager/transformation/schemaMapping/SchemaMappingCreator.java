@@ -440,11 +440,18 @@ public class SchemaMappingCreator {
 			}			
 		}
 		
-
-		if (joinToTableNode.getAttribute().getValueAt("isMerged") != null && !fkTableNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.JoinTable)) {
-			if ((boolean)joinToTableNode.getAttribute().getValueAt("isMerged")) {
-				join.addCondition(new Condition("objectclass_id", "${target.objectclass_id}", SimpleType.INTEGER));
+		boolean hasObjectclassIdColumn = false;
+		iter = joinToTableNode.getIncomingArcs();
+		while (iter.hasNext()) {
+			Arc arc = iter.next();
+			if (arc.getType().getName().equalsIgnoreCase(GraphNodeArcType.ObjectClassIDColumn)) {
+				hasObjectclassIdColumn = true;
+				break;
 			}
+		}
+		
+		if (hasObjectclassIdColumn) {
+			join.addCondition(new Condition("objectclass_id", "${target.objectclass_id}", SimpleType.INTEGER));
 		}	
 
 		// add treeHierarchy
