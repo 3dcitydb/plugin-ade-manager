@@ -238,7 +238,9 @@ public class SchemaMappingCreator {
 				this.generateFeatureOrObjectOrComplexTypeProperty(featureOrObjectOrComplexType, targetNode, schemaMapping, appSchema);
 			}	
 			// process simple attribute
-			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.SimpleAttribute) || targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.EnumerationProperty)) {
+			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.GenericAttribute) || 
+					targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.SimpleAttribute) || 
+					targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.EnumerationProperty)) {
 				SimpleAttribute simpleAttribute = this.generateSimpleAttribute(targetNode, appSchema);
 				featureOrObjectOrComplexType.addProperty(simpleAttribute);
 			}	
@@ -562,6 +564,11 @@ public class SchemaMappingCreator {
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.NormalDataColumn)) {
 				String columnName = (String) targetNode.getAttribute().getValueAt("name");
 				SimpleAttribute attribute = new SimpleAttribute(path, columnName, SimpleType.fromValue(typeName), appSchema);
+				return attribute;
+			}
+			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.GenericDataColumn)) {
+				String columnName = (String) targetNode.getAttribute().getValueAt("name");
+				SimpleAttribute attribute = new SimpleAttribute(path, columnName, SimpleType.CLOB, appSchema);
 				return attribute;
 			}
 		}		

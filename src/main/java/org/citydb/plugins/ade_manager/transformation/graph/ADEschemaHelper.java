@@ -129,13 +129,7 @@ public class ADEschemaHelper {
 			
 			put("MeasureType", new ComplexAttributeType("MeasureType",
 					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
-			
-			put("MeasureListType", new ComplexAttributeType("MeasureListType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
-			
-			put("MeasureOrNilReasonListType", new ComplexAttributeType("MeasureOrNilReasonListType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
-			
+					
 			put("QuantityExtentType", new ComplexAttributeType("QuantityExtentType",
 					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
 			

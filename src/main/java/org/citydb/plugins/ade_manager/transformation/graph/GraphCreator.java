@@ -176,8 +176,6 @@ public class GraphCreator {
 					}
 				}
 
-				System.out.println(adeHookXsElementDecl.getName() + ": " + maxOccurs);	
-				
 				this.parseLocalPropertyElement(adeHookXsElementDecl, subCityGMLADEClassNode, minOccurs, maxOccurs);
 			}
 		}
@@ -242,12 +240,8 @@ public class GraphCreator {
 		}
 		else {
 			String propertyTypeName = propertyDecl.getXSElementDecl().getType().getName();
-			if (propertyTypeName.equalsIgnoreCase("TimePeriodPropertyType")) {
-				propertyNode = this.createPropertyNode(GraphNodeArcType.GenericAttribute, nameAndPath, isForeign, propertyTypeName, minOccurs, maxOccurs, namespace);				
-			}			
-			else {
-				LOG.warn("Unsupported Porperty element: \"" + propertyDecl.getLocalName() + "\"; Type name: \"" + propertyTypeName + "\"");
-			}
+			propertyNode = this.createPropertyNode(GraphNodeArcType.GenericAttribute, nameAndPath, isForeign, propertyTypeName, minOccurs, maxOccurs, namespace);
+			LOG.warn("Map Porperty element '" + propertyDecl.getLocalName() + "' onto CLOB column; Type name: \"" + propertyTypeName + "\"");
 		}
 		
 		if (propertyNode != null)
