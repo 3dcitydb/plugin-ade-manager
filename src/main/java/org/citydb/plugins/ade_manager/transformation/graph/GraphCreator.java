@@ -163,12 +163,22 @@ public class GraphCreator {
 
 				// create property node
 				int minOccurs = 0;
-				int maxoccurs = 1;
-				ADEschemaElement propertyDecl = new ADEschemaElement(adeHookXsElementDecl, schema);
-				if (propertyDecl.isFeatureOrObjectProperty())
-					maxoccurs = -1;
+				int maxOccurs = -1;
+				
+				String ADEHookMaxOccurs = getTaggedValueFromXMLAnnotation(adeHookXsElementDecl, "maxOccurs");
+				if (ADEHookMaxOccurs != null) {					
+					try {
+						maxOccurs = Integer.parseInt(ADEHookMaxOccurs);
+					} catch (NumberFormatException nfe) {
+						LOG.warn("The ADE hook property '" + adeHookXsElementDecl.getName()
+								+ "' has an invalid tagged value for its maxOccurs: '" + ADEHookMaxOccurs
+								+ "', which will be internally set to 'unbounded'");
+					}
+				}
 
-				this.parseLocalPropertyElement(adeHookXsElementDecl, subCityGMLADEClassNode, minOccurs, maxoccurs);
+				System.out.println(adeHookXsElementDecl.getName() + ": " + maxOccurs);	
+				
+				this.parseLocalPropertyElement(adeHookXsElementDecl, subCityGMLADEClassNode, minOccurs, maxOccurs);
 			}
 		}
 	}
@@ -183,30 +193,9 @@ public class GraphCreator {
 		String propertyNodeType = null;
 		Node propertyNode = null;
 		
-		String relationType = null;
-
-		// read the tagged value of "relationType" from XML annotation
-		XSAnnotation annotation = propertyDecl.getXSElementDecl().getAnnotation();
-		if (annotation != null) {
-			Element annotationElement = (Element) annotation.getAnnotation();       	
-			if (annotationElement != null) {
-				NodeList annotationNodeList = annotationElement.getElementsByTagName("appinfo");
-				if (annotationNodeList.getLength() > 0) {
-					NodeList appinfoNodeList = annotationNodeList.item(0).getChildNodes();
-					for (int i = 0; i < appinfoNodeList.getLength(); i++) {
-						org.w3c.dom.Node taggedValueNode = appinfoNodeList.item(0).getNextSibling();
-						org.w3c.dom.Node node = taggedValueNode.getAttributes().getNamedItem("tag");
-						if (node != null) {
-							String taggedValueName = node.getNodeValue();
-							if (taggedValueName.equalsIgnoreCase("relationType")) {
-								relationType = taggedValueNode.getFirstChild().getNodeValue();								
-							}
-						}						
-					}	    			
-				}
-			}
-		}
-				
+		// read the tagged value of "relationType" from XML annotation		
+		String relationType = getTaggedValueFromXMLAnnotation(propertyXSElementDecl, "relationType");
+		
 		if (propertyDecl.isEnumerationProperty()) {
 			propertyNodeType = GraphNodeArcType.EnumerationProperty;
 			String primitiveDataType = SimpleType.STRING.value();
@@ -290,28 +279,13 @@ public class GraphCreator {
 		String namespaceUri = decl.getNamespaceURI();
 		boolean isAbstract = decl.isAbstract();	
 		boolean isForeign = !schema.getNamespaceURI().equalsIgnoreCase(namespaceUri);
-		boolean topLevel = false;
 
 		// read the tagged value of "topLevel" from XML annotation
-		XSAnnotation annotation = decl.getXSElementDecl().getAnnotation();
-		if (annotation != null) {
-			Element annotationElement = (Element) annotation.getAnnotation();       	
-			if (annotationElement != null) {
-				NodeList annotationNodeList = annotationElement.getElementsByTagName("appinfo");
-				if (annotationNodeList.getLength() > 0) {
-					NodeList appinfoNodeList = annotationNodeList.item(0).getChildNodes();
-					for (int i = 0; i < appinfoNodeList.getLength(); i++) {
-						org.w3c.dom.Node taggedValueNode = appinfoNodeList.item(0).getNextSibling();
-						String taggedValueName = taggedValueNode.getAttributes().getNamedItem("tag").getNodeValue();
-						if (taggedValueName.equalsIgnoreCase("topLevel")) {
-							String topLevelStr = taggedValueNode.getFirstChild().getNodeValue();
-							if (topLevelStr.equalsIgnoreCase("true")) {
-								topLevel = true;
-							}
-						}
-					}	    			
-				}
-			}
+		boolean topLevel = false;
+		String topLevelStr = getTaggedValueFromXMLAnnotation(decl.getXSElementDecl(), "topLevel");
+		if (topLevelStr != null) {
+			if (topLevelStr.equalsIgnoreCase("true"))
+				topLevel = true;
 		}
 
 		Node classNode = null;
@@ -622,6 +596,30 @@ public class GraphCreator {
 			ex.printStackTrace();
 		}		
 		return arc;
+	}
+	
+	private String getTaggedValueFromXMLAnnotation(XSElementDecl decl, String tagName) {
+		XSAnnotation annotation = decl.getAnnotation();
+		if (annotation != null) {
+			Element annotationElement = (Element) annotation.getAnnotation();       	
+			if (annotationElement != null) {
+				NodeList annotationNodeList = annotationElement.getElementsByTagName("appinfo");
+				if (annotationNodeList.getLength() > 0) {
+					NodeList appinfoNodeList = annotationNodeList.item(0).getChildNodes();
+					for (int i = 0; i < appinfoNodeList.getLength(); i++) {
+						org.w3c.dom.Node taggedValueNode = appinfoNodeList.item(0).getNextSibling();
+						org.w3c.dom.Node node = taggedValueNode.getAttributes().getNamedItem("tag");
+						if (node != null) {
+							String taggedValueName = node.getNodeValue();
+							if (taggedValueName.equalsIgnoreCase(tagName)) {
+								return taggedValueNode.getFirstChild().getNodeValue();
+							}	
+						}						
+					}	    			
+				}
+			}
+		}
+		return null;
 	}
 
 }
