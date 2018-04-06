@@ -674,7 +674,7 @@
                     <Attribute type="I39">
                         <Value>
                             <java class="java.beans.XMLDecoder" version="1.8.0_161">
-                                <string>x.replace("Abstract","abs_").toLowerCase()</string>
+                                <string>x.replace("Abstract","").toLowerCase()</string>
                             </java>
                         </Value>
                     </Attribute>
