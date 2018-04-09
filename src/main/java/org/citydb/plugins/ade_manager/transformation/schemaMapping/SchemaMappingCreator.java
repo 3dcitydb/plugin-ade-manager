@@ -10,6 +10,7 @@ import javax.xml.namespace.QName;
 import org.citydb.database.schema.mapping.AbstractExtension;
 import org.citydb.database.schema.mapping.AbstractJoin;
 import org.citydb.database.schema.mapping.AbstractProperty;
+import org.citydb.database.schema.mapping.AbstractRefTypeProperty;
 import org.citydb.database.schema.mapping.AbstractType;
 import org.citydb.database.schema.mapping.AbstractTypeProperty;
 import org.citydb.database.schema.mapping.AppSchema;
@@ -40,6 +41,7 @@ import org.citydb.database.schema.mapping.ObjectProperty;
 import org.citydb.database.schema.mapping.ObjectType;
 import org.citydb.database.schema.mapping.ObjectTypeExtension;
 import org.citydb.database.schema.mapping.PropertyInjection;
+import org.citydb.database.schema.mapping.RelationType;
 import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.database.schema.mapping.SchemaMappingException;
 import org.citydb.database.schema.mapping.SimpleAttribute;
@@ -164,20 +166,24 @@ public class SchemaMappingCreator {
 						FeatureType featureType = ((FeatureProperty) property).getType();
 						InjectedFeatureProperty injectedProperty = new InjectedFeatureProperty(path, featureType, schema);
 						AbstractJoin abstractJoin = ((FeatureProperty) property).getJoin();
+						RelationType relationType = ((FeatureProperty) property).getRelationType();
 						if (abstractJoin instanceof Join)
 							injectedProperty.setJoin((Join) abstractJoin);
 						else
-							injectedProperty.setJoin((JoinTable) abstractJoin);						
+							injectedProperty.setJoin((JoinTable) abstractJoin);		
+						injectedProperty.setRelationType(relationType);
 						propertyInjection.addProperty(injectedProperty);
 					}
 					else if (property instanceof ObjectProperty) {
 						ObjectType objectType = ((ObjectProperty) property).getType();
 						InjectedObjectProperty injectedProperty = new InjectedObjectProperty(path, objectType, schema);
 						AbstractJoin abstractJoin = ((ObjectProperty) property).getJoin();
+						RelationType relationType = ((ObjectProperty) property).getRelationType();
 						if (abstractJoin instanceof Join)
 							injectedProperty.setJoin((Join) abstractJoin);
 						else
-							injectedProperty.setJoin((JoinTable) abstractJoin);						
+							injectedProperty.setJoin((JoinTable) abstractJoin);	
+						injectedProperty.setRelationType(relationType);
 						propertyInjection.addProperty(injectedProperty);
 					}
 					else if (property instanceof ComplexProperty) {
@@ -479,7 +485,7 @@ public class SchemaMappingCreator {
 				String propertyPath = (String) featureOrObjectOrComplexTypePropertyNode.getAttribute().getValueAt("path");
 								
 				if (targetType instanceof FeatureType) {
-					property = new FeatureProperty(propertyPath, (FeatureType) targetType, appSchema);					
+					property = new FeatureProperty(propertyPath, (FeatureType) targetType, appSchema);						
 				}
 				else if (targetType instanceof ObjectType) {
 					property = new ObjectProperty(propertyPath, (ObjectType) targetType, appSchema);	
@@ -493,7 +499,11 @@ public class SchemaMappingCreator {
 					else {
 						((ComplexProperty)property).setRefType((ComplexType) targetType);
 					}						
-				}				
+				}	
+				
+				if (property instanceof AbstractRefTypeProperty)
+					setRelationTypeForRefTypeProperty(featureOrObjectOrComplexTypePropertyNode, (AbstractRefTypeProperty<?>) property);
+
 				localType.addProperty(property);				
 			}
 			
@@ -651,6 +661,16 @@ public class SchemaMappingCreator {
 			}
 		}
 		return false;
+	}
+	
+	private void setRelationTypeForRefTypeProperty(Node propertyNode, AbstractRefTypeProperty<?> property) {
+		String relationType = (String)propertyNode.getAttribute().getValueAt("relationType");
+		if (relationType != null) {
+			if (relationType.equalsIgnoreCase("composition"))
+				((AbstractRefTypeProperty<?>) property).setRelationType(RelationType.COMPOSITION);
+			else if (relationType.equalsIgnoreCase("aggregation"))
+				((AbstractRefTypeProperty<?>) property).setRelationType(RelationType.AGGREGATION);
+		}	
 	}
 	
 }
