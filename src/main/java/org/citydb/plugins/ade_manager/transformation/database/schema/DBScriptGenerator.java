@@ -195,7 +195,9 @@ public class DBScriptGenerator {
 			column.setTypeCode(Types.DATE);
 		}
 		else if (columnSourceType.equalsIgnoreCase("timestamp")) {
+			column = new TimestampColumn();
 			column.setTypeCode(Types.TIMESTAMP);
+			column.setName(columnName);
 		}
 		else if (columnSourceType.equalsIgnoreCase("integer")) {
 			column.setTypeCode(Types.INTEGER);
