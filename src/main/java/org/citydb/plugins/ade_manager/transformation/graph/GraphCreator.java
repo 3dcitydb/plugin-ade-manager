@@ -16,6 +16,7 @@ import org.citydb.plugins.ade_manager.transformation.graph.ADEschemaHelper.Simpl
 import org.citygml4j.xml.schema.Schema;
 import org.citygml4j.xml.schema.SchemaHandler;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
 import com.sun.xml.xsom.XSAnnotation;
 import com.sun.xml.xsom.XSElementDecl;
@@ -597,19 +598,26 @@ public class GraphCreator {
 		if (annotation != null) {
 			Element annotationElement = (Element) annotation.getAnnotation();       	
 			if (annotationElement != null) {
-				NodeList annotationNodeList = annotationElement.getElementsByTagName("appinfo");
-				if (annotationNodeList.getLength() > 0) {
-					NodeList appinfoNodeList = annotationNodeList.item(0).getChildNodes();
-					for (int i = 0; i < appinfoNodeList.getLength(); i++) {
-						org.w3c.dom.Node taggedValueNode = appinfoNodeList.item(0).getNextSibling();
-						org.w3c.dom.Node node = taggedValueNode.getAttributes().getNamedItem("tag");
-						if (node != null) {
-							String taggedValueName = node.getNodeValue();
-							if (taggedValueName.equalsIgnoreCase(tagName)) {
-								return taggedValueNode.getFirstChild().getNodeValue();
-							}	
-						}						
-					}	    			
+				NodeList appInfoNodeList = annotationElement.getElementsByTagName("appinfo");
+				if (appInfoNodeList.getLength() > 0) {
+					for (int j = 0; j < appInfoNodeList.getLength(); j++) {
+						NodeList taggedValueNodeList = appInfoNodeList.item(j).getChildNodes();
+						for (int i = 0; i < taggedValueNodeList.getLength(); i++) {
+							org.w3c.dom.Node taggedValueNode = taggedValueNodeList.item(i).getNextSibling();
+							if (taggedValueNode != null) {
+								NamedNodeMap attribute = taggedValueNode.getAttributes();
+								if (attribute != null) {
+									org.w3c.dom.Node node = attribute.getNamedItem("tag");
+									if (node != null) {
+										String taggedValueName = node.getNodeValue();
+										if (taggedValueName.equalsIgnoreCase(tagName)) {
+											return taggedValueNode.getFirstChild().getNodeValue();
+										}	
+									}
+								}
+							}																		
+						}	
+					}					    			
 				}
 			}
 		}
