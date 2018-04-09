@@ -162,11 +162,22 @@ public class GraphCreator {
 					this.createArc(GraphNodeArcType.BaseType, extensionNode, superCityGMLClassNode);
 				}				
 
-				// create property node
+				// create property node with the following default minOccurs and maxOccurs values
 				int minOccurs = 0;
 				int maxOccurs = -1;
 				
+				String ADEHookMinOccurs = getTaggedValueFromXMLAnnotation(adeHookXsElementDecl, "minOccurs");
 				String ADEHookMaxOccurs = getTaggedValueFromXMLAnnotation(adeHookXsElementDecl, "maxOccurs");
+				if (ADEHookMinOccurs != null) {					
+					try {
+						minOccurs = Integer.parseInt(ADEHookMinOccurs);
+					} catch (NumberFormatException nfe) {
+						LOG.warn("The ADE hook property '" + adeHookXsElementDecl.getName()
+								+ "' has an invalid tagged value for its minOccurs: '" + ADEHookMinOccurs
+								+ "', which will be internally set to '0'");
+					}
+				}
+				
 				if (ADEHookMaxOccurs != null) {					
 					try {
 						maxOccurs = Integer.parseInt(ADEHookMaxOccurs);

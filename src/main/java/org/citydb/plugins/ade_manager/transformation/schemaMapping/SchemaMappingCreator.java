@@ -32,6 +32,7 @@ import org.citydb.database.schema.mapping.InjectedComplexProperty;
 import org.citydb.database.schema.mapping.InjectedFeatureProperty;
 import org.citydb.database.schema.mapping.InjectedGeometryProperty;
 import org.citydb.database.schema.mapping.InjectedObjectProperty;
+import org.citydb.database.schema.mapping.InjectedProperty;
 import org.citydb.database.schema.mapping.InjectedSimpleAttribute;
 import org.citydb.database.schema.mapping.Join;
 import org.citydb.database.schema.mapping.JoinTable;
@@ -160,69 +161,9 @@ public class SchemaMappingCreator {
 				Iterator<AbstractProperty> propertyIter = properties.iterator();
 				while(propertyIter.hasNext()) {
 					AbstractProperty property = propertyIter.next();
-					String path = property.getPath();
-					AppSchema schema = property.getSchema();
-					if (property instanceof FeatureProperty) {
-						FeatureType featureType = ((FeatureProperty) property).getType();
-						InjectedFeatureProperty injectedProperty = new InjectedFeatureProperty(path, featureType, schema);
-						AbstractJoin abstractJoin = ((FeatureProperty) property).getJoin();
-						RelationType relationType = ((FeatureProperty) property).getRelationType();
-						if (abstractJoin instanceof Join)
-							injectedProperty.setJoin((Join) abstractJoin);
-						else
-							injectedProperty.setJoin((JoinTable) abstractJoin);		
-						injectedProperty.setRelationType(relationType);
-						propertyInjection.addProperty(injectedProperty);
-					}
-					else if (property instanceof ObjectProperty) {
-						ObjectType objectType = ((ObjectProperty) property).getType();
-						InjectedObjectProperty injectedProperty = new InjectedObjectProperty(path, objectType, schema);
-						AbstractJoin abstractJoin = ((ObjectProperty) property).getJoin();
-						RelationType relationType = ((ObjectProperty) property).getRelationType();
-						if (abstractJoin instanceof Join)
-							injectedProperty.setJoin((Join) abstractJoin);
-						else
-							injectedProperty.setJoin((JoinTable) abstractJoin);	
-						injectedProperty.setRelationType(relationType);
-						propertyInjection.addProperty(injectedProperty);
-					}
-					else if (property instanceof ComplexProperty) {
-						ComplexType complexType = ((ComplexProperty) property).getType();
-						InjectedComplexProperty injectedProperty = new InjectedComplexProperty(path, schema);
-						if (complexType.isSetId()) {
-							injectedProperty.setRefType(complexType);							
-							AbstractJoin abstractJoin = ((ComplexProperty) property).getJoin();
-							if (abstractJoin instanceof Join)
-								injectedProperty.setJoin((Join) abstractJoin);
-							else
-								injectedProperty.setJoin((JoinTable) abstractJoin);		
-						}
-						else {
-							injectedProperty.setInlineType(complexType);
-						}							
-						propertyInjection.addProperty(injectedProperty);
-					}
-					else if (property instanceof ComplexAttribute) {
-						ComplexAttributeType complexAttributeType = ((ComplexAttribute) property).getType();
-						InjectedComplexAttribute injectedProperty = new InjectedComplexAttribute(path, schema);
-						injectedProperty.setInlineType(complexAttributeType);
-						propertyInjection.addProperty(injectedProperty);
-					}
-					else if (property instanceof SimpleAttribute) {
-						String column = ((SimpleAttribute) property).getColumn();
-						SimpleType type = ((SimpleAttribute) property).getType();
-						InjectedSimpleAttribute injectedProperty = new InjectedSimpleAttribute(path, column, type, schema);
-						propertyInjection.addProperty(injectedProperty);
-					}
-					else if (property instanceof GeometryProperty) {
-						GeometryType type = ((GeometryProperty) property).getType();
-						InjectedGeometryProperty injectedProperty = new InjectedGeometryProperty(path, type, schema);
-						if (((GeometryProperty) property).isSetInlineColumn())
-							injectedProperty.setInlineColumn(((GeometryProperty) property).getInlineColumn());
-						if (((GeometryProperty) property).isSetRefColumn())
-							injectedProperty.setRefColumn(((GeometryProperty) property).getRefColumn());
-						propertyInjection.addProperty(injectedProperty);
-					}
+					InjectedProperty injectedProperty = convertPropertyToInjectedProperty(property);
+					if (injectedProperty != null)
+						propertyInjection.addProperty(injectedProperty);	
 				}
 			}				
 		}		
@@ -234,35 +175,43 @@ public class SchemaMappingCreator {
 		while(arcIter.hasNext()) {
 			Arc arc = arcIter.next();
 			Node targetNode = (Node) arc.getTarget();				
-
+			AbstractProperty property = null;
 			// process extension
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.Extension)) {
 				this.generateExtension(featureOrObjectOrComplexType, targetNode, schemaMapping, appSchema);
 			}	
 			// process featureOrObjectOrDataProperty
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexTypeProperty)) {
-				this.generateFeatureOrObjectOrComplexTypeProperty(featureOrObjectOrComplexType, targetNode, schemaMapping, appSchema);
+				property = this.generateFeatureOrObjectOrComplexTypeProperty(featureOrObjectOrComplexType, targetNode, schemaMapping, appSchema);
 			}	
 			// process simple attribute
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.GenericAttribute) || 
 					targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.SimpleAttribute) || 
 					targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.EnumerationProperty)) {
-				SimpleAttribute simpleAttribute = this.generateSimpleAttribute(targetNode, appSchema);
-				featureOrObjectOrComplexType.addProperty(simpleAttribute);
+				property = this.generateSimpleAttribute(targetNode, appSchema);
+				featureOrObjectOrComplexType.addProperty(property);
 			}	
 			// process complex basic data property
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexAttribute)) {
-				this.generateComplexAttribute(featureOrObjectOrComplexType, targetNode, appSchema);
+				property = this.generateComplexAttribute(featureOrObjectOrComplexType, targetNode, appSchema);
 			}	
 			// process geometry property
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.BrepGeometryProperty) 
 					|| targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.PointOrLineGeometryProperty) 
 						|| targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.HybridGeometryProperty)) {
-				this.generateGeometryProperty(featureOrObjectOrComplexType, targetNode, appSchema);
+				property = this.generateGeometryProperty(featureOrObjectOrComplexType, targetNode, appSchema);
 			}
-			// process geometry property
+			// process implicit geometry property
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ImplicitGeometryProperty)) {
-				this.generateImplicitGeometryProperty(featureOrObjectOrComplexType, targetNode, appSchema);
+				property = this.generateImplicitGeometryProperty(featureOrObjectOrComplexType, targetNode, appSchema);
+			}
+			
+			if (property != null) {
+				int minOccurs = (int) targetNode.getAttribute().getValueAt("minOccurs");
+				property.setMinOccurs(minOccurs);
+				int maxOccurs = (int) targetNode.getAttribute().getValueAt("maxOccurs");
+				if (maxOccurs != -1)
+					property.setMaxOccurs(maxOccurs);
 			}
 		}		
 	}
@@ -470,7 +419,7 @@ public class SchemaMappingCreator {
 		return join;
 	}
 
-	private void generateFeatureOrObjectOrComplexTypeProperty(AbstractType<?> localType, Node featureOrObjectOrComplexTypePropertyNode, 
+	private AbstractTypeProperty<?> generateFeatureOrObjectOrComplexTypeProperty(AbstractType<?> localType, Node featureOrObjectOrComplexTypePropertyNode, 
 			SchemaMapping schemaMapping, AppSchema appSchema) throws SchemaMappingException {
 
 		AbstractTypeProperty<?> property = null;
@@ -516,7 +465,9 @@ public class SchemaMappingCreator {
 				JoinTable propertyJoinTable = this.createJoinTable(targetNode, localType.getTable());
 				property.setJoin(propertyJoinTable);
 			}
-		}			
+		}	
+		
+		return property;
 	}
 	
 	private JoinTable createJoinTable(Node joinTableNode, String parentTableName) {
@@ -587,7 +538,7 @@ public class SchemaMappingCreator {
 		return null;
 	}	
 	
-	private void generateComplexAttribute(AbstractType<?> localType, Node complexAttributeNode, AppSchema appSchema) {		
+	private ComplexAttribute generateComplexAttribute(AbstractType<?> localType, Node complexAttributeNode, AppSchema appSchema) {		
 		String propertyPath = (String) complexAttributeNode.getAttribute().getValueAt("path");
 		ComplexAttributeType attributeType = new ComplexAttributeType(adeSchemaMapping);
 		Iterator<Arc> arcIter = complexAttributeNode.getOutgoingArcs();
@@ -604,9 +555,11 @@ public class SchemaMappingCreator {
 		ComplexAttribute complexAttribute = new ComplexAttribute(propertyPath, appSchema);
 		complexAttribute.setInlineType(attributeType);
 		localType.addProperty(complexAttribute);	
+		
+		return complexAttribute;
 	}
 	
-	private void generateGeometryProperty(AbstractType<?> localType, Node geometryPropertyNode, AppSchema appSchema) {		
+	private GeometryProperty generateGeometryProperty(AbstractType<?> localType, Node geometryPropertyNode, AppSchema appSchema) {		
 		String propertyPath = (String) geometryPropertyNode.getAttribute().getValueAt("path");
 		String geometryTypeName = (String) geometryPropertyNode.getAttribute().getValueAt("geometryType");
 		GeometryType geometryType = GeometryType.fromValue(geometryTypeName);
@@ -627,13 +580,17 @@ public class SchemaMappingCreator {
 		}		
 		
 		localType.addProperty(geometryProperty);
+		
+		return geometryProperty;
 	}
 	
-	private void generateImplicitGeometryProperty(AbstractType<?> localType, Node geometryPropertyNode, AppSchema appSchema) {		
+	private ImplicitGeometryProperty generateImplicitGeometryProperty(AbstractType<?> localType, Node geometryPropertyNode, AppSchema appSchema) {		
 		String propertyPath = (String) geometryPropertyNode.getAttribute().getValueAt("path");
 		int lod = Integer.valueOf(propertyPath.replaceAll("[^0-9]", "")); 
 		ImplicitGeometryProperty implicitGeometryProperty = new ImplicitGeometryProperty(propertyPath, lod, appSchema);		
 		localType.addProperty(implicitGeometryProperty);
+		
+		return implicitGeometryProperty;
 	}
 	
 	private void processTopLevelFeatures(SchemaMapping schemaMapping) {
@@ -671,6 +628,99 @@ public class SchemaMappingCreator {
 			else if (relationType.equalsIgnoreCase("aggregation"))
 				((AbstractRefTypeProperty<?>) property).setRelationType(RelationType.AGGREGATION);
 		}	
+	}
+	
+	private InjectedProperty convertPropertyToInjectedProperty(AbstractProperty property) {
+		InjectedProperty injectedProperty = null;
+		
+		String path = property.getPath();
+		int minOccurs = property.getMinOccurs();
+		Integer maxOccurs = property.getMaxOccurs();
+		
+		AppSchema schema = property.getSchema();
+		if (property instanceof FeatureProperty) {
+			FeatureType featureType = ((FeatureProperty) property).getType();
+			injectedProperty = new InjectedFeatureProperty(path, featureType, schema);
+			AbstractJoin abstractJoin = ((FeatureProperty) property).getJoin();
+			RelationType relationType = ((FeatureProperty) property).getRelationType();
+			if (abstractJoin instanceof Join)
+				((InjectedFeatureProperty)injectedProperty).setJoin((Join) abstractJoin);
+			else
+				((InjectedFeatureProperty)injectedProperty).setJoin((JoinTable) abstractJoin);		
+			((InjectedFeatureProperty)injectedProperty).setRelationType(relationType);
+			
+			((InjectedFeatureProperty)injectedProperty).setMinOccurs(minOccurs);
+			if (maxOccurs != null)
+				((InjectedFeatureProperty)injectedProperty).setMaxOccurs(maxOccurs);
+			
+		}
+		else if (property instanceof ObjectProperty) {
+			ObjectType objectType = ((ObjectProperty) property).getType();
+			injectedProperty = new InjectedObjectProperty(path, objectType, schema);
+			AbstractJoin abstractJoin = ((ObjectProperty) property).getJoin();
+			RelationType relationType = ((ObjectProperty) property).getRelationType();
+			if (abstractJoin instanceof Join)
+				((InjectedObjectProperty)injectedProperty).setJoin((Join) abstractJoin);
+			else
+				((InjectedObjectProperty)injectedProperty).setJoin((JoinTable) abstractJoin);	
+			((InjectedObjectProperty)injectedProperty).setRelationType(relationType);
+			
+			((InjectedObjectProperty)injectedProperty).setMinOccurs(minOccurs);
+			if (maxOccurs != null)
+				((InjectedObjectProperty)injectedProperty).setMaxOccurs(maxOccurs);
+		}
+		else if (property instanceof ComplexProperty) {
+			ComplexType complexType = ((ComplexProperty) property).getType();
+			injectedProperty = new InjectedComplexProperty(path, schema);
+			if (complexType.isSetId()) {
+				((InjectedComplexProperty)injectedProperty).setRefType(complexType);							
+				AbstractJoin abstractJoin = ((ComplexProperty) property).getJoin();
+				if (abstractJoin instanceof Join)
+					((InjectedComplexProperty)injectedProperty).setJoin((Join) abstractJoin);
+				else
+					((InjectedComplexProperty)injectedProperty).setJoin((JoinTable) abstractJoin);		
+			}
+			else {
+				((InjectedComplexProperty)injectedProperty).setInlineType(complexType);
+			}	
+			
+			((InjectedComplexProperty)injectedProperty).setMinOccurs(minOccurs);
+			if (maxOccurs != null)
+				((InjectedComplexProperty)injectedProperty).setMaxOccurs(maxOccurs);
+		}
+		else if (property instanceof ComplexAttribute) {
+			ComplexAttributeType complexAttributeType = ((ComplexAttribute) property).getType();
+			injectedProperty = new InjectedComplexAttribute(path, schema);
+			((InjectedComplexAttribute)injectedProperty).setInlineType(complexAttributeType);
+			
+			((InjectedComplexAttribute)injectedProperty).setMinOccurs(minOccurs);
+			if (maxOccurs != null)
+				((InjectedComplexAttribute)injectedProperty).setMaxOccurs(maxOccurs);
+		}
+		else if (property instanceof SimpleAttribute) {
+			String column = ((SimpleAttribute) property).getColumn();
+			SimpleType type = ((SimpleAttribute) property).getType();
+			injectedProperty = new InjectedSimpleAttribute(path, column, type, schema);
+			
+			((InjectedSimpleAttribute)injectedProperty).setMinOccurs(minOccurs);
+			if (maxOccurs != null)
+				((InjectedSimpleAttribute)injectedProperty).setMaxOccurs(maxOccurs);
+			
+		}
+		else if (property instanceof GeometryProperty) {
+			GeometryType type = ((GeometryProperty) property).getType();
+			injectedProperty = new InjectedGeometryProperty(path, type, schema);
+			if (((GeometryProperty) property).isSetInlineColumn())
+				((InjectedGeometryProperty)injectedProperty).setInlineColumn(((GeometryProperty) property).getInlineColumn());
+			if (((GeometryProperty) property).isSetRefColumn())
+				((InjectedGeometryProperty)injectedProperty).setRefColumn(((GeometryProperty) property).getRefColumn());
+			
+			((InjectedGeometryProperty)injectedProperty).setMinOccurs(minOccurs);
+			if (maxOccurs != null)
+				((InjectedGeometryProperty)injectedProperty).setMaxOccurs(maxOccurs);
+		}
+		
+		return injectedProperty;
 	}
 	
 }
