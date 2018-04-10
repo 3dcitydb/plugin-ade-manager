@@ -26,7 +26,6 @@ import org.citydb.plugins.ade_manager.transformation.TransformationManager;
 import org.citydb.plugins.ade_manager.transformation.database.delete.DsgException;
 import org.citydb.plugins.ade_manager.transformation.database.delete.IDeleteScriptGenerator;
 import org.citydb.plugins.ade_manager.transformation.database.delete.RelationType;
-import org.citydb.plugins.ade_manager.transformation.database.delete.adapter.AbstractDeleteScriptGenerator.ReferencingEntry;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
 
 import agg.xt_basis.Arc;

@@ -31,7 +31,6 @@ import javax.xml.transform.Source;
 
 import org.citydb.config.i18n.Language;
 import org.citydb.config.project.database.DatabaseConfigurationException;
-import org.citydb.config.project.database.DatabaseType;
 import org.citydb.database.DatabaseController;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.schema.mapping.SchemaMapping;
@@ -54,9 +53,6 @@ import org.citydb.plugins.ade_manager.registry.DBMetadataImporter;
 import org.citydb.plugins.ade_manager.registry.DBUtil;
 import org.citydb.plugins.ade_manager.transformation.TransformationException;
 import org.citydb.plugins.ade_manager.transformation.TransformationManager;
-import org.citydb.plugins.ade_manager.transformation.database.delete.DeleteScriptGeneratorFactory;
-import org.citydb.plugins.ade_manager.transformation.database.delete.DsgException;
-import org.citydb.plugins.ade_manager.transformation.database.delete.IDeleteScriptGenerator;
 import org.citydb.plugins.ade_manager.util.SqlRunner;
 import org.citydb.registry.ObjectRegistry;
 import org.citygml4j.xml.schema.Schema;
