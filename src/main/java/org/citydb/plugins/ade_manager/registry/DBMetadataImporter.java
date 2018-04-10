@@ -34,6 +34,8 @@ public class DBMetadataImporter {
 	private MessageDigest md5;
 	private SchemaMapping adeSchemaMapping;
 	
+	public static final int MIN_ADE_OBJECTCLASSID = 10000;
+	
 	public DBMetadataImporter(DatabaseConnectionPool dbPool) throws SQLException {
 		this.dbPool = dbPool;
 
@@ -55,7 +57,7 @@ public class DBMetadataImporter {
 		
 		String insertSchemaToObjectclassQueryString = "INSERT INTO schema_to_objectclass" + "(SCHEMA_ID, OBJECTCLASS_ID) VALUES" + "(?,?)";
 		psInsertSchemaToObjectclass = dbPool.getConnection().prepareStatement(insertSchemaToObjectclassQueryString);
-		
+				
 		try {
 			md5 = MessageDigest.getInstance("MD5");
 		} catch (NoSuchAlgorithmException e) {
@@ -198,12 +200,10 @@ public class DBMetadataImporter {
 	        List<Long> insertedSchemaIds = insertedSchemas.get(schemaId);
 	        Iterator<Long> schemaIter = insertedSchemaIds.iterator();
 	        while (schemaIter.hasNext()) {
-	        	long insertedSchemaId = schemaIter.next();
-		
+	        	long insertedSchemaId = schemaIter.next();		
 	        	psInsertSchemaToObjectclass.setLong(1, insertedSchemaId);
 	        	psInsertSchemaToObjectclass.setLong(2, objectclassId);	
-	        	
-	        	psInsertSchemaToObjectclass.executeUpdate();
+	            psInsertSchemaToObjectclass.executeUpdate();
 	        }
 	    }
 	}
@@ -217,11 +217,9 @@ public class DBMetadataImporter {
 		    while (iter.hasNext()) {
 		        String schemaId = iter.next();
 		        if (!schemaId.equalsIgnoreCase(adeRootSchemaId)) {
-		        	long referencedId = insertedSchemas.get(schemaId).get(i);
-			        	
+		        	long referencedId = insertedSchemas.get(schemaId).get(i);			        	
 		        	psInsertSchemaReferencing.setLong(1, referencedId);	
-		        	psInsertSchemaReferencing.setLong(2, referencingId);
-		        	
+		        	psInsertSchemaReferencing.setLong(2, referencingId);		        	
 		        	psInsertSchemaReferencing.executeUpdate();
 		        }		        
 		    }
@@ -235,42 +233,51 @@ public class DBMetadataImporter {
 		Iterator<AbstractObjectType<?>> objectIter = adeSchemaMapping.getAbstractObjectTypes().iterator();			
 		while (objectIter.hasNext()) {
 			AbstractObjectType<?> objectClass = objectIter.next();	
-
-			long objectclassId = objectClass.getObjectClassId();
-			insertedObjectclasses.put(objectclassId, objectClass.getSchema().getId());
-			
-			int index = 1;
-			psInsertObjectclass.setLong(index++, objectclassId);
-			psInsertObjectclass.setInt(index++, 1);
-			psInsertObjectclass.setString(index++, objectClass.getPath());
-			psInsertObjectclass.setString(index++, objectClass.getTable());
-			
-			AbstractExtension<?> objectExtension = objectClass.getExtension();
-			if (objectExtension != null) {
-				AbstractObjectType<?> superType = (AbstractObjectType<?>) objectExtension.getBase();
-				int superclassId = superType.getObjectClassId();	
-				int baseclassId = getBaseclassId(objectClass);				
-				psInsertObjectclass.setInt(index++, superclassId);
-				psInsertObjectclass.setInt(index++, baseclassId);
-			}	
-			else {
-				if (objectClass instanceof ObjectType) {
-					psInsertObjectclass.setInt(index++, 1);
-					psInsertObjectclass.setInt(index++, 1);
-				}
-				else {
-					psInsertObjectclass.setInt(index++, 2);
-					psInsertObjectclass.setInt(index++, 2);
-				}
-				
-			}
-			
-			psInsertObjectclass.setLong(index++, insertedADERowId);
-
-			psInsertObjectclass.executeUpdate();				
+			if (!insertedObjectclasses.containsKey((long)objectClass.getObjectClassId()))
+				insertSingleObjectclass(objectClass, insertedObjectclasses, insertedADERowId);										
 		}
 		
 		return insertedObjectclasses;
+	}
+	
+	private void insertSingleObjectclass(AbstractObjectType<?> objectClass, Map<Long, String> insertedObjectclasses, long insertedADERowId) throws SQLException {
+		long objectclassId = objectClass.getObjectClassId();	
+		Integer superclassId = null;	
+		
+		AbstractExtension<?> objectExtension = objectClass.getExtension();
+		if (objectExtension != null) {
+			AbstractObjectType<?> superType = (AbstractObjectType<?>) objectExtension.getBase();
+			superclassId = superType.getObjectClassId();	
+			if (superclassId >= MIN_ADE_OBJECTCLASSID && !insertedObjectclasses.containsKey((long)superclassId))
+				insertSingleObjectclass(superType, insertedObjectclasses, insertedADERowId);
+		}
+
+		int index = 1;		
+		psInsertObjectclass.setLong(index++, objectclassId);
+		psInsertObjectclass.setInt(index++, 1);
+		psInsertObjectclass.setString(index++, objectClass.getPath());
+		psInsertObjectclass.setString(index++, objectClass.getTable());		
+		
+		if (superclassId != null) {	
+			int baseclassId = getBaseclassId(objectClass);	
+			psInsertObjectclass.setInt(index++, superclassId);
+			psInsertObjectclass.setInt(index++, baseclassId);
+		}	
+		else {
+			if (objectClass instanceof ObjectType) {
+				psInsertObjectclass.setInt(index++, 1);
+				psInsertObjectclass.setInt(index++, 1);
+			}
+			else {
+				psInsertObjectclass.setInt(index++, 2);
+				psInsertObjectclass.setInt(index++, 2);
+			}			
+		}	
+				
+		psInsertObjectclass.setLong(index++, insertedADERowId);
+		psInsertObjectclass.executeUpdate();			
+
+		insertedObjectclasses.put(objectclassId, objectClass.getSchema().getId());	
 	}
 	
 	private int getBaseclassId(AbstractObjectType<?> objectType) {
