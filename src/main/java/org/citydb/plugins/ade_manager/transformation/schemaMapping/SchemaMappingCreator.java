@@ -402,13 +402,28 @@ public class SchemaMappingCreator {
 		iter = joinToTableNode.getIncomingArcs();
 		while (iter.hasNext()) {
 			Arc arc = iter.next();
-			if (arc.getType().getName().equalsIgnoreCase(GraphNodeArcType.ObjectClassIDColumn)) {
-				hasObjectclassIdColumn = true;
-				break;
+			if (arc.getType().getName().equalsIgnoreCase(GraphNodeArcType.BelongsTo)) {
+				Node columnNode = (Node) arc.getSource();
+				if (columnNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ObjectClassIDColumn)) {
+					hasObjectclassIdColumn = true;
+					break;					
+				}	
 			}
 		}
 		
-		if (hasObjectclassIdColumn) {
+		boolean joinIsMappedFromInheritance = false;
+		iter = joinNode.getIncomingArcs();
+		while (iter.hasNext()) {
+			Arc arc = iter.next();
+			if (arc.getType().getName().equalsIgnoreCase(GraphNodeArcType.MapsTo)) {
+				Node propertyNode = (Node) arc.getSource();
+				if (propertyNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.Extension)) {
+					joinIsMappedFromInheritance = true;				
+				}				
+			}
+		}	
+		
+		if (hasObjectclassIdColumn && !joinIsMappedFromInheritance) {
 			join.addCondition(new Condition("objectclass_id", "${target.objectclass_id}", SimpleType.INTEGER));
 		}	
 
