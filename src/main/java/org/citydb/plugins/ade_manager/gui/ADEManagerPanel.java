@@ -53,7 +53,7 @@ import org.citydb.plugins.ade_manager.registry.DBMetadataImporter;
 import org.citydb.plugins.ade_manager.registry.DBUtil;
 import org.citydb.plugins.ade_manager.transformation.TransformationException;
 import org.citydb.plugins.ade_manager.transformation.TransformationManager;
-import org.citydb.plugins.ade_manager.util.SqlRunner;
+import org.citydb.plugins.ade_manager.util.SQLRunner;
 import org.citydb.registry.ObjectRegistry;
 import org.citygml4j.xml.schema.Schema;
 import org.citygml4j.xml.schema.SchemaHandler;
@@ -663,13 +663,14 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		LOG.info("Create ADE database schema...");
 		try {
 			int srid = dbPool.getActiveDatabaseAdapter().getUtil().getDatabaseInfo().getReferenceSystem().getSrid();
-			SqlRunner sqlRunner = new SqlRunner(dbPool.getConnection(), true, true);
+			SQLRunner sqlRunner = new SQLRunner(dbPool.getConnection());
 			sqlRunner.runScript(new FileReader(new File(config.getCreateDbScriptPath())), srid);
 		} catch (Exception e) {
 			LOG.error("Failed to create database schema for ADE. Cause: " + e.getMessage());
+			return;
 		}
 
-		LOG.info("Registration is Finished and will take effect after reconnecting to the database.");
+		LOG.info("ADE registration is completed and will take effect after reconnecting to the database.");
 		
 		if (dbPool.isConnected()) {
 			dbPool.disconnect();
@@ -702,7 +703,6 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 	}
 	
 	private void removeADEFromDB(){
-		viewController.clearConsole();
 		setSettings();	
 		
 		int selectedRowNum = adeTable.getSelectedRow();
@@ -725,7 +725,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		
 		LOG.info("Start dropping database schema of the selected ADE...");
 		try {
-			SqlRunner sqlRunner = new SqlRunner(dbPool.getConnection(), true, true);
+			SQLRunner sqlRunner = new SQLRunner(dbPool.getConnection());
 			sqlRunner.runScript(new FileReader(new File(config.getDropDbScriptPath())), -1);
 		} catch (Exception e) {
 			LOG.error("Failed to drop database schema of the selected ADE. Cause: " + e.getMessage());
