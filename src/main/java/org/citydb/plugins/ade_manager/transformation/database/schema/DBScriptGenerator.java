@@ -677,7 +677,7 @@ public class DBScriptGenerator {
 		writer.println("column mc new_value SRSNO print");
 		writer.println("select :SRID mc from dual;");
 		writer.println();
-		writer.println("prompt Used SRID for spatial indexes: &SRSNO ");
+		writer.println("prompt Used SRID for spatial indexes: &SRSNO; ");
 		writer.println();
 	}
 	
@@ -769,9 +769,9 @@ public class DBScriptGenerator {
                 	   writer.print("INSERT INTO USER_SDO_GEOM_METADATA (TABLE_NAME, COLUMN_NAME, DIMINFO, SRID)");
                 	   writer.println();
                 	   writer.print("VALUES ('");
-                	   writer.print(tablenName);
+                	   writer.print(tablenName.toUpperCase());
                 	   writer.print("','");
-                	   writer.print(columnName);
+                	   writer.print(columnName.toUpperCase());
                 	   writer.print("',");
                 	   writer.println();
                 	   writer.print("MDSYS.SDO_DIM_ARRAY(MDSYS.SDO_DIM_ELEMENT('X', 0.000, 10000000.000, 0.0005), MDSYS.SDO_DIM_ELEMENT('Y', 0.000, 10000000.000, 0.0005),MDSYS.SDO_DIM_ELEMENT('Z', -1000, 10000, 0.0005)), &SRSNO);");
