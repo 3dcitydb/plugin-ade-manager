@@ -417,7 +417,7 @@ public class ADEMetadataManager extends ADERegistrationImpl {
 	private void validateSchemaMapping(SchemaMapping schemaMapping) throws SQLException {
 		String dbPrefix = schemaMapping.getMetadata().getDBPrefix();
 		if (!validateDBPrefix(dbPrefix))
-			throw new SQLException("The DB_Prefix '" + dbPrefix + "'" + " is invalid, because it has already been reserved by other registered ADE");		
+			throw new SQLException("The DB_Prefix '" + dbPrefix + "'" + " is invalid, because it has already been reserved by other registered ADEs");		
 		
 		Iterator<AbstractObjectType<?>> iter = schemaMapping.getAbstractObjectTypes().iterator();
 		while (iter.hasNext()) {
@@ -439,7 +439,7 @@ public class ADEMetadataManager extends ADERegistrationImpl {
 			
 			return hex.toString();
 		} catch (IOException | NoSuchAlgorithmException e) {
-			throw new SQLException("Failed to create finerpint for the ADE schema-mapping file", e);
+			throw new SQLException("Failed to create fingerpint for ADE schema-mapping file", e);
 		} 	
 	}
 

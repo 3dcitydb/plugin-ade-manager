@@ -34,7 +34,7 @@ public class ADERegistrationController implements EventHandler {
 	private void initDBConneciton() throws ADERegistrationException {
 		try {
 			connection = DatabaseConnectionPool.getInstance().getConnection();
-			// disable database auto-commit 
+			// disable database auto-commit in order to enable rolling back database transactions
 			connection.setAutoCommit(false);
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to initialize a database connection (connection = NULL).");			
@@ -79,7 +79,7 @@ public class ADERegistrationController implements EventHandler {
 			throw new ADERegistrationException("Failed to create ADE database schema", e);
 		}		
 		
-		// Database re-connection is required for completing the ADE registration process
+		// database re-connection is required for completing the ADE registration process
 		LOG.info("ADE registration is completed and will take effect after reconnecting to the database.");	
 		if (dbPool.isConnected()) {
 			dbPool.disconnect();
