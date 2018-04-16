@@ -25,9 +25,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.citydb.plugins.ade_manager.registry;
+package org.citydb.plugins.ade_manager.registry.metadata;
 
-public enum DBSequenceType {
+public enum ADEMetadataSequence {
 	schema_seq,
 	ade_seq
 }

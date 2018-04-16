@@ -2,6 +2,7 @@
 package org.citydb.plugins.ade_manager.gui.table.adeTable;
 
 import org.citydb.plugins.ade_manager.gui.table.TableRowDefaultImpl;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataEntity;
 
 public class ADERow extends TableRowDefaultImpl {
 
@@ -24,12 +25,12 @@ public class ADERow extends TableRowDefaultImpl {
 		return columnNames;
 	}
 	
-	public ADERow(String adeid, String name, String description, String version, String dbPrefix) {
-		this.adeid = adeid;
-		this.name = name;
-		this.description = description;
-		this.version = version;
-		this.dbPrefix = dbPrefix;
+	public ADERow(ADEMetadataEntity adeEntity) {
+		this.adeid = adeEntity.getAdeid();
+		this.name = adeEntity.getName();
+		this.description = adeEntity.getDescription();
+		this.version = adeEntity.getVersion();
+		this.dbPrefix = adeEntity.getDbPrefix();
 	}
 	
 	public String getValue(int col) {

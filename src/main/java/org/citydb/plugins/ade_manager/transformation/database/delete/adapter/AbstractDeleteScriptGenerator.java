@@ -22,7 +22,7 @@ import org.apache.ddlutils.model.ForeignKey;
 import org.apache.ddlutils.model.Table;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.transformation.TransformationManager;
+import org.citydb.plugins.ade_manager.transformation.TransformationController;
 import org.citydb.plugins.ade_manager.transformation.database.delete.DsgException;
 import org.citydb.plugins.ade_manager.transformation.database.delete.IDeleteScriptGenerator;
 import org.citydb.plugins.ade_manager.transformation.database.delete.RelationType;
@@ -49,10 +49,10 @@ public abstract class AbstractDeleteScriptGenerator implements IDeleteScriptGene
 	protected Map<QName, Boolean> tableAggregationInfo;
 	
 	protected DatabaseConnectionPool dbPool;
-	protected TransformationManager manager;
+	protected TransformationController manager;
 		
 	@Override
-	public void doProcess(TransformationManager manager, DatabaseConnectionPool dbPool, ConfigImpl config) throws DsgException {	
+	public void doProcess(TransformationController manager, DatabaseConnectionPool dbPool, ConfigImpl config) throws DsgException {	
 		this.deleteFuncNames = new HashMap<String, String>();
 		this.deleteFuncDefs = new HashMap<String, String>();
 		this.tableAggregationInfo = new HashMap<QName, Boolean>();

@@ -1,5 +1,11 @@
 package org.citydb.plugins.ade_manager.transformation;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.transform.Source;
+
 import org.apache.ddlutils.model.Database;
 import org.citydb.config.project.database.DatabaseType;
 import org.citydb.database.connection.DatabaseConnectionPool;
@@ -16,28 +22,33 @@ import org.citydb.plugins.ade_manager.transformation.graph.GraphTransformationMa
 import org.citydb.plugins.ade_manager.transformation.schemaMapping.SchemaMappingCreator;
 import org.citygml4j.xml.schema.Schema;
 import org.citygml4j.xml.schema.SchemaHandler;
+import org.xml.sax.SAXException;
+
+import com.sun.xml.xsom.util.DomAnnotationParserFactory;
+
 import agg.xt_basis.GraGra;
 
-public class TransformationManager implements EventHandler {
+public class TransformationController implements EventHandler {
 	private final Logger LOG = Logger.getInstance();
-	private ConfigImpl config;
-	private DatabaseConnectionPool dbPool;
+	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	
-	private SchemaHandler schemaHandler;
-	private Schema adeXmlSchema;		
+	private ConfigImpl config;
 	private GraGra adeGraph;
 	private Database adeDatabaseSchema;
 	private SchemaMapping adeSchemaMapping;
+	private SchemaHandler schemaHandler;
 	
-	public TransformationManager(SchemaHandler schemaHandler, Schema schema, DatabaseConnectionPool dbPool, ConfigImpl config) {
-		this.schemaHandler = schemaHandler;
-		this.adeXmlSchema = schema;	
+	public TransformationController(ConfigImpl config) {		
 		this.config = config;
-		this.dbPool = dbPool;
+		this.initSchemaHandler();
     }
 	
-	public void doProcess() throws TransformationException { 		
+	public void doProcess(String adeNamespace) throws TransformationException { 	
+		if (schemaHandler == null)
+			throw new TransformationException("SchemaHnadler has failed to initialize. ADE transformation cannot be started");
+				
 		LOG.info("Mapping XML schema elements to a graph...");
+		Schema adeXmlSchema = schemaHandler.getSchema(adeNamespace);
 		GraphTransformationManager aggGraphTransformationManager = new GraphTransformationManager(schemaHandler, adeXmlSchema, config);
 		adeGraph = aggGraphTransformationManager.executeGraphTransformation();
 
@@ -64,10 +75,37 @@ public class TransformationManager implements EventHandler {
 		} 
 	}
 	
-	public Schema getAdeXmlSchema() {
-		return adeXmlSchema;
+	private void initSchemaHandler() {
+		try {
+			schemaHandler = SchemaHandler.newInstance();
+			schemaHandler.setAnnotationParser(new DomAnnotationParserFactory());
+		} catch (SAXException e) {
+			//
+		}
 	}
+	
+	public List<String> getADENamespacesFromXMLSchema(String xmlSchemaPath) throws TransformationException {
+		List<String> result = new ArrayList<String>();
 
+		try {
+			schemaHandler.parseSchema(new File(xmlSchemaPath));
+		} catch (SAXException e) {
+			throw new TransformationException("Failed to parse ADE XML schema", e);
+		}
+		
+		for (String schemaNamespace : schemaHandler.getTargetNamespaces()) {
+			Schema schema = schemaHandler.getSchema(schemaNamespace);
+			Source schemaSource = schemaHandler.getSchemaSource(schema);
+			
+			// TODO bug here
+			if (!schemaSource.getSystemId().contains("jar:")) {
+				result.add(schemaNamespace);
+			}
+		}
+		
+		return result;
+	}
+	
 	public GraGra getAdeGraph() {
 		return adeGraph;
 	}

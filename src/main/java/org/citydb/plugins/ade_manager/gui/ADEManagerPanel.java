@@ -10,10 +10,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.io.FileReader;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.SQLException;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -26,17 +24,10 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.xml.bind.JAXBException;
-import javax.xml.transform.Source;
-
 import org.citydb.config.i18n.Language;
 import org.citydb.config.project.database.DatabaseConfigurationException;
 import org.citydb.database.DatabaseController;
 import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.database.schema.mapping.SchemaMapping;
-import org.citydb.database.schema.mapping.SchemaMappingException;
-import org.citydb.database.schema.mapping.SchemaMappingValidationException;
-import org.citydb.database.schema.util.SchemaMappingUtil;
 import org.citydb.database.version.DatabaseVersionException;
 import org.citydb.event.Event;
 import org.citydb.event.EventHandler;
@@ -48,32 +39,25 @@ import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.gui.table.TableModelImpl;
 import org.citydb.plugins.ade_manager.gui.table.adeTable.ADERow;
 import org.citydb.plugins.ade_manager.gui.table.schemaTable.SchemaRow;
-import org.citydb.plugins.ade_manager.registry.DBMetadataImportException;
-import org.citydb.plugins.ade_manager.registry.DBMetadataImporter;
-import org.citydb.plugins.ade_manager.registry.DBUtil;
+import org.citydb.plugins.ade_manager.registry.ADERegistrationController;
+import org.citydb.plugins.ade_manager.registry.ADERegistrationException;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataEntity;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.transformation.TransformationException;
-import org.citydb.plugins.ade_manager.transformation.TransformationManager;
-import org.citydb.plugins.ade_manager.util.SQLRunner;
+import org.citydb.plugins.ade_manager.transformation.TransformationController;
 import org.citydb.registry.ObjectRegistry;
-import org.citygml4j.xml.schema.Schema;
-import org.citygml4j.xml.schema.SchemaHandler;
-import org.xml.sax.SAXException;
-
-import com.sun.xml.xsom.util.DomAnnotationParserFactory;
 
 @SuppressWarnings("serial")
 public class ADEManagerPanel extends JPanel implements EventHandler {
-	
+	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
+	private final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();
+	private final Logger LOG = Logger.getInstance();	
 	private final ViewController viewController;
-	private final DatabaseConnectionPool dbPool;
-	private final DatabaseController databaseController;
 	
 	// predefined value
 	protected static final int BORDER_THICKNESS = 4;
 	protected static final int MAX_TEXTFIELD_HEIGHT = 20;
 	protected static final int MAX_LABEL_WIDTH = 60;
-	
-	private final Logger LOG = Logger.getInstance();	
 
 	private ConfigImpl config;
 	
@@ -121,20 +105,20 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 	private JScrollPane adeTableScrollPanel;
 	private JTable adeTable;
 	private TableModelImpl<ADERow> adeTableModel = new TableModelImpl<ADERow>(ADERow.getColumnNames());
-	
-	private SchemaHandler schemaHandler; 
+
 	private TableModelImpl<SchemaRow> schemaTableModel = new TableModelImpl<SchemaRow>(SchemaRow.getColumnNames());	
+	
+	private final TransformationController adeTransformer;
+	private final ADERegistrationController adeRegistor;
 
 	public ADEManagerPanel(ViewController viewController, ADEManagerPlugin plugin) {	
-		config = plugin.getConfig();
-		
-		databaseController = ObjectRegistry.getInstance().getDatabaseController();
+		this.config = plugin.getConfig();		
 		this.viewController = viewController;
-		dbPool = DatabaseConnectionPool.getInstance();
+		this.adeRegistor = new ADERegistrationController(config);
+		this.adeTransformer = new TransformationController(config);
 		
 		initGui();
-		addListeners();
-		
+		addListeners();	
 		setEnabledMetadataSettings(false);
 	}
 
@@ -333,7 +317,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			public void actionPerformed(ActionEvent e) {
 				Thread thread = new Thread() {
 					public void run() {
-						parseXMLSchema();						
+						parseADESchema();						
 					}
 				};
 				thread.setDaemon(true);
@@ -367,7 +351,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			public void actionPerformed(ActionEvent e) {
 				Thread thread = new Thread() {
 					public void run() {
-						doTransformAndExport();						
+						transformADESchema();						
 					}
 				};
 				thread.setDaemon(true);
@@ -379,7 +363,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			public void actionPerformed(ActionEvent e) {
 				Thread thread = new Thread() {
 					public void run() {
-						fetchADEsFromDB();						
+						showRegisteredADEs();						
 					}
 				};
 				thread.setDaemon(true);
@@ -391,7 +375,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			public void actionPerformed(ActionEvent e) {
 				Thread thread = new Thread() {
 					public void run() {
-						registerADEintoDB();
+						registerADE();
 					}
 				};
 				thread.setDaemon(true);
@@ -403,7 +387,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			public void actionPerformed(ActionEvent e) {
 				Thread thread = new Thread() {
 					public void run() {
-						removeADEFromDB();
+						deregisterADE();
 					}
 				};
 				thread.setDaemon(true);
@@ -545,45 +529,29 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			browseOutputText.setText(browseString);
 	}
 
-	private void parseXMLSchema() {
-		try {
-			viewController.clearConsole();
-			schemaTableModel.reset();
-
-			schemaHandler = SchemaHandler.newInstance();
-			schemaHandler.setAnnotationParser(new DomAnnotationParserFactory());
-			String schemaFilePath = browseXMLSchemaText.getText();
+	private void parseADESchema() {
+		viewController.clearConsole();
+		schemaTableModel.reset();
+		
+		LOG.info("Start parsing ADE XML schema...");
+		String xmlSchemaPath = browseXMLSchemaText.getText();
+		try {			
+			List<String> adeNamespaces = adeTransformer.getADENamespacesFromXMLSchema(xmlSchemaPath);		
+			for (String schemaNamespace : adeNamespaces) {
+				SchemaRow schemaColumn = new SchemaRow(schemaNamespace);
+				schemaTableModel.addNewRow(schemaColumn);
+			}			
+			LOG.info("Parsing ADE XML schema completed.");
 			
-			LOG.info("Parsing XML schema...");
-			schemaHandler.parseSchema(new File(schemaFilePath));
-
-			for (String schemaNamespace : schemaHandler.getTargetNamespaces()) {
-				Schema schema = schemaHandler.getSchema(schemaNamespace);
-				Source schemaSource = schemaHandler.getSchemaSource(schema);
-				
-				if (!schemaSource.getSystemId().contains("jar:")) {
-					SchemaRow schemaColumn = new SchemaRow(schemaNamespace);
-					schemaTableModel.addNewRow(schemaColumn);
-				}
-			}
-			LOG.info("Parsing finished");
 			setEnabledMetadataSettings(true);
-		} catch (SAXException e) {
-			LOG.error("Failed to read CityGML ADE's XML schema: " + e.getMessage());
+		} catch (TransformationException e) {
+			printErrorMessage("Failed to read and parse ADE schema", e);
 		}
 	}
 
-	private void doTransformAndExport() {	
+	private void transformADESchema() {	
 		setSettings();
-		
-		int selectedRowNum = schemaTable.getSelectedRow();
-		if (selectedRowNum == -1) {
-			viewController.errorMessage("Incomplete Information", "Please select a schema namespace");
-			return;
-		}
-		String selectedSchemaNamespace = schemaTableModel.getColumn(selectedRowNum).getValue(0);
-		Schema schema = schemaHandler.getSchema(selectedSchemaNamespace);
-		
+
 		String adeName = config.getAdeName();
 		if (adeName.trim().equals("")) {
 			viewController.errorMessage("Incomplete Information", "Please enter a name for the ADE");
@@ -597,164 +565,155 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		}
 		
 		int initialObjectclassId = config.getInitialObjectclassId();
-		if (initialObjectclassId < 10000) {
+		if (initialObjectclassId < ADEMetadataManager.MIN_ADE_OBJECTCLASSID) {
 			viewController.errorMessage("Incorrect Information", "Then initial objectclass ID must be greater than or equal to 10000");
 			return;
 		}
 				
-		checkAndConnectToDB();
-		
-		if (dbPool.isConnected()) {
-			TransformationManager manager = new TransformationManager(schemaHandler, schema, dbPool, config);		
-			try {
-				manager.doProcess();
-			} catch (TransformationException e) {
-				LOG.error(e.getMessage());			
-				Throwable cause = e.getCause();
-				while (cause != null) {
-					LOG.error("Cause: " + cause.getMessage());
-					cause = cause.getCause();
-				}
-				return;
-			}
-
-			LOG.info("Transformation finished");
-		}
-	}
-
-	private void registerADEintoDB() {
-		setSettings();
-		
-		checkAndConnectToDB();
-		
-		Path sourceAdeSchemaMappingPath = Paths.get(config.getSchemaMappingPath());
-
-		SchemaMapping adeSchemaMapping = null;			
-
-		// read ADE's schema mapping file
-		LOG.info("Loading ADE's schema mapping file...");
-		try {			
-			SchemaMapping citydbSchemaMapping = SchemaMappingUtil.getInstance().unmarshal(SchemaMappingUtil.class.getResource("/org/citydb/database/schema/3dcitydb-schema.xml"));
-			adeSchemaMapping = SchemaMappingUtil.getInstance().unmarshal(citydbSchemaMapping, sourceAdeSchemaMappingPath.toFile());	
-		} catch (JAXBException e) {
-			LOG.error(e.getMessage());
-			return;
-		} catch (SchemaMappingException | SchemaMappingValidationException e) {
-			LOG.error("The 3DCityDB schema mapping is invalid: " + e.getMessage());
-			return;
-		} 	
-
-		// import parsed meta and mapping information into DB	
-		LOG.info("Importing metadata into database...");
-		DBMetadataImporter importer;
 		try {
-			importer = new DBMetadataImporter(dbPool);
-			importer.doImport(adeSchemaMapping, sourceAdeSchemaMappingPath);
-		} catch (SQLException | DBMetadataImportException e) {
-			LOG.error(e.getMessage());			
-			Throwable cause = e.getCause();
-			while (cause != null) {
-				LOG.error("Cause: " + cause.getMessage());
-				cause = cause.getCause();
-			}
+			checkAndConnectToDB();
+		} catch (SQLException e) {
+			printErrorMessage(e);
 			return;
-		}			
-		
-		LOG.info("Create ADE database schema...");
-		try {
-			int srid = dbPool.getActiveDatabaseAdapter().getUtil().getDatabaseInfo().getReferenceSystem().getSrid();
-			SQLRunner sqlRunner = new SQLRunner(dbPool.getConnection());
-			sqlRunner.runScript(new FileReader(new File(config.getCreateDbScriptPath())), srid);
-		} catch (Exception e) {
-			LOG.error("Failed to create database schema for ADE. Cause: " + e.getMessage());
-			return;
-		}
-
-		LOG.info("ADE registration is completed and will take effect after reconnecting to the database.");
-		
-		if (dbPool.isConnected()) {
-			dbPool.disconnect();
-			try {
-				databaseController.connect(true);
-			} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
-				//
-			}
 		}	
+		
+		int selectedRowNum = schemaTable.getSelectedRow();
+		if (selectedRowNum == -1) {
+			viewController.errorMessage("Incomplete Information", "Please select a schema namespace");
+			return;
+		}
+		String selectedSchemaNamespace = schemaTableModel.getColumn(selectedRowNum).getValue(0);
+
+		try {
+			adeTransformer.doProcess(selectedSchemaNamespace);
+		} catch (TransformationException e) {
+			printErrorMessage(e);
+			return;
+		}
+
+		LOG.info("Transformation finished");
 	}
-	
-	private void fetchADEsFromDB() {
+
+	private void registerADE() {
 		setSettings();
 		
-		checkAndConnectToDB();
-
+		// database connection is required
+		try {
+			checkAndConnectToDB();
+		} catch (SQLException e) {
+			printErrorMessage("ADE registration aborted", e);
+			return;
+		}
+		
+		boolean isComplete = false;
 		try {			
-			if (dbPool.isConnected()) {
-				adeTableModel.reset();
-
-				for (ADERow row: DBUtil.getADEList(dbPool)) {
-					if (row == null) continue; 
-					adeTableModel.addNewRow(row);
-				}
-			}
-		} 
-		catch (SQLException e) {
-			LOG.error("Failed to query registered ADEs from database: " + e.getMessage());
-		} 
+			isComplete = adeRegistor.registerADE();
+		} catch (ADERegistrationException e) {
+			adeRegistor.rollbackTransactions();
+			printErrorMessage("ADE registration aborted", e);
+		} finally {
+			adeRegistor.closeDBConnection();
+		}
+		
+		// update the ADE list table by querying the ADE again
+		if (isComplete)
+			showRegisteredADEs();
+		
 	}
 	
-	private void removeADEFromDB(){
+	private void showRegisteredADEs() {
 		setSettings();	
+		
+		// database connection is required
+		try {
+			checkAndConnectToDB();
+		} catch (SQLException e) {
+			printErrorMessage("Querying ADEs aborted", e);
+			return;
+		}
+		
+		try {					
+			List<ADEMetadataEntity> adeList = adeRegistor.queryRegisteredADEs();
+			if (adeList.size() == 0) 
+				viewController.warnMessage("Info", "No ADEs are registered in the connected database");
+			
+			adeTableModel.reset();			
+			for (ADEMetadataEntity adeEntity: adeList) {
+				if (adeEntity == null) 
+					continue; 				
+				adeTableModel.addNewRow(new ADERow(adeEntity));
+			}
+		} catch (ADERegistrationException e) {
+			printErrorMessage(e);
+		} finally {
+			adeRegistor.closeDBConnection();
+		}
+	}
+	
+	private void deregisterADE(){
+		setSettings();	
+		
+		// database connection is required
+		try {
+			checkAndConnectToDB();
+		} catch (SQLException e) {
+			printErrorMessage("ADE Deregistration aborted", e);
+			return;
+		}
 		
 		int selectedRowNum = adeTable.getSelectedRow();
 		if (selectedRowNum == -1) {
-			viewController.errorMessage("Incomplete Information", "Please select one of the listed ADEs");
+			viewController.errorMessage("ADE Deregistration aborted", "Please select one of the listed ADEs");
 			return;
 		}
-		String adeId = adeTableModel.getColumn(selectedRowNum).getValue(0);
-			
-		checkAndConnectToDB();
 		
-		LOG.info("Start deleting metadata of the selected ADE from database...");
+		boolean isComplete = false;
+		String adeId = adeTableModel.getColumn(selectedRowNum).getValue(0);	
 		try {
-			DBUtil.deleteADEMetadata(dbPool, adeId);
-		} catch (SQLException e) {
-			LOG.error("Failed to delete ADE metadata from database. Cause: " + e.getMessage());
-			return;
-		}
-		LOG.info("Metadata have been successfully deleted.");
+			isComplete = adeRegistor.deregisterADE(adeId);
+		} catch (ADERegistrationException e) {
+			adeRegistor.rollbackTransactions();
+			printErrorMessage("ADE Deregistration aborted", e);
+		} finally {
+			adeRegistor.closeDBConnection();
+		}	
 		
-		LOG.info("Start dropping database schema of the selected ADE...");
-		try {
-			SQLRunner sqlRunner = new SQLRunner(dbPool.getConnection());
-			sqlRunner.runScript(new FileReader(new File(config.getDropDbScriptPath())), -1);
-		} catch (Exception e) {
-			LOG.error("Failed to drop database schema of the selected ADE. Cause: " + e.getMessage());
-			return;
-		}
-		LOG.info("Database schema has been successfully dropped");
+		// update the ADE list table by querying the ADE again
+		if (isComplete)
+			showRegisteredADEs();
 	}
 	
 	private void generateDeleteScripts() {
-		
+		// TODO
 	}
 	
-	private void checkAndConnectToDB() {
-		String[] connectConfirm = {Language.I18N.getString("pref.kmlexport.connectDialog.line1"),
-				Language.I18N.getString("pref.kmlexport.connectDialog.line3")};
+	private void printErrorMessage(Exception e) {
+		printErrorMessage("Unexpected Error", e);
+	}
+	
+	private void printErrorMessage(String info, Exception e) {
+		LOG.error(info + ". Cause: " + e.getMessage());			
+		Throwable cause = e.getCause();
+		while (cause != null) {
+			LOG.error("Cause: " + cause.getMessage());
+			cause = cause.getCause();
+		}
+	}
+	
+	private void checkAndConnectToDB() throws SQLException {
+		String[] connectConfirm = { Language.I18N.getString("pref.kmlexport.connectDialog.line1"),
+				Language.I18N.getString("pref.kmlexport.connectDialog.line3") };
 
-		if (!dbPool.isConnected() &&
-				JOptionPane.showConfirmDialog(getTopLevelAncestor(),
-						connectConfirm,
-						Language.I18N.getString("pref.kmlexport.connectDialog.title"),
-						JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+		if (!dbPool.isConnected() && JOptionPane.showConfirmDialog(getTopLevelAncestor(), connectConfirm,
+				Language.I18N.getString("pref.kmlexport.connectDialog.title"),
+				JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
 			try {
 				databaseController.connect(true);
 			} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
-				//
+				throw new SQLException("Failed to connect to the target database", e);
 			}
 		}
 	}
-
 
 	public void handleEvent(Event event) throws Exception {}
 
