@@ -4,8 +4,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.xml.transform.Source;
-
 import org.apache.ddlutils.model.Database;
 import org.citydb.config.project.database.DatabaseType;
 import org.citydb.database.connection.DatabaseConnectionPool;
@@ -40,7 +38,6 @@ public class TransformationController implements EventHandler {
 	
 	public TransformationController(ConfigImpl config) {		
 		this.config = config;
-		this.initSchemaHandler();
     }
 	
 	public void doProcess(String adeNamespace) throws TransformationException { 	
@@ -75,32 +72,23 @@ public class TransformationController implements EventHandler {
 		} 
 	}
 	
-	private void initSchemaHandler() {
-		try {
-			schemaHandler = SchemaHandler.newInstance();
-			schemaHandler.setAnnotationParser(new DomAnnotationParserFactory());
-		} catch (SAXException e) {
-			//
-		}
-	}
-	
 	public List<String> getADENamespacesFromXMLSchema(String xmlSchemaPath) throws TransformationException {
-		List<String> result = new ArrayList<String>();
-
+		List<String> result = new ArrayList<String>();		
 		try {
+			schemaHandler = SchemaHandler.newInstance();	
+			schemaHandler.reset();
+			schemaHandler.setAnnotationParser(new DomAnnotationParserFactory());
 			schemaHandler.parseSchema(new File(xmlSchemaPath));
 		} catch (SAXException e) {
 			throw new TransformationException("Failed to parse ADE XML schema", e);
 		}
 		
 		for (String schemaNamespace : schemaHandler.getTargetNamespaces()) {
-			Schema schema = schemaHandler.getSchema(schemaNamespace);
-			Source schemaSource = schemaHandler.getSchemaSource(schema);
-			
-			// TODO bug here
-			if (!schemaSource.getSystemId().contains("jar:")) {
+			if (!schemaNamespace.startsWith("http://www.w3.org") && 
+					!schemaNamespace.startsWith("http://www.citygml.org/citygml4j") && 
+					!schemaNamespace.startsWith("http://www.opengis.net") && 
+					!schemaNamespace.startsWith("urn:oasis:names:tc:ciq:xsdschema:xAL:2.0"))
 				result.add(schemaNamespace);
-			}
 		}
 		
 		return result;
