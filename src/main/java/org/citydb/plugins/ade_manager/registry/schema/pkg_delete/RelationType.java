@@ -25,7 +25,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.citydb.plugins.ade_manager.transformation.database.delete;
+package org.citydb.plugins.ade_manager.registry.schema.pkg_delete;
 
 public enum RelationType {
 	aggregation,

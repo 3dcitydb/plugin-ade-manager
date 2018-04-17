@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.transformation.database.schema;
+package org.citydb.plugins.ade_manager.transformation.database;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,9 +26,13 @@ import org.apache.ddlutils.platform.postgresql.PostgreSqlPlatform;
 import org.citydb.config.project.database.DatabaseType;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.transformation.database.NameShortener;
+import org.citydb.plugins.ade_manager.transformation.database.extension.RestrictableForeignKey;
+import org.citydb.plugins.ade_manager.transformation.database.extension.IndexedColumn;
+import org.citydb.plugins.ade_manager.transformation.database.extension.SpatialColumn;
+import org.citydb.plugins.ade_manager.transformation.database.extension.TimestampColumn;
 import org.citydb.plugins.ade_manager.transformation.graph.ADEschemaHelper;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
+import org.citydb.plugins.ade_manager.util.NameShortener;
 import org.citydb.plugins.ade_manager.util.PathResolver;
 
 import agg.attribute.AttrInstance;
@@ -247,7 +251,7 @@ public class DBScriptGenerator {
 		String fkName = (String) joinNode.getAttribute().getValueAt("name");
 		String ondelete = (String) joinNode.getAttribute().getValueAt("ondelete");
 
-		CitydbForeignKey fk = new CitydbForeignKey();
+		RestrictableForeignKey fk = new RestrictableForeignKey();
 		fk.setOndelete(ondelete);
 		fk.setName(fkName);
 		fk.setForeignTableName(joinToTableName);	
@@ -676,7 +680,7 @@ public class DBScriptGenerator {
 		boolean flag = false;
 		for (int idx = 0; idx < table.getForeignKeyCount(); idx++)
         {
-			CitydbForeignKey fk = (CitydbForeignKey) table.getForeignKey(idx);
+			RestrictableForeignKey fk = (RestrictableForeignKey) table.getForeignKey(idx);
 			String fkName = fk.getName();
 			String fkColumnName = fk.getFirstReference().getLocalColumnName();
 			String refTableName = fk.getForeignTableName();

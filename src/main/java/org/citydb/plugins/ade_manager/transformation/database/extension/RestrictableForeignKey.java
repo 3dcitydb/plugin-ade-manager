@@ -1,11 +1,11 @@
-package org.citydb.plugins.ade_manager.transformation.database.schema;
+package org.citydb.plugins.ade_manager.transformation.database.extension;
 
 import org.apache.ddlutils.model.ForeignKey;
 
-public class CitydbForeignKey extends ForeignKey{
+public class RestrictableForeignKey extends ForeignKey {
 	private String ondelete;
 	
-	public CitydbForeignKey () {
+	public RestrictableForeignKey () {
 		super();
 	}
 

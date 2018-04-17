@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.transformation.database.delete.adapter;
+package org.citydb.plugins.ade_manager.registry.schema.pkg_delete.adapter;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,10 +22,10 @@ import org.apache.ddlutils.model.ForeignKey;
 import org.apache.ddlutils.model.Table;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.schema.pkg_delete.DsgException;
+import org.citydb.plugins.ade_manager.registry.schema.pkg_delete.IDeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.schema.pkg_delete.RelationType;
 import org.citydb.plugins.ade_manager.transformation.TransformationController;
-import org.citydb.plugins.ade_manager.transformation.database.delete.DsgException;
-import org.citydb.plugins.ade_manager.transformation.database.delete.IDeleteScriptGenerator;
-import org.citydb.plugins.ade_manager.transformation.database.delete.RelationType;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
 
 import agg.xt_basis.Arc;

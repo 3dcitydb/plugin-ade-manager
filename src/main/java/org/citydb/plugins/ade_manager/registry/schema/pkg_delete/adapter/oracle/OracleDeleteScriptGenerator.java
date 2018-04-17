@@ -1,8 +1,8 @@
-package org.citydb.plugins.ade_manager.transformation.database.delete.adapter.oracle;
+package org.citydb.plugins.ade_manager.registry.schema.pkg_delete.adapter.oracle;
 
 import java.sql.SQLException;
 
-import org.citydb.plugins.ade_manager.transformation.database.delete.adapter.AbstractDeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.schema.pkg_delete.adapter.AbstractDeleteScriptGenerator;
 
 public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 

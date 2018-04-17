@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.transformation.database.delete;
+package org.citydb.plugins.ade_manager.registry.schema.pkg_delete;
 
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;

@@ -10,7 +10,7 @@ import org.citydb.event.Event;
 import org.citydb.event.EventHandler;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.transformation.database.schema.DBScriptGenerator;
+import org.citydb.plugins.ade_manager.transformation.database.DBScriptGenerator;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphTransformationManager;
 import org.citydb.plugins.ade_manager.transformation.schemaMapping.SchemaMappingCreator;
 import org.citygml4j.xml.schema.Schema;

@@ -1,7 +1,7 @@
 /**
  * Inspired from the website: https://allstarnix.blogspot.de/2013/03/how-to-execute-sql-script-file-using.html
  */
-package org.citydb.plugins.ade_manager.registry.sqlrunner;
+package org.citydb.plugins.ade_manager.registry.schema.helper;
 
 import java.io.IOException;
 import java.io.LineNumberReader;
@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.registry.ADERegistrationImpl;
 
-public class ADEsqlScriptRunner extends ADERegistrationImpl {
+public class SQLScriptRunner extends ADERegistrationImpl {
     private final String DELIMITER_LINE_REGEX = "(?i)DELIMITER.+"; 
     private final String DELIMITER_LINE_SPLIT_REGEX = "(?i)DELIMITER"; 
     private final String DEFAULT_DELIMITER = ";";
@@ -24,7 +24,7 @@ public class ADEsqlScriptRunner extends ADERegistrationImpl {
     
     private String delimiter = DEFAULT_DELIMITER;
     
-    public ADEsqlScriptRunner(Connection connection) {
+    public SQLScriptRunner(Connection connection) {
     	this.connection = connection;
     }
     

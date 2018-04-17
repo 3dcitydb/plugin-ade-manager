@@ -34,20 +34,27 @@ import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.database.schema.mapping.SchemaMappingException;
 import org.citydb.database.schema.mapping.SchemaMappingValidationException;
 import org.citydb.database.schema.util.SchemaMappingUtil;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.ADERegistrationImpl;
+import org.citydb.plugins.ade_manager.util.PathResolver;
 import org.citydb.util.CoreConstants;
 
 public class ADEMetadataManager extends ADERegistrationImpl {	
 	public static final int MIN_ADE_OBJECTCLASSID = 10000;
 	private SchemaMapping adeSchemaMapping;	
+	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	
-	public ADEMetadataManager(Connection connection) {
+	public ADEMetadataManager(Connection connection, ConfigImpl config) {
 		this.connection = connection;
+		this.config = config;
 	}
 	
-	public void importADEMetadata(String adeSchemaMappingFilepathStr, String dropDBScriptpathStr) throws SQLException {		
-		Path adeSchemaMappingFilePath = Paths.get(adeSchemaMappingFilepathStr);
-		Path adeDropDBFilePath = Paths.get(dropDBScriptpathStr);
+	public void importADEMetadata() throws SQLException {				
+		String adeRegistryInputpath = config.getAdeRegistryInputPath();
+		DatabaseType databaseType = dbPool.getActiveDatabaseAdapter().getDatabaseType();
+		Path adeSchemaMappingFilePath = Paths.get(PathResolver.get_schemaMapping_filepath(adeRegistryInputpath));
+		Path adeDropDBFilePath = Paths.get(PathResolver.get_drop_ade_db_filepath(adeRegistryInputpath, databaseType));
+		
 		try {			
 			SchemaMapping citydbSchemaMapping = SchemaMappingUtil.getInstance().unmarshal(CoreConstants.CITYDB_SCHEMA_MAPPING_FILE);
 			this.adeSchemaMapping = SchemaMappingUtil.getInstance().unmarshal(citydbSchemaMapping, adeSchemaMappingFilePath.toFile());	

@@ -1,8 +1,9 @@
-package org.citydb.plugins.ade_manager.transformation.database.schema;
+package org.citydb.plugins.ade_manager.transformation.database.extension;
 
 import org.apache.ddlutils.Platform;
 import org.apache.ddlutils.platform.oracle.Oracle10Platform;
 import org.apache.ddlutils.platform.postgresql.PostgreSqlPlatform;
+import org.citydb.plugins.ade_manager.transformation.database.DBScriptGenerator;
 
 @SuppressWarnings("serial")
 public class SpatialColumn extends IndexedColumn {

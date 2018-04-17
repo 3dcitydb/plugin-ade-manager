@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.transformation.database.schema;
+package org.citydb.plugins.ade_manager.transformation.database.extension;
 
 import org.apache.ddlutils.model.Column;
 
