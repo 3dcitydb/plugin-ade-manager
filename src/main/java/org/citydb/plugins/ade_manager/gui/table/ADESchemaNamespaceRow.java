@@ -1,8 +1,6 @@
-package org.citydb.plugins.ade_manager.gui.table.schemaTable;
+package org.citydb.plugins.ade_manager.gui.table;
 
-import org.citydb.plugins.ade_manager.gui.table.TableRowDefaultImpl;
-
-public class SchemaRow extends TableRowDefaultImpl {
+public class ADESchemaNamespaceRow extends TableRowDefaultImpl {
 	private static String[] columnNames;
 	private String namespace = "";
 
@@ -14,7 +12,7 @@ public class SchemaRow extends TableRowDefaultImpl {
 		return columnNames;
 	}
 	
-	public SchemaRow(String namespace) {
+	public ADESchemaNamespaceRow(String namespace) {
 		this.namespace = namespace;
 	}
 

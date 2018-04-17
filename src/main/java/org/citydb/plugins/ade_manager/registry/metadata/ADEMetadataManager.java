@@ -11,8 +11,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -42,10 +45,9 @@ public class ADEMetadataManager extends ADERegistrationImpl {
 		this.connection = connection;
 	}
 	
-	public void importADEMetadata(String adeSchemaMappingFilepathStr) throws SQLException {		
-		// read ADE's schema mapping file
+	public void importADEMetadata(String adeSchemaMappingFilepathStr, String dropDBScriptpathStr) throws SQLException {		
 		Path adeSchemaMappingFilePath = Paths.get(adeSchemaMappingFilepathStr);
-
+		Path adeDropDBFilePath = Paths.get(dropDBScriptpathStr);
 		try {			
 			SchemaMapping citydbSchemaMapping = SchemaMappingUtil.getInstance().unmarshal(CoreConstants.CITYDB_SCHEMA_MAPPING_FILE);
 			this.adeSchemaMapping = SchemaMappingUtil.getInstance().unmarshal(citydbSchemaMapping, adeSchemaMappingFilePath.toFile());	
@@ -80,7 +82,7 @@ public class ADEMetadataManager extends ADERegistrationImpl {
 				+ "(?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement psInsertADE = connection.prepareStatement(insertADEQueryStr);
 		try {
-			insertedADERowId = insertADE(adeSchemaMappingFilePath, psInsertADE);			
+			insertedADERowId = insertADE(adeSchemaMappingFilePath, adeDropDBFilePath, psInsertADE);			
 		} catch (SQLException e) {
 			throw new SQLException("Failed to import metadata into 'ADE' table.", e);
 		} finally {
@@ -132,22 +134,23 @@ public class ADEMetadataManager extends ADERegistrationImpl {
 		}
 	}
 
-	public List<ADEMetadataEntity> queryADEMetadata() throws SQLException {
+	public List<ADEMetadataInfo> queryADEMetadata() throws SQLException {
 		Statement stmt = null;
 		ResultSet rs = null;
-		ArrayList<ADEMetadataEntity> ades = new ArrayList<ADEMetadataEntity>();
+		ArrayList<ADEMetadataInfo> ades = new ArrayList<ADEMetadataInfo>();
 	
 		try {					
 			stmt = connection.createStatement();
 			rs = stmt.executeQuery("select * from ade order by id");
 			
 			while (rs.next()) {
-				String adeid = rs.getString(2);
-				String name = rs.getString(3);
-				String description = rs.getString(4);
-				String version = rs.getString(5);
-				String dbPrefix = rs.getString(6);
-				ades.add(new ADEMetadataEntity(adeid, name, description, version, dbPrefix));					
+				String adeid = rs.getString("adeid");
+				String name = rs.getString("name");
+				String description = rs.getString("description");
+				String version = rs.getString("version");
+				String dbPrefix = rs.getString("db_prefix");
+				String creationDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(rs.getTimestamp("creation_date"));
+				ades.add(new ADEMetadataInfo(adeid, name, description, version, dbPrefix, creationDate.toString()));					
 			}
 		} finally {
 			if (rs != null) 
@@ -170,8 +173,31 @@ public class ADEMetadataManager extends ADERegistrationImpl {
 				stmt.close();
 		}
 	}
+	
+	public String getDropDBScript(String adeId) throws SQLException {
+		Statement stmt = null;
+		ResultSet rs = null;
+		String dropDBScript = null;		
+		try {					
+			stmt = connection.createStatement();
+			rs = stmt.executeQuery("select drop_db_script from ade where adeid = '" + adeId + "'");		
+			if (rs.next()) 
+				dropDBScript = rs.getString(1);	
+		} finally {
+			if (rs != null) 
+				rs.close();
+	
+			if (stmt != null) 
+				stmt.close();
+		}
+		
+		if (dropDBScript == null) 
+			throw new SQLException("The script for dropping ADE database schema is not available");
+		
+		return dropDBScript;
+	}
 
-	private long insertADE(Path schemaMappingFile, PreparedStatement ps) throws SQLException {				
+	private long insertADE(Path schemaMappingFile, Path adeDropDBFilePath, PreparedStatement ps) throws SQLException {				
 		long seqId = getSequenceID(ADEMetadataSequence.ade_seq);
 			
 		int index = 1;
@@ -182,18 +208,28 @@ public class ADEMetadataManager extends ADERegistrationImpl {
 		ps.setString(index++, adeSchemaMapping.getMetadata().getVersion());
 		ps.setString(index++, adeSchemaMapping.getMetadata().getDBPrefix());
 		
-		String mappingText = getSchemaMappingAsString(schemaMappingFile);
-		if (mappingText != null)
-			ps.setString(index++, mappingText);
+		String schemaMappingText = getStringFromFile(schemaMappingFile);
+		if (schemaMappingText != null)
+			ps.setString(index++, schemaMappingText);
 		else {
 			ps.setNull(index++, Types.CLOB);
 		}
 		
-		ps.setNull(index++, Types.CLOB);
-		ps.setNull(index++, Types.DATE);
-		ps.setNull(index++, Types.VARCHAR);
+		String dropDBText = getStringFromFile(adeDropDBFilePath);
+		if (dropDBText != null)
+			ps.setString(index++, dropDBText);
+		else {
+			ps.setNull(index++, Types.CLOB);
+		}
+		
+		Date creationDate = new Date();
+		ps.setTimestamp(index++, new Timestamp(creationDate.getTime()));
+
+		String databaseUser = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getUser();
+		ps.setString(index++, databaseUser);
 		
 		ps.executeUpdate();
+		
 		return seqId;
 	}
 	
@@ -363,7 +399,7 @@ public class ADEMetadataManager extends ADERegistrationImpl {
 			return getBaseclassId((AbstractObjectType<?>)objectType.getExtension().getBase());
 	}
 	
-	private String getSchemaMappingAsString(Path schemaMappingFile) {
+	private String getStringFromFile(Path schemaMappingFile) {
 		try {
 			return new String(Files.readAllBytes(schemaMappingFile));
 		} catch (IOException e) {

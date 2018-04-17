@@ -1,11 +1,15 @@
 package org.citydb.plugins.ade_manager.registry;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.citydb.config.project.database.DatabaseConfigurationException;
+import org.citydb.config.project.database.DatabaseType;
 import org.citydb.database.DatabaseController;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.version.DatabaseVersionException;
@@ -13,9 +17,10 @@ import org.citydb.event.Event;
 import org.citydb.event.EventHandler;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataEntity;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.sqlrunner.ADEsqlScriptRunner;
+import org.citydb.plugins.ade_manager.util.PathResolver;
 import org.citydb.registry.ObjectRegistry;
 
 public class ADERegistrationController implements EventHandler {
@@ -44,25 +49,30 @@ public class ADERegistrationController implements EventHandler {
 	public boolean registerADE() throws ADERegistrationException {
 		LOG.info("ADE Registration started...");
 		initDBConneciton();
+		
+		String adeRegistryInputpath = config.getAdeRegistryInputPath();
+		DatabaseType databaseType = dbPool.getActiveDatabaseAdapter().getDatabaseType();
 
 		// import ADE metadata from schema mapping file into database	
-		LOG.info("Importing metadata into database...");
-		String adeSchemaMappingPath = config.getSchemaMappingPath();
+		LOG.info("Importing ADE metadata into database...");	
+		String adeSchemaMappingPath = PathResolver.get_schemaMapping_filepath(adeRegistryInputpath);
+		String dropDbScriptPath = PathResolver.get_drop_ade_db_filepath(adeRegistryInputpath, databaseType);
 		ADEMetadataManager adeMetadataManager = new ADEMetadataManager(connection);
 		try {						
-			adeMetadataManager.importADEMetadata(adeSchemaMappingPath);
+			adeMetadataManager.importADEMetadata(adeSchemaMappingPath, dropDbScriptPath);
 		} catch (SQLException e) {				
 			throw new ADERegistrationException("Error occurred while importing ADE metadata into database", e);
 		}		
 		
 		// create database tables, FKs, indexes, and sequences etc.
-		LOG.info("Create ADE database schema...");
-		ADEsqlScriptRunner adeSQLRunner = new ADEsqlScriptRunner(connection);
-		String createDbScriptPath = config.getCreateDbScriptPath();
-		try {			
+		LOG.info("Creating ADE database schema...");		
+		ADEsqlScriptRunner adeSQLRunner = new ADEsqlScriptRunner(connection);		
+		try {	
+			String createDBscriptPath = PathResolver.get_create_ade_db_filepath(adeRegistryInputpath, databaseType);	
+			String createDBscriptString = new String(Files.readAllBytes(Paths.get(createDBscriptPath)));
 			int srid = dbPool.getActiveDatabaseAdapter().getUtil().getDatabaseInfo().getReferenceSystem().getSrid();
-			adeSQLRunner.runScript(createDbScriptPath, srid);
-		} catch (SQLException e) {
+			adeSQLRunner.runScript(createDBscriptString, srid);
+		} catch (SQLException | IOException e) {
 			throw new ADERegistrationException("Error occurred while executing the SQL script for creating ADE database schema", e);
 		} 
 		
@@ -106,20 +116,22 @@ public class ADERegistrationController implements EventHandler {
 		 */
 		initDBConneciton();
 		ADEMetadataManager adeMetadataManager = new ADEMetadataManager(connection);
+		
+		// drop ADE database schema
+		ADEsqlScriptRunner adeSQLRunner = new ADEsqlScriptRunner(connection);		
+		try {			
+			adeSQLRunner.runScript(adeMetadataManager.getDropDBScript(adeId));
+		} catch (SQLException e) {		
+			throw new ADERegistrationException("Error occurred while dropping ADE database schema", e);
+		} 
+		
+		// cleanup ADE metadata
 		try {
 			adeMetadataManager.deleteADEMetadata(adeId);
 		} catch (SQLException e) {	
 			throw new ADERegistrationException("Error occurred while removing ADE metadata from database", e);
-		} 
-		
+		} 		
 		LOG.info("Metadata have been successfully deleted. Start dropping database schema of the selected ADE...");	
-		ADEsqlScriptRunner adeSQLRunner = new ADEsqlScriptRunner(connection);
-		String dropDbScriptPath = config.getDropDbScriptPath();
-		try {			
-			adeSQLRunner.runScript(dropDbScriptPath);
-		} catch (SQLException  e) {		
-			throw new ADERegistrationException("Error occurred while dropping ADE database schema", e);
-		} 
 
 		// commit database transactions
 		try {
@@ -138,9 +150,9 @@ public class ADERegistrationController implements EventHandler {
 		return true;
 	}
 	
-	public List<ADEMetadataEntity> queryRegisteredADEs() throws ADERegistrationException {
+	public List<ADEMetadataInfo> queryRegisteredADEs() throws ADERegistrationException {
 		initDBConneciton();		
-		List<ADEMetadataEntity> adeList = new ArrayList<ADEMetadataEntity>();		
+		List<ADEMetadataInfo> adeList = new ArrayList<ADEMetadataInfo>();		
 		
 		ADEMetadataManager adeMetadataManager = new ADEMetadataManager(connection);
 		try {
@@ -172,7 +184,7 @@ public class ADERegistrationController implements EventHandler {
 			}	
 		}
 	}
-
+	
 	@Override
 	public void handleEvent(Event event) throws Exception {
 		//

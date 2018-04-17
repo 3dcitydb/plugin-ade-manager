@@ -9,12 +9,12 @@ import java.util.List;
 import javax.swing.table.AbstractTableModel;
 
 @SuppressWarnings("serial")
-public class TableModelImpl<T extends TableRowDefaultImpl> extends AbstractTableModel {
+public class TableModel<T extends TableRowDefaultImpl> extends AbstractTableModel {
 
 	private String[] columnNames = null;
 	private List<T> rows = new ArrayList<T>();
 
-	public TableModelImpl(String[] columnNames) {
+	public TableModel(String[] columnNames) {
 		this.columnNames = columnNames;
 		updateColumnsTitle();
 	}

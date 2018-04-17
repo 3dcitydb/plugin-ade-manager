@@ -3,11 +3,9 @@
  */
 package org.citydb.plugins.ade_manager.registry.sqlrunner;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
+import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -30,19 +28,14 @@ public class ADEsqlScriptRunner extends ADERegistrationImpl {
     	this.connection = connection;
     }
     
-    public void runScript(String createDbScriptPath) throws SQLException {
-    	runScript(createDbScriptPath, SRID);
+    public void runScript(String scriptString) throws SQLException {
+    	runScript(scriptString, SRID);
     }
     
-    public void runScript(String createDbScriptPath, int srid) throws SQLException {
-    	FileReader reader = null;
+    public void runScript(String scriptString, int srid) throws SQLException {
+    	StringReader reader = null;
     	LineNumberReader lineReader = null;
-		try {
-			reader = new FileReader(new File(createDbScriptPath));
-		} catch (FileNotFoundException e) {
-			throw new SQLException("Failed to read the input SQL script file", e);
-		}
-    	
+    	reader = new StringReader(scriptString);    	
 		StringBuffer command = null;
 		try {
 			lineReader = new LineNumberReader(reader);

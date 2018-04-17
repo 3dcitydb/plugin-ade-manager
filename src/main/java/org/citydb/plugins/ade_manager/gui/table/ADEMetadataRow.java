@@ -1,36 +1,37 @@
 
-package org.citydb.plugins.ade_manager.gui.table.adeTable;
+package org.citydb.plugins.ade_manager.gui.table;
 
-import org.citydb.plugins.ade_manager.gui.table.TableRowDefaultImpl;
-import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataEntity;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
 
-public class ADERow extends TableRowDefaultImpl {
-
+public class ADEMetadataRow extends TableRowDefaultImpl {
 	private static String[] columnNames;	
 	private String adeid = "";
 	private String name = "";
 	private String description = "";
 	private String version = "";
 	private String dbPrefix = "";
+	private String creationDate = "";
 
 	public static String[] getColumnNames() {
 		if (columnNames == null) {
-			columnNames = new String[5];
+			columnNames = new String[6];
 			columnNames[0] = "ADEID";
 			columnNames[1] = "Name";
 			columnNames[2] = "Description";
-			columnNames[3] = "Namespace";
+			columnNames[3] = "Version";
 			columnNames[4] = "DB_Prefix";
+			columnNames[5] = "Creation_Date";
 		}
 		return columnNames;
 	}
 	
-	public ADERow(ADEMetadataEntity adeEntity) {
+	public ADEMetadataRow(ADEMetadataInfo adeEntity) {
 		this.adeid = adeEntity.getAdeid();
 		this.name = adeEntity.getName();
 		this.description = adeEntity.getDescription();
 		this.version = adeEntity.getVersion();
 		this.dbPrefix = adeEntity.getDbPrefix();
+		this.creationDate = adeEntity.getCreationDate();
 	}
 	
 	public String getValue(int col) {
@@ -44,18 +45,12 @@ public class ADERow extends TableRowDefaultImpl {
 		case 3:
 			return version;
 		case 4:
-			return dbPrefix;			
+			return dbPrefix;
+		case 5:
+			return creationDate;
 		default:
 			return "";
 		}
-	}
-
-	public void setValues(String adeid, String name, String description, String version, String dbPrefix) {
-		this.adeid = adeid;
-		this.name = name;
-		this.description = description;
-		this.version = version;
-		this.dbPrefix = dbPrefix;
 	}
 
 	public void setValue(int col, Object obj) {
@@ -74,7 +69,10 @@ public class ADERow extends TableRowDefaultImpl {
 		case 4:
 			dbPrefix = (String) obj;
 			return;
-		}
+		case 5:
+			creationDate = (String) obj;
+			return;
+		}		
 	}
 
 }

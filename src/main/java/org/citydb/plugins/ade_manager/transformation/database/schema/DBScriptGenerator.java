@@ -23,11 +23,13 @@ import org.apache.ddlutils.model.Table;
 import org.apache.ddlutils.platform.SqlBuilder;
 import org.apache.ddlutils.platform.oracle.Oracle10Platform;
 import org.apache.ddlutils.platform.postgresql.PostgreSqlPlatform;
+import org.citydb.config.project.database.DatabaseType;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.transformation.database.NameShortener;
 import org.citydb.plugins.ade_manager.transformation.graph.ADEschemaHelper;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
+import org.citydb.plugins.ade_manager.util.PathResolver;
 
 import agg.attribute.AttrInstance;
 import agg.xt_basis.Arc;
@@ -45,17 +47,8 @@ public class DBScriptGenerator {
 	private Platform databasePlatform;
 	private ConfigImpl config;
 	private static final String indentStr = "    ";
-	
-	private static final String postgresSQL_FolderName = "postgreSQL";
-	private static final String oracle_FolderName = "oracle";
-	private static final String create_ADE_DB_fileName = "CREATE_ADE_DB.sql";
-	private static final String drop_ADE_DB_fileName = "DROP_ADE_DB.sql";
-	private static final String enable_ADE_versioning_fileName = "ENABLE_ADE_VERSIONING.sql";
-	private static final String disable_ADE_versioning_fileName = "DISABLE_ADE_VERSIONING.sql";
-	
 	private final Logger LOG = Logger.getInstance();
-	
-	
+
 	public DBScriptGenerator(GraGra graphGrammar, ConfigImpl config) {
 		this.graphGrammar = graphGrammar;		
 		new ArrayList<String>(); 
@@ -461,43 +454,44 @@ public class DBScriptGenerator {
 	}
 
 	private void marshallingDatabaseSchema (Platform databasePlatform, Database database) {
-		String headerText = "This document was automatically created by the ADE-Manager tool of 3DCityDB (https://www.3dcitydb.org) on " +  new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-		String outputFolderPath = config.getTransformationOutputPath();
-		String dbFolderName = null;
+		String headerText = "This document was automatically created by the ADE-Manager "
+				+ "tool of 3DCityDB (https://www.3dcitydb.org) on "
+				+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+		Map<String, Table> adeTables = new TreeMap<String, Table>(databaseTables);
 		
+		String outputPath = config.getTransformationOutputPath();
+		
+		File citydbRootFolderpath = new File(PathResolver.get_citydb_folder_path(outputPath));
+		if (!citydbRootFolderpath.exists()) 
+			citydbRootFolderpath.mkdir();
+		
+		DatabaseType databaseType = null;
 		if (databasePlatform instanceof Oracle10Platform) {
-			dbFolderName = oracle_FolderName;
+			databaseType = DatabaseType.ORACLE;
 		}
 		else if (databasePlatform instanceof PostgreSqlPlatform) {
-			dbFolderName = postgresSQL_FolderName;
+			databaseType = DatabaseType.POSTGIS;
 		}
 
-		File directory = new File(outputFolderPath, dbFolderName);
-		if (!directory.exists()) 
-			directory.mkdir();
-		else
-			directory.delete();
-		
-		File createDbFile = new File(directory, create_ADE_DB_fileName);
-		File dropDbFile = new File(directory, drop_ADE_DB_fileName);
-		File enableVersioningFile = new File(directory, enable_ADE_versioning_fileName);
-		File disableVersioningFile = new File(directory, disable_ADE_versioning_fileName);
-		
-		Map<String, Table> treeMap = new TreeMap<String, Table>(databaseTables);
-		int counter = 0;	
-		
+		File dbSchemaFolder = new File(PathResolver.get_citydb_schema_folder_path(outputPath, databaseType));
+		if (!dbSchemaFolder.exists()) 
+			dbSchemaFolder.mkdir();
+
 		// Create Database Schema for ADE...
 		PrintWriter writer = null;
+		int tableCounter = 0;	
+		
 		try {
+			File createDbFile = new File(PathResolver.get_create_ade_db_filepath(outputPath, databaseType));
 			// create tables...
 			writer = new PrintWriter(createDbFile);
 			SqlBuilder sqlBuilder = new SqlBuilder(databasePlatform) {};		
 			sqlBuilder.setWriter(writer);
 			printComment(headerText, databasePlatform, writer);	
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
-			printComment("***********************************  Create tables *************************************", databasePlatform, writer);
+			printComment("*********************************** Create tables **************************************", databasePlatform, writer);
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);				
-			Iterator<Table> iterator = treeMap.values().iterator();			
+			Iterator<Table> iterator = adeTables.values().iterator();			
 			while (iterator.hasNext()) {
 				Table table = iterator.next();
 				if (!isMappedFromforeignClass(table.getName())) {
@@ -505,16 +499,16 @@ public class DBScriptGenerator {
 					printComment(table.getName(), databasePlatform, writer);
 					printComment("--------------------------------------------------------------------", databasePlatform, writer);
 					sqlBuilder.createTable(database, table);
-					counter++;	
+					tableCounter++;	
 				}
 			}
-			LOG.info(counter + " Tables have been generated for " + dbFolderName);
+			LOG.info(tableCounter + " tables are created");
 
 			// create foreign key constraints
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
-			printComment("*********************************  Create foreign keys  ********************************", databasePlatform, writer);
+			printComment("*********************************** Create foreign keys ********************************", databasePlatform, writer);
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);	
-			iterator = treeMap.values().iterator();
+			iterator = adeTables.values().iterator();
 			while (iterator.hasNext()) {
 				Table table = iterator.next();
 				if (!isMappedFromforeignClass(table.getName()) && table.getForeignKeyCount() > 0) {
@@ -524,13 +518,13 @@ public class DBScriptGenerator {
 			
 			// create Indexes 
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
-			printComment("*********************************  Create Indexes  *************************************", databasePlatform, writer);
+			printComment("*********************************** Create Indexes *************************************", databasePlatform, writer);
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);	
 			
 			if (databasePlatform instanceof Oracle10Platform && checkExistenceOfNodeOrArc(GraphNodeArcType.InlineGeometryColumn))
 				this.printGetSridScript(writer);
 			
-			iterator = treeMap.values().iterator();
+			iterator = adeTables.values().iterator();
 			while (iterator.hasNext()) {
 				Table table = iterator.next();
 				if (!isMappedFromforeignClass(table.getName())) {
@@ -540,7 +534,7 @@ public class DBScriptGenerator {
 			
 			// create sequences
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
-			printComment("*********************************  Create Sequences  ***********************************", databasePlatform, writer);
+			printComment("*********************************** Create Sequences ***********************************", databasePlatform, writer);
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);	
 			this.printCreateSequences(writer);	
 
@@ -552,15 +546,15 @@ public class DBScriptGenerator {
 
 		// Drop Database Schema for ADE...
 		try {
-			// drop foreign key constraints
+			File dropDbFile = new File(PathResolver.get_drop_ade_db_filepath(outputPath, databaseType));
 			writer = new PrintWriter(dropDbFile);
 			SqlBuilder sqlBuilder = new SqlBuilder(databasePlatform) {};		
 			sqlBuilder.setWriter(writer);
 			printComment(headerText, databasePlatform, writer);	
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
-			printComment("***********************************  Drop foreign keys *********************************", databasePlatform, writer);
+			printComment("*********************************** Drop foreign keys **********************************", databasePlatform, writer);
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);		
-			Iterator<Table> iterator = treeMap.values().iterator();
+			Iterator<Table> iterator = adeTables.values().iterator();
 			while (iterator.hasNext()) {
 				Table table = iterator.next();
 				if (!isMappedFromforeignClass(table.getName()) && table.getForeignKeyCount() > 0) {
@@ -573,9 +567,9 @@ public class DBScriptGenerator {
 			
 			// drop tables
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
-			printComment("***********************************  Drop tables  **************************************", databasePlatform, writer);
+			printComment("*********************************** Drop tables ***************************************", databasePlatform, writer);
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);	
-			iterator = treeMap.values().iterator();
+			iterator = adeTables.values().iterator();
 			while (iterator.hasNext()) {
 				Table table = iterator.next();
 				if (!isMappedFromforeignClass(table.getName())) {
@@ -588,7 +582,7 @@ public class DBScriptGenerator {
 			
 			// drop sequences
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
-			printComment("*********************************  Drop Sequences  *************************************", databasePlatform, writer);
+			printComment("*********************************** Drop Sequences *************************************", databasePlatform, writer);
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);	
 			this.printDropSequences(writer);
 
@@ -598,20 +592,21 @@ public class DBScriptGenerator {
 		} catch (IOException | NullPointerException e) {			
 			e.printStackTrace();
 		} finally {
-			// Close Writer instance
 			writer.close();
 		}
 		
-		// enable Versioning
-		if (databasePlatform instanceof Oracle10Platform){
+		// create versioning scripts which are only available for Oracle
+		if (databaseType == DatabaseType.ORACLE) {
+			// create enable-Versioning script
 			try {
+				File enableVersioningFile = new File(PathResolver.get_enable_ade_versioning_filepath(outputPath, databaseType));
 				writer = new PrintWriter(enableVersioningFile);
 				printComment(headerText, databasePlatform, writer);	
 				printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
-				printComment("*********************************  Enable Versioning  ***********************************", databasePlatform, writer);
+				printComment("*********************************** Enable Versioning **********************************", databasePlatform, writer);
 				printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);	
 				writer.println();
-				Iterator<Table> iterator = treeMap.values().iterator();
+				Iterator<Table> iterator = adeTables.values().iterator();
 				StringBuilder commandStr = new StringBuilder().append("DBMS_WM.EnableVersioning('"); 
 				while (iterator.hasNext()) {
 					Table table = iterator.next();
@@ -627,18 +622,17 @@ public class DBScriptGenerator {
 			} finally {
 				writer.close();	
 			}
-		}  	
-		
-		// disable Versioning
-		if (databasePlatform instanceof Oracle10Platform){
+			
+			// create disable-Versioning script
 			try {
+				File disableVersioningFile = new File(PathResolver.get_disable_ade_versioning_filepath(outputPath, databaseType));				
 				writer = new PrintWriter(disableVersioningFile);
 				printComment(headerText, databasePlatform, writer);	
 				printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
-				printComment("*********************************  Disable Versioning  ***********************************", databasePlatform, writer);
+				printComment("*********************************** Disable Versioning *********************************", databasePlatform, writer);
 				printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);	
 				writer.println();
-				Iterator<Table> iterator = treeMap.values().iterator();
+				Iterator<Table> iterator = adeTables.values().iterator();
 				StringBuilder commandStr = new StringBuilder().append("DBMS_WM.DisableVersioning('"); 
 				while (iterator.hasNext()) {
 					Table table = iterator.next();
@@ -653,7 +647,7 @@ public class DBScriptGenerator {
 				e.printStackTrace();
 			} finally {
 				writer.close();	
-			}
+			}		
 		}  
 	}
 	
@@ -662,10 +656,6 @@ public class DBScriptGenerator {
 		writer.println("SET SERVEROUTPUT ON");
 		writer.println("SET FEEDBACK ON");
 		writer.println("SET VER OFF");
-/*		writer.println();
-		writer.println("ALTER SESSION set NLS_TERRITORY='AMERICA';");
-		writer.println("ALTER SESSION set NLS_LANGUAGE='AMERICAN';");
-		writer.println();*/
 		writer.println("VARIABLE SRID NUMBER;");		
 		writer.print("BEGIN");
 		writer.println();

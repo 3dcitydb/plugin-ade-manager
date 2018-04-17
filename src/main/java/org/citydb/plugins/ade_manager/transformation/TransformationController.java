@@ -5,16 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.ddlutils.model.Database;
-import org.citydb.config.project.database.DatabaseType;
-import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.event.Event;
 import org.citydb.event.EventHandler;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.transformation.database.delete.DeleteScriptGeneratorFactory;
-import org.citydb.plugins.ade_manager.transformation.database.delete.DsgException;
-import org.citydb.plugins.ade_manager.transformation.database.delete.IDeleteScriptGenerator;
 import org.citydb.plugins.ade_manager.transformation.database.schema.DBScriptGenerator;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphTransformationManager;
 import org.citydb.plugins.ade_manager.transformation.schemaMapping.SchemaMappingCreator;
@@ -28,8 +23,6 @@ import agg.xt_basis.GraGra;
 
 public class TransformationController implements EventHandler {
 	private final Logger LOG = Logger.getInstance();
-	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
-	
 	private ConfigImpl config;
 	private GraGra adeGraph;
 	private Database adeDatabaseSchema;
@@ -52,16 +45,6 @@ public class TransformationController implements EventHandler {
     	LOG.info("Generating 3DCityDB ADE database schema...");
 		DBScriptGenerator databaseScriptCreator = new DBScriptGenerator(adeGraph, config);
 		adeDatabaseSchema = databaseScriptCreator.createDatabaseScripts(); 
-		
-		LOG.info("Generating 3DCityDB database delete-script...");
-		DatabaseType databaseType = dbPool.getActiveDatabaseAdapter().getDatabaseType();
-		DeleteScriptGeneratorFactory factory = new DeleteScriptGeneratorFactory();
-		IDeleteScriptGenerator cleanupScriptGenerator = factory.createDatabaseAdapter(databaseType);
-		try {
-			cleanupScriptGenerator.doProcess(this, dbPool, config);
-		} catch (DsgException e) {
-			throw new TransformationException("Failed to generate delect-scripts for the connected 3DCityDB instance", e);
-		}
 		
 		LOG.info("Generating 3dcitydb XML SchemaMapping file...");
 		SchemaMappingCreator schemaMappingCreator = new SchemaMappingCreator(adeGraph, config);

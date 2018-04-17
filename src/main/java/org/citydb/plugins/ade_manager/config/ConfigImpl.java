@@ -32,6 +32,7 @@ import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
 
 import org.citydb.config.project.plugin.PluginConfig;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.util.CoreConstants;
 
 @XmlType(name="ADEManagerType", propOrder={			
@@ -42,25 +43,18 @@ import org.citydb.util.CoreConstants;
 		"adeVersion",	
 		"adeDbPrefix",	
 		"initialObjectclassId",
-		"schemaMappingPath",	
-		"dbScriptPath",
-		"dropDbScriptPath"	
+		"adeRegistryInputPath"
 })
 
 public class ConfigImpl extends PluginConfig {
 	private String xmlSchemaInputPath;
 	private String transformationOutputPath;
-
 	private String adeName;
 	private String adeDescription;
 	private String adeVersion;
 	private String adeDbPrefix;
 	private int initialObjectclassId;
-	
-	private String schemaMappingPath;
-	private String dbScriptPath;
-	private String dropDbScriptPath;
-	
+	private String adeRegistryInputPath;	
 	@XmlTransient
 	private String inputGraphPath;
 	@XmlTransient
@@ -75,7 +69,7 @@ public class ConfigImpl extends PluginConfig {
 		}
 		tmpGraphDirPath = tmp.getAbsolutePath();		
 		
-		initialObjectclassId = 10000;
+		initialObjectclassId = ADEMetadataManager.MIN_ADE_OBJECTCLASSID;
 	}
 
 	public String getTransformationOutputPath() {
@@ -137,32 +131,17 @@ public class ConfigImpl extends PluginConfig {
 	public void setInitialObjectclassId(int initialObjectclassId) {
 		this.initialObjectclassId = initialObjectclassId;
 	}
-
-	public String getSchemaMappingPath() {
-		return schemaMappingPath;
-	}
-
-	public void setSchemaMappingPath(String schemaMappingPath) {
-		this.schemaMappingPath = schemaMappingPath;
-	}
-
-	public String getCreateDbScriptPath() {
-		return dbScriptPath;
-	}
-
-	public void setCreateDbScriptPath(String createDbScriptPath) {
-		this.dbScriptPath = createDbScriptPath;
-	}
-
-	public String getDropDbScriptPath() {
-		return dropDbScriptPath;
-	}
-
-	public void setDropDbScriptPath(String dropDbScriptPath) {
-		this.dropDbScriptPath = dropDbScriptPath;
-	}
-
+	
 	public String getTmpGraphDirPath() {
 		return tmpGraphDirPath;
 	}
+
+	public String getAdeRegistryInputPath() {
+		return adeRegistryInputPath;
+	}
+
+	public void setAdeRegistryInputPath(String adeRegistryInputPath) {
+		this.adeRegistryInputPath = adeRegistryInputPath;
+	}
+	
 }

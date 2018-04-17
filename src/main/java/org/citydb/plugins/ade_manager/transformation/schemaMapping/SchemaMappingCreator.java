@@ -1,6 +1,7 @@
 package org.citydb.plugins.ade_manager.transformation.schemaMapping;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -61,6 +62,9 @@ import agg.xt_basis.Node;
 import agg.xt_basis.Type;
 
 public class SchemaMappingCreator {	
+	private final String schemaMappingFoldername = "schema-mapping";
+	private final String schemaMappingFilename = "schema-mapping.xml";
+	
 	private GraGra graphGrammar;	
 	private SchemaMapping citygmlSchemaMapping;
 	private SchemaMapping adeSchemaMapping;
@@ -87,8 +91,15 @@ public class SchemaMappingCreator {
 		
 		processTopLevelFeatures(adeSchemaMapping);
 		
-		File mappingSchemaFile = new File(config.getTransformationOutputPath(), "schema-mapping.xml");			
-		SchemaMappingUtil.getInstance().marshal(adeSchemaMapping, mappingSchemaFile);
+		String outputFolderPath = config.getTransformationOutputPath();
+		File schemaMappingRootDirectory = new File(outputFolderPath, schemaMappingFoldername);
+		if (!schemaMappingRootDirectory.exists()) 
+			schemaMappingRootDirectory.mkdir();
+		
+		File mappingSchemaFile = new File(schemaMappingRootDirectory, schemaMappingFilename);	
+		FileWriter writer = new FileWriter(mappingSchemaFile);
+		SchemaMappingUtil.getInstance().marshal(adeSchemaMapping, writer);
+		writer.close();
 		
 		return adeSchemaMapping;
 	} 
@@ -102,20 +113,14 @@ public class SchemaMappingCreator {
 	}
 	
 	private AppSchema generateApplicationSchema(){		
-		Node schemaNode = this.getSchemaNode();
-		
-		AttrInstance attrInstance = schemaNode.getAttribute();
+		Node schemaNode = this.getSchemaNode();		
+		AttrInstance attrInstance = schemaNode.getAttribute();		
+		String namespaceUri = (String) attrInstance.getValueAt("namespaceUri");		
 		String dbPrefix = config.getAdeDbPrefix();
-		String namespaceUri = (String) attrInstance.getValueAt("namespaceUri");
 		
-/*		Namespace namespace1 = new Namespace(xmlns, CityGMLContext.CITYGML_1_0);
-		namespace1.setURI(namespaceUri);*/
-		Namespace namespace2 = new Namespace(namespaceUri, CityGMLContext.CITYGML_2_0);
-
-		AppSchema appSchema = new AppSchema(dbPrefix, adeSchemaMapping);
-//		appSchema.addNamespace(namespace1);
-//		appSchema.setId(appSchema.getXMLPrefix());
-		appSchema.addNamespace(namespace2);		
+		AppSchema appSchema = new AppSchema(dbPrefix, adeSchemaMapping);		
+		Namespace namespace = new Namespace(namespaceUri, CityGMLContext.CITYGML_2_0);		
+		appSchema.addNamespace(namespace);		
 		appSchema.setIsADERoot(true);
 		
 		return appSchema;
