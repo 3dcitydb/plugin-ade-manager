@@ -28,9 +28,21 @@ import org.citydb.config.project.database.DatabaseType;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.schema.mapping.AbstractExtension;
 import org.citydb.database.schema.mapping.AbstractObjectType;
+import org.citydb.database.schema.mapping.AbstractProperty;
+import org.citydb.database.schema.mapping.AbstractType;
 import org.citydb.database.schema.mapping.AppSchema;
+import org.citydb.database.schema.mapping.ComplexProperty;
+import org.citydb.database.schema.mapping.ComplexType;
+import org.citydb.database.schema.mapping.FeatureProperty;
+import org.citydb.database.schema.mapping.FeatureType;
+import org.citydb.database.schema.mapping.GeometryProperty;
+import org.citydb.database.schema.mapping.ImplicitGeometryProperty;
+import org.citydb.database.schema.mapping.InjectedProperty;
 import org.citydb.database.schema.mapping.Namespace;
+import org.citydb.database.schema.mapping.ObjectProperty;
 import org.citydb.database.schema.mapping.ObjectType;
+import org.citydb.database.schema.mapping.PropertyInjection;
+import org.citydb.database.schema.mapping.RelationType;
 import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.database.schema.mapping.SchemaMappingException;
 import org.citydb.database.schema.mapping.SchemaMappingValidationException;
@@ -110,7 +122,7 @@ public class ADEMetadataManager extends DefaultADERegistrationProcessor {
 			psInsertSchema.close();			
 		}
 		
-		String insertSchemaReferencingQueryString = "INSERT INTO schema_referencing" + "(REFERENCED_ID, REFERENCING_ID) VALUES" + "(?,?)";
+		String insertSchemaReferencingQueryString = "INSERT INTO schema_referencing(REFERENCED_ID, REFERENCING_ID) VALUES(?,?)";
 		PreparedStatement psInsertSchemaReferencing = connection.prepareStatement(insertSchemaReferencingQueryString);
 		try {
 			insertSchemaReferencing(insertedSchemas, adeRootSchemaId, psInsertSchemaReferencing);		
@@ -121,7 +133,7 @@ public class ADEMetadataManager extends DefaultADERegistrationProcessor {
 		}
 		
 		Map<Long, String> objectObjectclassIds;
-		String insertObjectclassQueryString = "INSERT INTO OBJECTCLASS" + "(ID, IS_ADE_CLASS, CLASSNAME, TABLENAME, SUPERCLASS_ID, BASECLASS_ID, ADE_ID) VALUES" + "(?,?,?,?,?,?,?)";
+		String insertObjectclassQueryString = "INSERT INTO OBJECTCLASS (ID, IS_ADE_CLASS, IS_TOPLEVEL, CLASSNAME, TABLENAME, SUPERCLASS_ID, BASECLASS_ID, ADE_ID) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = connection.prepareStatement(insertObjectclassQueryString);
 		try {			
 			objectObjectclassIds = insertObjectclasses(insertedADERowId, ps);			
@@ -131,10 +143,20 @@ public class ADEMetadataManager extends DefaultADERegistrationProcessor {
 			ps.close();			
 		}
 		
-		String insertSchemaToObjectclassQueryString = "INSERT INTO schema_to_objectclass" + "(SCHEMA_ID, OBJECTCLASS_ID) VALUES" + "(?,?)";
+		String insertSchemaToObjectclassQueryString = "INSERT INTO schema_to_objectclass(SCHEMA_ID, OBJECTCLASS_ID) VALUES(?,?)";
 		PreparedStatement psInsertSchemaToObjectclass = connection.prepareStatement(insertSchemaToObjectclassQueryString);
 		try {
 			insertSchemaToObjectclass(objectObjectclassIds, insertedSchemas, psInsertSchemaToObjectclass);			
+		} catch (SQLException e) {
+			throw new SQLException("Failed to import metadata into 'SCHEMA_TO_OBJECTCLASS' table.", e);
+		} finally {
+			psInsertSchemaToObjectclass.close();
+		}
+		
+		String insertAggregationInfoQueryString = "INSERT INTO aggregation_info(CHILD_ID, PARENT_ID, MIN_OCCURS, MAX_OCCURS, IS_COMPOSITE) VALUES(?,?,?,?,?)";
+		PreparedStatement psInsertAggregationInfo = connection.prepareStatement(insertAggregationInfoQueryString);
+		try {
+			insertAggregationInfo(psInsertAggregationInfo);			
 		} catch (SQLException e) {
 			throw new SQLException("Failed to import metadata into 'SCHEMA_TO_OBJECTCLASS' table.", e);
 		} finally {
@@ -374,17 +396,17 @@ public class ADEMetadataManager extends DefaultADERegistrationProcessor {
 	private Map<Long, String> insertObjectclasses(long insertedADERowId, PreparedStatement ps) throws SQLException {		
 		Map<Long, String> insertedObjectclasses = new HashMap<Long, String>();
 		
-		Iterator<AbstractObjectType<?>> objectIter = adeSchemaMapping.getAbstractObjectTypes().iterator();		
+		Iterator<AbstractType<?>> objectIter = adeSchemaMapping.getAbstractTypes().iterator();		
 		while (objectIter.hasNext()) {
-			AbstractObjectType<?> objectClass = objectIter.next();	
+			AbstractType<?> objectClass = objectIter.next();	
 			if (!insertedObjectclasses.containsKey((long)objectClass.getObjectClassId()))
 				insertSingleObjectclass(objectClass, insertedObjectclasses, insertedADERowId, ps);										
 		}
-		
+
 		return insertedObjectclasses;
 	}
 	
-	private void insertSingleObjectclass(AbstractObjectType<?> objectClass, Map<Long, String> insertedObjectclasses, long insertedADERowId, PreparedStatement ps) throws SQLException {
+	private void insertSingleObjectclass(AbstractType<?> objectClass, Map<Long, String> insertedObjectclasses, long insertedADERowId, PreparedStatement ps) throws SQLException {
 		long objectclassId = objectClass.getObjectClassId();	
 		Integer superclassId = null;	
 		
@@ -395,10 +417,17 @@ public class ADEMetadataManager extends DefaultADERegistrationProcessor {
 			if (superclassId >= MIN_ADE_OBJECTCLASSID && !insertedObjectclasses.containsKey((long)superclassId))
 				insertSingleObjectclass(superType, insertedObjectclasses, insertedADERowId, ps);
 		}
+		
+		int topLevel = 0;
+		if (objectClass instanceof FeatureType) {
+			if (((FeatureType) objectClass).isTopLevel())
+				topLevel = 1;
+		}
 
 		int index = 1;		
 		ps.setLong(index++, objectclassId);
 		ps.setInt(index++, 1);
+		ps.setInt(index++, topLevel);
 		ps.setString(index++, objectClass.getPath());
 		ps.setString(index++, objectClass.getTable());		
 		
@@ -408,7 +437,11 @@ public class ADEMetadataManager extends DefaultADERegistrationProcessor {
 			ps.setInt(index++, baseclassId);
 		}	
 		else {
-			if (objectClass instanceof ObjectType) {
+			if (objectClass instanceof ComplexType) {
+				ps.setInt(index++, 0);
+				ps.setInt(index++, 0);
+			}
+			else if (objectClass instanceof ObjectType) {
 				ps.setInt(index++, 1);
 				ps.setInt(index++, 1);
 			}
@@ -422,6 +455,72 @@ public class ADEMetadataManager extends DefaultADERegistrationProcessor {
 		ps.executeUpdate();			
 
 		insertedObjectclasses.put(objectclassId, objectClass.getSchema().getId());	
+	}
+	
+	private void insertAggregationInfo(PreparedStatement ps) throws SQLException {		
+		List<QName> insertedAggregationinfo = new ArrayList<QName>();		
+		for (AbstractType<?> objectclass: adeSchemaMapping.getAbstractTypes()) {
+			int parentId = objectclass.getObjectClassId();	
+			for (AbstractProperty property: objectclass.getProperties()) {
+				insertSingleAggregationInfo(parentId, property, insertedAggregationinfo, ps);
+			}			
+		}	
+		for (PropertyInjection injection: adeSchemaMapping.getPropertyInjections()) {
+			int parentId = injection.getDefaultBase().getObjectClassId();
+			for (InjectedProperty property: injection.getProperties()) {
+				insertSingleAggregationInfo(parentId, (AbstractProperty)property, insertedAggregationinfo, ps);
+			}			
+		}		
+	}
+	
+	private void insertSingleAggregationInfo(int parentId, AbstractProperty property, 
+			List<QName> insertedAggregationinfo, PreparedStatement ps) throws SQLException {	
+		int childId = 0;
+		RelationType relationType = RelationType.ASSOCIATION;
+		if (property instanceof ComplexProperty) {
+			childId = ((ComplexProperty) property).getType().getObjectClassId();
+			relationType = RelationType.COMPOSITION;
+		}
+		else if (property instanceof FeatureProperty) {
+			childId = ((FeatureProperty) property).getType().getObjectClassId();
+			relationType = ((FeatureProperty) property).getRelationType(); 
+		}
+		else if (property instanceof ObjectProperty) {
+			childId = ((ObjectProperty) property).getType().getObjectClassId();
+			relationType = ((FeatureProperty) property).getRelationType(); 
+		}
+		else if (property instanceof GeometryProperty) {
+			String refColumn = ((GeometryProperty) property).getRefColumn();
+			if (refColumn != null) {
+				childId = 106; // surface geometry
+				relationType = RelationType.COMPOSITION;
+			}
+		}
+		else if (property instanceof ImplicitGeometryProperty) {
+			childId = 59; // surface geometry
+			relationType = RelationType.AGGREGATION;
+		}
+		
+		QName key = new QName(String.valueOf(childId), String.valueOf(parentId));
+		if (childId != 0 && relationType != RelationType.ASSOCIATION && !insertedAggregationinfo.contains(key)) {
+			int index = 1;
+			int minOccurs = property.getMinOccurs();
+			Integer maxOccurs = property.getMaxOccurs();
+			ps.setInt(index++, childId);
+			ps.setInt(index++, parentId);
+			ps.setInt(index++, minOccurs);
+			if (maxOccurs != null)
+				ps.setInt(index++, maxOccurs);
+			else
+				ps.setNull(index++, Types.INTEGER);
+			if (relationType == RelationType.COMPOSITION)
+				ps.setInt(index++, 1);
+			else
+				ps.setInt(index++, 0);	
+			
+			insertedAggregationinfo.add(key);
+			ps.executeUpdate();		
+		}	
 	}
 	
 	private long getSequenceID(ADEMetadataSequence seqType) throws SQLException {
@@ -456,13 +555,13 @@ public class ADEMetadataManager extends DefaultADERegistrationProcessor {
 		return id;
 	}
 
-	private int getBaseclassId(AbstractObjectType<?> objectType) {
+	private int getBaseclassId(AbstractType<?> objectType) {
 		int objectclassId = objectType.getObjectClassId();
 		
 		if (objectclassId <= 3)
 			return objectclassId;
 		else 
-			return getBaseclassId((AbstractObjectType<?>)objectType.getExtension().getBase());
+			return getBaseclassId((AbstractType<?>)objectType.getExtension().getBase());
 	}
 	
 	private String getStringFromFile(Path schemaMappingFile) {
