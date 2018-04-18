@@ -455,9 +455,24 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		}
 	}
 
+	private void browserRegistryInputDirectory() {
+		JFileChooser chooser = new JFileChooser();
+		chooser.setDialogTitle("Input Folder");
+		chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		chooser.setCurrentDirectory(new File(browseRegistryText.getText()).getParentFile());
+	
+		int result = chooser.showOpenDialog(getTopLevelAncestor());
+		if (result == JFileChooser.CANCEL_OPTION)
+			return;
+	
+		String browseString = chooser.getSelectedFile().toString();
+		if (!browseString.isEmpty())
+			browseRegistryText.setText(browseString);
+	}
+
 	private void transformADESchema() {	
 		setSettings();
-
+	
 		String adeName = config.getAdeName();
 		if (adeName.trim().equals("")) {
 			viewController.errorMessage("Incomplete Information", "Please enter a name for the ADE");
@@ -482,30 +497,15 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			return;
 		}
 		String selectedSchemaNamespace = schemaTableModel.getColumn(selectedRowNum).getValue(0);
-
+	
 		try {
 			adeTransformer.doProcess(selectedSchemaNamespace);
 		} catch (TransformationException e) {
 			printErrorMessage(e);
 			return;
 		}
-
+	
 		LOG.info("Transformation finished");
-	}
-
-	private void browserRegistryInputDirectory() {
-		JFileChooser chooser = new JFileChooser();
-		chooser.setDialogTitle("Input Folder");
-		chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-		chooser.setCurrentDirectory(new File(browseRegistryText.getText()).getParentFile());
-	
-		int result = chooser.showOpenDialog(getTopLevelAncestor());
-		if (result == JFileChooser.CANCEL_OPTION)
-			return;
-	
-		String browseString = chooser.getSelectedFile().toString();
-		if (!browseString.isEmpty())
-			browseRegistryText.setText(browseString);
 	}
 
 	private void registerADE() {
@@ -598,7 +598,22 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 	}
 	
 	private void generateDeleteScripts() {
-		// TODO
+		// database connection is required
+		try {
+			checkAndConnectToDB();
+		} catch (SQLException e) {
+			printErrorMessage("ADE registration aborted", e);
+			return;
+		}
+		
+		try {
+			adeRegistor.rollbackTransactions();
+			adeRegistor.createDeleteScripts(true);
+		} catch (ADERegistrationException e) {
+			printErrorMessage("Script creation aborted", e);
+		} finally {
+			adeRegistor.closeDBConnection();
+		}	
 	}
 	
 	private void printErrorMessage(Exception e) {

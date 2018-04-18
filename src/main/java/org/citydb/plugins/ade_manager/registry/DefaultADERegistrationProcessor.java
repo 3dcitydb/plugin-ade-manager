@@ -5,11 +5,10 @@ import java.sql.SQLException;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 
-public abstract class ADERegistrationImpl implements ADERegistration {
+public abstract class DefaultADERegistrationProcessor {
     protected Connection connection;
     protected ConfigImpl config;
-    
-    @Override
+
 	public void commit() throws SQLException {
 		try {
     		connection.commit();

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.JAXBException;
+import javax.xml.namespace.QName;
 
 import org.citydb.config.project.database.DatabaseType;
 import org.citydb.database.connection.DatabaseConnectionPool;
@@ -35,11 +36,11 @@ import org.citydb.database.schema.mapping.SchemaMappingException;
 import org.citydb.database.schema.mapping.SchemaMappingValidationException;
 import org.citydb.database.schema.util.SchemaMappingUtil;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.ADERegistrationImpl;
+import org.citydb.plugins.ade_manager.registry.DefaultADERegistrationProcessor;
 import org.citydb.plugins.ade_manager.util.PathResolver;
 import org.citydb.util.CoreConstants;
 
-public class ADEMetadataManager extends ADERegistrationImpl {	
+public class ADEMetadataManager extends DefaultADERegistrationProcessor {	
 	public static final int MIN_ADE_OBJECTCLASSID = 10000;
 	private SchemaMapping adeSchemaMapping;	
 	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
@@ -168,6 +169,64 @@ public class ADEMetadataManager extends ADERegistrationImpl {
 		}
 	
 		return ades;
+	}
+
+	public Map<QName, AggregationInfo> queryAggregationInfo() throws SQLException {
+		PreparedStatement pstsmt = null;
+		ResultSet rs = null;
+		Map<QName, AggregationInfo> result = new HashMap<QName, AggregationInfo>();
+	
+		StringBuilder strBuilder = new StringBuilder();
+		strBuilder.append("select distinct ")
+				      .append("c.tablename as child_table_name, ")
+				      .append("p.tablename as parent_table_name, ")
+				      .append("a.min_occurs as min_occurs, ")
+				      .append("a.max_occurs as max_occurs, ")
+				      .append("a.is_composite as is_composite ")
+				  .append("FROM ")
+				      .append("aggregation_info a ")
+				  .append("JOIN ")
+				      .append("objectclass c ")
+				      .append("on a.child_id = c.id ")
+				  .append("JOIN ")
+				      .append("objectclass p ")
+				      .append("on a.parent_id = p.id ");
+		
+		try {
+			pstsmt = connection.prepareStatement(strBuilder.toString());
+			rs = pstsmt.executeQuery();						
+			while (rs.next()) {
+				String childTable = rs.getString(1);
+				String parentTable = rs.getString(2);
+				int minOccurs = rs.getInt(3);
+				if (rs.wasNull())
+					minOccurs = 0;			
+				int maxOccurs = rs.getInt(4);				
+				if (rs.wasNull())
+					maxOccurs = -1;
+				boolean isComposite = (rs.getInt(5) == 1);
+				AggregationInfo aggrInfo = new AggregationInfo(childTable, parentTable, minOccurs, maxOccurs, isComposite);
+				result.put(new QName(childTable, parentTable), aggrInfo);
+			}							
+		} 
+		finally {			
+			if (rs != null) { 
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					throw e;
+				}
+			}	
+			if (pstsmt != null) { 
+				try {
+					pstsmt.close();
+				} catch (SQLException e) {
+					throw e;
+				} 
+			}			
+		}
+		
+		return result;
 	}
 
 	public void deleteADEMetadata(String adeId) throws SQLException {

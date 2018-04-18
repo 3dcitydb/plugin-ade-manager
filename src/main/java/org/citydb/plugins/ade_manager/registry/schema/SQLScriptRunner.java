@@ -1,8 +1,8 @@
+package org.citydb.plugins.ade_manager.registry.schema;
+
 /**
  * Inspired from the website: https://allstarnix.blogspot.de/2013/03/how-to-execute-sql-script-file-using.html
  */
-package org.citydb.plugins.ade_manager.registry.schema.helper;
-
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.StringReader;
@@ -13,26 +13,24 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.citydb.log.Logger;
-import org.citydb.plugins.ade_manager.registry.ADERegistrationImpl;
 
-public class SQLScriptRunner extends ADERegistrationImpl {
+public class SQLScriptRunner {
+	private static SQLScriptRunner instance;
     private final String DELIMITER_LINE_REGEX = "(?i)DELIMITER.+"; 
     private final String DELIMITER_LINE_SPLIT_REGEX = "(?i)DELIMITER"; 
     private final String DEFAULT_DELIMITER = ";";
-    private final int SRID = -1; 
-    private final Logger LOG = Logger.getInstance();	
-    
+    private final Logger LOG = Logger.getInstance();	   
     private String delimiter = DEFAULT_DELIMITER;
-    
-    public SQLScriptRunner(Connection connection) {
-    	this.connection = connection;
-    }
-    
-    public void runScript(String scriptString) throws SQLException {
-    	runScript(scriptString, SRID);
-    }
-    
-    public void runScript(String scriptString, int srid) throws SQLException {
+
+	private SQLScriptRunner() {}
+
+	public static synchronized SQLScriptRunner getInstance() {
+		if (instance == null)
+			instance = new SQLScriptRunner();		
+		return instance;
+	}
+	
+    public void runScript(String scriptString, Connection connection) throws SQLException {
     	StringReader reader = null;
     	LineNumberReader lineReader = null;
     	reader = new StringReader(scriptString);    	
@@ -71,12 +69,6 @@ public class SQLScriptRunner extends ADERegistrationImpl {
 							|| command.toString().toLowerCase().trim().startsWith("drop"))) {
 						command = null;
 					} else {
-						String subString = "&SRSNO";
-
-						int position = command.lastIndexOf(subString);
-						if (position > -1)
-							command.replace(position, position + subString.length(), String.valueOf(srid));
-
 						Statement stmt = connection.createStatement();
 						try {
 							try {

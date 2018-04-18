@@ -15,7 +15,10 @@ import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
-import org.citydb.plugins.ade_manager.registry.schema.ADEDatabaseSchemaManager;
+import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGeneratorFactory;
+import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
+import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManagerFactory;
 import org.citydb.registry.ObjectRegistry;
 
 public class ADERegistrationController implements EventHandler {
@@ -54,7 +57,8 @@ public class ADERegistrationController implements EventHandler {
 		
 		// create database tables, FKs, indexes, and sequences etc.
 		LOG.info("Creating ADE database schema...");		
-		ADEDatabaseSchemaManager adeDatabasSchemaManager = new ADEDatabaseSchemaManager(connection, config);	
+		ADEDBSchemaManager adeDatabasSchemaManager = ADEDBSchemaManagerFactory.getInstance()
+				.createADEDatabaseSchemaManager(connection, config);
 		try {	
 			adeDatabasSchemaManager.createADEDatabaseSchema();
 		} catch (SQLException e) {
@@ -102,7 +106,8 @@ public class ADERegistrationController implements EventHandler {
 		initDBConneciton();
 		
 		// drop ADE database schema
-		ADEDatabaseSchemaManager adeDatabasSchemaManager = new ADEDatabaseSchemaManager(connection, config);	
+		ADEDBSchemaManager adeDatabasSchemaManager = ADEDBSchemaManagerFactory.getInstance()
+				.createADEDatabaseSchemaManager(connection, config);	
 		try {	
 			adeDatabasSchemaManager.dropADEDatabaseSchema(adeId);
 		} catch (SQLException e) {
@@ -148,6 +153,25 @@ public class ADERegistrationController implements EventHandler {
 		} 
 		
 		return adeList;
+	}
+	
+	public void createDeleteScripts(boolean immediateInstall) throws ADERegistrationException {
+		LOG.info("Start creating delete functions for the current 3DCityDB instance...");
+		initDBConneciton();
+			
+		DeleteScriptGeneratorFactory factory = new DeleteScriptGeneratorFactory(connection, config);
+		DeleteScriptGenerator deleteScriptGenerator = factory.createDatabaseAdapter();
+		try {
+			deleteScriptGenerator.doProcess(immediateInstall);
+		} catch (SQLException e) {
+			throw new ADERegistrationException("Failed to generate delete-script for the current 3DCityDB instance", e);
+		}
+		
+		try {
+			deleteScriptGenerator.commit();			
+		} catch (SQLException e) {
+			throw new ADERegistrationException("Failed to install delete-functions into database", e);
+		}
 	}
 
 	public void closeDBConnection() {
