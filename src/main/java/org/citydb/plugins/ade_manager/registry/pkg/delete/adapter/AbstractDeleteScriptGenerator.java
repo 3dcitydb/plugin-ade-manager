@@ -5,8 +5,9 @@ import java.io.PrintStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
+
 import javax.xml.namespace.QName;
 
 import org.citydb.database.connection.DatabaseConnectionPool;
@@ -50,8 +51,8 @@ public abstract class AbstractDeleteScriptGenerator extends DefaultADERegistrati
 	
 	@Override
 	public String generateDeleteScript() throws SQLException {	
-		this.functionNames = new HashMap<String, String>();
-		this.functionCollection = new HashMap<String, String>();
+		this.functionNames = new TreeMap<String, String>();
+		this.functionCollection = new TreeMap<String, String>();
 		try {		
 			this.aggregationInfoCollection = adeMetadataManager.queryAggregationInfo();
 		} catch (SQLException e) {
