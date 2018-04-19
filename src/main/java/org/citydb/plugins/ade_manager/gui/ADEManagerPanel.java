@@ -531,10 +531,12 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			adeRegistor.closeDBConnection();
 		}
 		
-		// update the ADE list table by querying the ADE again
-		if (isComplete)
+		if (isComplete) {
+			// update the ADE list table by querying the ADE again
 			showRegisteredADEs();
-		
+			generateDeleteScripts();
+		}
+	
 	}
 	
 	private void showRegisteredADEs() {
