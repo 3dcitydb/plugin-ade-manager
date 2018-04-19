@@ -9,10 +9,10 @@ import org.citydb.config.project.database.DatabaseConfigurationException;
 import org.citydb.database.DatabaseController;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.version.DatabaseVersionException;
-import org.citydb.event.Event;
-import org.citydb.event.EventHandler;
+import org.citydb.event.EventDispatcher;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
@@ -21,8 +21,9 @@ import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManagerFactory;
 import org.citydb.registry.ObjectRegistry;
 
-public class ADERegistrationController implements EventHandler {
+public class ADERegistrationController {
 	private final Logger LOG = Logger.getInstance();
+	private final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
 	private final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();	
 	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();		
 	private ConfigImpl config;
@@ -78,6 +79,8 @@ public class ADERegistrationController implements EventHandler {
 			throw new ADERegistrationException("Failed to create ADE database schema", e);
 		}		
 		
+		createDeleteScripts(true);
+		
 		// database re-connection is required for completing the ADE registration process
 		LOG.info("ADE registration is completed and will take effect after reconnecting to the database.");	
 		if (dbPool.isConnected()) {
@@ -94,18 +97,18 @@ public class ADERegistrationController implements EventHandler {
 	
 	public boolean deregisterADE(String adeId) throws ADERegistrationException {
 		LOG.info("Start deleting metadata of the selected ADE from database...");
-		/* TODO
+		/* 
 		 * In order to remove an ADE from a 3DCityDB instance, the following processing steps are required:
 		 * 1) clean up all the ADE data from the CityGML and ADE tables by calling a cleanup_[ade_name] function. 
-		 * 2) the drop_ade_db script shall be executed to remove ADE database schema, which can be persisted in the 
-		 * 	  ADE metadata table through the registration process.  
-		 * 3) Regenerate the entire delete-functions again, because the function like "delete_cityobject()" must be updated due to
-		 *    deregistration of the ADE
-		 * 4) Delete ADE metadata content from the 3DCityDB metadata tables
+		 * 2) drop ADE database schema by calling the "drop_ade_db" script, which is persisted in the ADE metadata table.  
+		 * 3) Re-generate the entire delete-functions.
+		 * 4) Delete ADE metadata from the respective 3DCityDB's Metadata tables
 		 */
 		initDBConneciton();
+		// TODO
+		// Step 1: Cleanup ADE data content by calling the corresponding delete-functions
 		
-		// drop ADE database schema
+		// Step 2: Dropping ADE database schema and delete-functions
 		ADEDBSchemaManager adeDatabasSchemaManager = ADEDBSchemaManagerFactory.getInstance()
 				.createADEDatabaseSchemaManager(connection, config);	
 		try {	
@@ -113,15 +116,16 @@ public class ADERegistrationController implements EventHandler {
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Error occurred while dropping ADE database schema", e);
 		} 
+		LOG.info("ADE database schema and all delete-functions successfully deleted.");
 		
-		// cleanup ADE metadata
+		// Step 3: cleanup ADE metadata
 		ADEMetadataManager adeMetadataManager = new ADEMetadataManager(connection, config);		
 		try {
 			adeMetadataManager.deleteADEMetadata(adeId);
 		} catch (SQLException e) {	
 			throw new ADERegistrationException("Error occurred while removing ADE metadata from database", e);
 		} 		
-		LOG.info("Metadata have been successfully deleted. Start dropping database schema of the selected ADE...");	
+		LOG.info("ADE Metadata successfully deleted");	
 
 		// commit database transactions
 		try {
@@ -135,6 +139,9 @@ public class ADERegistrationController implements EventHandler {
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to remove ADE metadata from database", e);
 		}
+		
+		// Step 4: re-create and install delete-functions
+		createDeleteScripts(true);	
 		
 		LOG.info("ADE Deregistration is completed.");
 		return true;
@@ -154,21 +161,22 @@ public class ADERegistrationController implements EventHandler {
 		return adeList;
 	}
 	
-	public String createDeleteScripts() throws ADERegistrationException {
+	public void createDeleteScripts(boolean autoInstall) throws ADERegistrationException {
 		LOG.info("Start creating delete-script for the current 3DCityDB instance...");
 		initDBConneciton();
 		String deleteScript = null;
-		
 		DeleteScriptGenerator deleteScriptGenerator = DeleteScriptGeneratorFactory.getInstance().
 				createDatabaseAdapter(connection, config);
 		try {
-			deleteScript = deleteScriptGenerator.generateDeleteScript();
+			deleteScript = deleteScriptGenerator.generateDeleteScript();			
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, autoInstall, this));
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to create delete-script for the current 3DCityDB instance", e);
 		}		
 		LOG.info("Delete-script is successfully created for the current 3DCityDB database.");
 		
-		return deleteScript;
+		if (autoInstall)
+			installDeleteScript(deleteScript);
 	}
 	
 	public void installDeleteScript(String scriptString) throws ADERegistrationException {
@@ -212,10 +220,5 @@ public class ADERegistrationController implements EventHandler {
 			}	
 		}
 	}
-	
-	@Override
-	public void handleEvent(Event event) throws Exception {
-		//
-	}	
-	
+		
 }

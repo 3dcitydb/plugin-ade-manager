@@ -31,12 +31,14 @@ import org.citydb.database.DatabaseController;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.version.DatabaseVersionException;
 import org.citydb.event.Event;
+import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.log.Logger;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
 import org.citydb.plugins.ade_manager.gui.popup.ScriptDialog;
 import org.citydb.plugins.ade_manager.gui.table.ADEMetadataRow;
 import org.citydb.plugins.ade_manager.gui.table.ADESchemaNamespaceRow;
@@ -55,7 +57,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 	protected static final int MAX_TEXTFIELD_HEIGHT = 20;
 	protected static final int MAX_LABEL_WIDTH = 60;
 	protected static final int BUTTON_WIDTH = 180;
-
+	
 	private JPanel browseXMLSchemaPanel;
 	private JTextField browseXMLSchemaText = new JTextField();
 	private JButton browseXMLSchemaButton = new JButton();
@@ -90,6 +92,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 	private TableModel<ADEMetadataRow> adeTableModel = new TableModel<ADEMetadataRow>(ADEMetadataRow.getColumnNames());
 	private TableModel<ADESchemaNamespaceRow> schemaTableModel = new TableModel<ADESchemaNamespaceRow>(ADESchemaNamespaceRow.getColumnNames());	
 	
+	private final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
 	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	private final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();
 	private final Logger LOG = Logger.getInstance();
@@ -104,6 +107,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		this.viewController = viewController;
 		this.adeRegistor = new ADERegistrationController(config);
 		this.adeTransformer = new TransformationController(config);
+		eventDispatcher.addEventHandler(org.citydb.plugins.ade_manager.event.EventType.SCRIPT_CREATION_EVENT, this);
 		
 		initGui();
 		addListeners();	
@@ -376,7 +380,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			public void actionPerformed(ActionEvent e) {
 				Thread thread = new Thread() {
 					public void run() {
-						generateDeleteScripts(false);
+						generateDeleteScripts();
 					}
 				};
 				thread.setDaemon(true);
@@ -534,7 +538,6 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		if (isComplete) {
 			// update the ADE list table by querying the ADE again
 			showRegisteredADEs();
-			generateDeleteScripts(true);
 		}
 	
 	}
@@ -553,7 +556,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		try {					
 			List<ADEMetadataInfo> adeList = adeRegistor.queryRegisteredADEs();
 			if (adeList.size() == 0) 
-				viewController.warnMessage("Info", "No ADEs are registered in the connected database");
+				LOG.info("Status: No ADEs are registered in the connected database");
 			
 			adeTableModel.reset();			
 			for (ADEMetadataInfo adeEntity: adeList) {
@@ -599,12 +602,10 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		// update the ADE list table by querying the ADE again
 		if (isComplete) {
 			showRegisteredADEs();
-			generateDeleteScripts(true);
-		}
-			
+		}			
 	}
 	
-	private void generateDeleteScripts(boolean install) {
+	private void generateDeleteScripts() {
 		// database connection is required
 		try {
 			checkAndConnectToDB();
@@ -613,52 +614,14 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			return;
 		}
 		
-		String script = null;
 		try {			
-			script = adeRegistor.createDeleteScripts();
+			boolean autoInstall = false;
+			adeRegistor.createDeleteScripts(autoInstall);
 		} catch (ADERegistrationException e) {
 			printErrorMessage("Delete-script creation aborted", e);
 		} finally {
 			adeRegistor.closeDBConnection();			
 		}	
-		
-		if (script == null)
-			return;
-
-		if (install) {
-			try {
-				adeRegistor.installDeleteScript(script);
-			} catch (ADERegistrationException e) {
-				adeRegistor.rollbackTransactions();
-				printErrorMessage("Delete-script installation aborted", e);
-				return;
-			} finally {
-				adeRegistor.closeDBConnection();			
-			}
-		}		
-		
-		final ScriptDialog scriptDialog = new ScriptDialog(viewController.getTopFrame(), script, install);			
-		scriptDialog.getButton().addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						try {
-							adeRegistor.installDeleteScript(scriptDialog.getScript());
-						} catch (ADERegistrationException e) {
-							printErrorMessage(e);
-						} 
-						scriptDialog.dispose();
-					}
-				});
-			}
-		});
-
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				scriptDialog.setLocationRelativeTo(getTopLevelAncestor());
-				scriptDialog.setVisible(true);
-			}
-		});
 	}
 	
 	private void printErrorMessage(Exception e) {
@@ -689,6 +652,35 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		}
 	}
 
-	public void handleEvent(Event event) throws Exception {}
+	public void handleEvent(Event event) throws Exception {
+		if (event.getEventType() == org.citydb.plugins.ade_manager.event.EventType.SCRIPT_CREATION_EVENT) {
+            ScriptCreationEvent scriptCreationEvent = (ScriptCreationEvent) event;
+            String script = scriptCreationEvent.getScript();
+            boolean autoInstall = scriptCreationEvent.isAutoInstall();
+            
+            final ScriptDialog scriptDialog = new ScriptDialog(viewController.getTopFrame(), script, autoInstall);			
+    		scriptDialog.getButton().addActionListener(new ActionListener() {
+    			public void actionPerformed(ActionEvent e) {
+    				SwingUtilities.invokeLater(new Runnable() {
+    					public void run() {
+    						try {
+    							adeRegistor.installDeleteScript(scriptDialog.getScript());
+    						} catch (ADERegistrationException e) {
+    							printErrorMessage(e);
+    						} 
+    						scriptDialog.dispose();
+    					}
+    				});
+    			}
+    		});
+
+    		SwingUtilities.invokeLater(new Runnable() {
+    			public void run() {
+    				scriptDialog.setLocationRelativeTo(getTopLevelAncestor());
+    				scriptDialog.setVisible(true);
+    			}
+    		});
+        }		
+	}
 
 }

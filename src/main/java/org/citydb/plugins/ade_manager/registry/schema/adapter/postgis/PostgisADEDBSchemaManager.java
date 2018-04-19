@@ -370,7 +370,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 			try {
 				pstsmt = connection.prepareStatement("DROP FUNCTION IF EXISTS " + schema + "." + funcDeclaration);
 				pstsmt.executeUpdate();		
-				LOG.info("DB-function '" + funcName + "' successfully dropped");
+				LOG.debug("DB-function '" + funcName + "' successfully dropped");
 			} 
 			finally {			
 				if (pstsmt != null) { 
