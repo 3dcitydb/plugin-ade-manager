@@ -666,9 +666,11 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
     						try {
     							adeRegistor.installDeleteScript(scriptDialog.getScript());
     						} catch (ADERegistrationException e) {
+    							adeRegistor.rollbackTransactions();
     							printErrorMessage(e);
-    						} 
-    						scriptDialog.dispose();
+    						} finally {
+    							scriptDialog.dispose();
+    						}  						
     					}
     				});
     			}
