@@ -36,14 +36,19 @@ public class ScriptDialog extends JDialog {
 	private boolean autoInstall;
 	private final Logger LOG = Logger.getInstance();
 	
-	public ScriptDialog(JFrame frame, String title, String scriptString, boolean autoInstall) {
-		super(frame, title, true);
+	public ScriptDialog(JFrame frame, String scriptString, boolean autoInstall) {
+		super(frame, true);
 		this.scriptString = scriptString;
 		this.autoInstall = autoInstall;
 		initGUI();
 	}
 
 	private void initGUI() {
+		if (autoInstall == true)
+			this.setTitle("Installed Script");
+		else
+			this.setTitle("Generated Script (not installed yet)");
+		
 		setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		installbutton = new JButton("Install");		
 		

@@ -637,7 +637,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			}
 		}		
 		
-		final ScriptDialog scriptDialog = new ScriptDialog(viewController.getTopFrame(), "Delete-Script", script, install);			
+		final ScriptDialog scriptDialog = new ScriptDialog(viewController.getTopFrame(), script, install);			
 		scriptDialog.getButton().addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				SwingUtilities.invokeLater(new Runnable() {
