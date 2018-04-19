@@ -487,7 +487,7 @@ public class ADEMetadataManager extends DefaultADERegistrationProcessor {
 		}
 		else if (property instanceof ObjectProperty) {
 			childId = ((ObjectProperty) property).getType().getObjectClassId();
-			relationType = ((FeatureProperty) property).getRelationType(); 
+			relationType = ((ObjectProperty) property).getRelationType(); 
 		}
 		else if (property instanceof GeometryProperty) {
 			String refColumn = ((GeometryProperty) property).getRefColumn();
