@@ -22,6 +22,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.citydb.config.i18n.Language;
@@ -36,6 +37,7 @@ import org.citydb.log.Logger;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.gui.popup.ScriptDialog;
 import org.citydb.plugins.ade_manager.gui.table.ADEMetadataRow;
 import org.citydb.plugins.ade_manager.gui.table.ADESchemaNamespaceRow;
 import org.citydb.plugins.ade_manager.gui.table.TableModel;
@@ -606,14 +608,41 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			return;
 		}
 		
-		try {
-			adeRegistor.rollbackTransactions();
-			adeRegistor.createDeleteScripts(true);
+		String script = null;
+		try {			
+			script = adeRegistor.createDeleteScripts();
 		} catch (ADERegistrationException e) {
+			adeRegistor.rollbackTransactions();
 			printErrorMessage("Script creation aborted", e);
 		} finally {
-			adeRegistor.closeDBConnection();
+			adeRegistor.closeDBConnection();			
 		}	
+		
+		if (script == null)
+			return;
+
+		final ScriptDialog scriptDialog = new ScriptDialog(viewController.getTopFrame(), "Delete-Script", script);		
+		scriptDialog.getButton().addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						try {
+							adeRegistor.installDeleteScript(scriptDialog.getScript());
+						} catch (ADERegistrationException e) {
+							printErrorMessage(e);
+						} 
+						scriptDialog.dispose();
+					}
+				});
+			}
+		});
+		
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				scriptDialog.setLocationRelativeTo(getTopLevelAncestor());
+				scriptDialog.setVisible(true);
+			}
+		});
 	}
 	
 	private void printErrorMessage(Exception e) {

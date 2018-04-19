@@ -5,5 +5,6 @@ import java.sql.SQLException;
 import org.citydb.plugins.ade_manager.registry.ADERegistrationProcessor;
 
 public interface DeleteScriptGenerator extends ADERegistrationProcessor {
-	public void doProcess(boolean immediateInstall) throws SQLException;
+	public String generateDeleteScript() throws SQLException;
+	public void installDeleteScript(String scriptString) throws SQLException;
 }

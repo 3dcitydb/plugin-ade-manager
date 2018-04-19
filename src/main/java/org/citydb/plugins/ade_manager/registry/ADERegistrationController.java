@@ -155,23 +155,42 @@ public class ADERegistrationController implements EventHandler {
 		return adeList;
 	}
 	
-	public void createDeleteScripts(boolean immediateInstall) throws ADERegistrationException {
-		LOG.info("Start creating delete functions for the current 3DCityDB instance...");
+	public String createDeleteScripts() throws ADERegistrationException {
+		LOG.info("Start creating delete-script for the current 3DCityDB instance...");
 		initDBConneciton();
-			
-		DeleteScriptGeneratorFactory factory = new DeleteScriptGeneratorFactory(connection, config);
-		DeleteScriptGenerator deleteScriptGenerator = factory.createDatabaseAdapter();
+		String deleteScript = null;
+		
+		DeleteScriptGenerator deleteScriptGenerator = DeleteScriptGeneratorFactory.getInstance().
+				createDatabaseAdapter(connection, config);
 		try {
-			deleteScriptGenerator.doProcess(immediateInstall);
+			deleteScript = deleteScriptGenerator.generateDeleteScript();
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to generate delete-script for the current 3DCityDB instance", e);
+			throw new ADERegistrationException("Failed to create delete-script for the current 3DCityDB instance", e);
+		}		
+		LOG.info("Delete-script is successfully created for the current 3DCityDB database.");
+		
+		return deleteScript;
+	}
+	
+	public void installDeleteScript(String scriptString) throws ADERegistrationException {
+		LOG.info("Start installing delete-script for the current 3DCityDB instance...");
+		initDBConneciton();
+
+		DeleteScriptGenerator deleteScriptGenerator = DeleteScriptGeneratorFactory.getInstance().
+				createDatabaseAdapter(connection, config);
+		try {
+			deleteScriptGenerator.installDeleteScript(scriptString);;
+		} catch (SQLException e) {
+			throw new ADERegistrationException("Error occurred while running the delete-script", e);
 		}
 		
 		try {
 			deleteScriptGenerator.commit();			
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to install delete-functions into database", e);
+			throw new ADERegistrationException("Failed to install the delete-functions into the current database", e);
 		}
+		
+		LOG.info("Delete-script is successfully installed into the connected database.");
 	}
 
 	public void closeDBConnection() {

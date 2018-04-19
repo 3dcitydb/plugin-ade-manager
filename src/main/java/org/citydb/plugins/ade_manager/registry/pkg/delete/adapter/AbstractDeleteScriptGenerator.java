@@ -49,17 +49,30 @@ public abstract class AbstractDeleteScriptGenerator extends DefaultADERegistrati
 	}
 	
 	@Override
-	public void doProcess(boolean immediateInstall) throws SQLException {	
+	public String generateDeleteScript() throws SQLException {	
 		this.functionNames = new HashMap<String, String>();
 		this.functionCollection = new HashMap<String, String>();
-		try {
-			
+		try {		
 			this.aggregationInfoCollection = adeMetadataManager.queryAggregationInfo();
 		} catch (SQLException e) {
 			throw new SQLException("Failed to fetch the table aggregation information from 3dcitydb", e);
 		} 
 		this.generateDeleteScript("cityobject", "citydb");	
-		this.printAndInstallFunctions(immediateInstall);
+		
+		return this.printScript();
+	}
+	
+	@Override
+	public void installDeleteScript(String scriptString) throws SQLException {	
+		CallableStatement cs = null;
+		try {
+			cs = connection.prepareCall(scriptString);
+			cs.execute();
+		}
+		finally {
+			if (cs != null)
+				cs.close();
+		}		
 	}
 	
 	protected abstract void generateDeleteScript(String initTableName, String schemaName) throws SQLException;		
@@ -100,7 +113,7 @@ public abstract class AbstractDeleteScriptGenerator extends DefaultADERegistrati
 		} 			
 	}	
 	
-	private void printAndInstallFunctions(boolean immediateInstall) throws SQLException {	
+	private String printScript() {	
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		PrintStream writer = new PrintStream(os);
 		// header text
@@ -118,23 +131,11 @@ public abstract class AbstractDeleteScriptGenerator extends DefaultADERegistrati
 					+ brDent1 + "caller = 2 : function is called from its children tables" ));
 			writer.println(functionCollection.get(tableName));
 			writer.println("------------------------------------------");
-		} ;
+		};
 		
-		System.out.println(os.toString());
-		if (immediateInstall) {
-			CallableStatement cs = null;
-			try {
-				cs = connection.prepareCall(os.toString());
-				cs.execute();
-			}
-			finally {
-				if (cs != null)
-					cs.close();
-			}
-		}
-		LOG.info("Delete-functions are successfully installed into the connected database.");;
+		return os.toString();
 	}
-
+	
 	private String addSQLComment(String text) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("/*").append(brDent1).append(text).append(br).append("*/");			
