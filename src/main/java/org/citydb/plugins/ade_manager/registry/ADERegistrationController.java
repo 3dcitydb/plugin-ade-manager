@@ -115,8 +115,7 @@ public class ADERegistrationController implements EventHandler {
 		} 
 		
 		// cleanup ADE metadata
-		ADEMetadataManager adeMetadataManager = new ADEMetadataManager(connection, config);
-		
+		ADEMetadataManager adeMetadataManager = new ADEMetadataManager(connection, config);		
 		try {
 			adeMetadataManager.deleteADEMetadata(adeId);
 		} catch (SQLException e) {	

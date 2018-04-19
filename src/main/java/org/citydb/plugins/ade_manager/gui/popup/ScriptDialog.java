@@ -33,11 +33,13 @@ import org.citydb.log.Logger;
 public class ScriptDialog extends JDialog {
 	private final String scriptString;
 	private JButton installbutton;
+	private boolean autoInstall;
 	private final Logger LOG = Logger.getInstance();
 	
-	public ScriptDialog(JFrame frame, String title, String scriptString) {
+	public ScriptDialog(JFrame frame, String title, String scriptString, boolean autoInstall) {
 		super(frame, title, true);
 		this.scriptString = scriptString;
+		this.autoInstall = autoInstall;
 		initGUI();
 	}
 
@@ -64,9 +66,10 @@ public class ScriptDialog extends JDialog {
 				scroll.setBorder(BorderFactory.createEtchedBorder());
 				main.add(scroll, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,2,0,0,0));
 			}
-			installbutton.setMargin(new Insets(installbutton.getMargin().top, 25, installbutton.getMargin().bottom, 25));			
-			add(installbutton, GuiUtil.setConstraints(0,3,0.0,0.0,GridBagConstraints.NONE,5,5,5,5));
-			
+			installbutton.setMargin(new Insets(installbutton.getMargin().top, 25, installbutton.getMargin().bottom, 25));	
+			if (!autoInstall)
+				add(installbutton, GuiUtil.setConstraints(0,3,0.0,0.0,GridBagConstraints.NONE,5,5,5,5));
+						
 			JButton browserOutputButton = new JButton(Language.I18N.getString("common.button.browse"));
 			JTextField browseOutputText = new JTextField();
 			JPanel OutputPanel = new JPanel();

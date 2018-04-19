@@ -376,7 +376,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			public void actionPerformed(ActionEvent e) {
 				Thread thread = new Thread() {
 					public void run() {
-						generateDeleteScripts();
+						generateDeleteScripts(false);
 					}
 				};
 				thread.setDaemon(true);
@@ -534,7 +534,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		if (isComplete) {
 			// update the ADE list table by querying the ADE again
 			showRegisteredADEs();
-			generateDeleteScripts();
+			generateDeleteScripts(true);
 		}
 	
 	}
@@ -597,16 +597,19 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		}	
 		
 		// update the ADE list table by querying the ADE again
-		if (isComplete)
+		if (isComplete) {
 			showRegisteredADEs();
+			generateDeleteScripts(true);
+		}
+			
 	}
 	
-	private void generateDeleteScripts() {
+	private void generateDeleteScripts(boolean install) {
 		// database connection is required
 		try {
 			checkAndConnectToDB();
 		} catch (SQLException e) {
-			printErrorMessage("ADE registration aborted", e);
+			printErrorMessage("Delete-script creation aborted", e);
 			return;
 		}
 		
@@ -614,8 +617,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		try {			
 			script = adeRegistor.createDeleteScripts();
 		} catch (ADERegistrationException e) {
-			adeRegistor.rollbackTransactions();
-			printErrorMessage("Script creation aborted", e);
+			printErrorMessage("Delete-script creation aborted", e);
 		} finally {
 			adeRegistor.closeDBConnection();			
 		}	
@@ -623,7 +625,19 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		if (script == null)
 			return;
 
-		final ScriptDialog scriptDialog = new ScriptDialog(viewController.getTopFrame(), "Delete-Script", script);		
+		if (install) {
+			try {
+				adeRegistor.installDeleteScript(script);
+			} catch (ADERegistrationException e) {
+				adeRegistor.rollbackTransactions();
+				printErrorMessage("Delete-script installation aborted", e);
+				return;
+			} finally {
+				adeRegistor.closeDBConnection();			
+			}
+		}		
+		
+		final ScriptDialog scriptDialog = new ScriptDialog(viewController.getTopFrame(), "Delete-Script", script, install);			
 		scriptDialog.getButton().addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				SwingUtilities.invokeLater(new Runnable() {
@@ -638,7 +652,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 				});
 			}
 		});
-		
+
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				scriptDialog.setLocationRelativeTo(getTopLevelAncestor());
