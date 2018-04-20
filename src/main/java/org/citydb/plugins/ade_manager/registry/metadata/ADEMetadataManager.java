@@ -1,6 +1,8 @@
 package org.citydb.plugins.ade_manager.registry.metadata;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -230,6 +232,11 @@ public class ADEMetadataManager {
 				boolean isComposite = (rs.getInt(5) == 1);
 				AggregationInfo aggrInfo = new AggregationInfo(childTable, parentTable, minOccurs, maxOccurs, isComposite);
 				result.put(new QName(childTable, parentTable), aggrInfo);
+				
+				List<String> adeHookTables = this.getADEHookTables(parentTable);
+				for (String adeHookTable: adeHookTables) {
+					result.put(new QName(childTable, adeHookTable), aggrInfo);
+				}
 			}							
 		} 
 		finally {			
@@ -249,6 +256,32 @@ public class ADEMetadataManager {
 			}			
 		}
 		
+		return result;
+	}
+	
+	public List<String> getADEHookTables(String baseTableName) throws SQLException {
+		List<String> result = new ArrayList<String>();
+		List<ADEMetadataInfo> ades = queryADEMetadata();
+		for (ADEMetadataInfo ade: ades) {
+			String dbPrefix = ade.getDbPrefix();
+			String schemaMappingStr = this.getSchemaMappingbyDbPrefix(dbPrefix);
+			if (schemaMappingStr != null) {
+				InputStream stream = new ByteArrayInputStream(schemaMappingStr.getBytes());
+				try {			
+					SchemaMapping citydbSchemaMapping = SchemaMappingUtil.getInstance().unmarshal(CoreConstants.CITYDB_SCHEMA_MAPPING_FILE);
+					SchemaMapping targetADESchemaMapping = SchemaMappingUtil.getInstance().unmarshal(citydbSchemaMapping, stream);	
+					for (PropertyInjection injection: targetADESchemaMapping.getPropertyInjections()) {
+						String targetBaseTable = injection.getDefaultBase().getTable();	
+						if (targetBaseTable.equalsIgnoreCase(baseTableName))
+							result.add(injection.getTable());
+					}
+				} catch (JAXBException e) {
+					throw new SQLException(e);
+				} catch (SchemaMappingException | SchemaMappingValidationException e) {
+					throw new SQLException("The 3DCityDB schema mapping is invalid", e);
+				} 
+			}
+		}
 		return result;
 	}
 
@@ -573,6 +606,27 @@ public class ADEMetadataManager {
 		}	
 	}
 	
+	private String getSchemaMappingbyDbPrefix(String dbPrefix) throws SQLException {
+		Statement stmt = null;
+		ResultSet rs = null;
+		String schemaMappingStr = null;
+	
+		try {						
+			stmt = connection.createStatement();
+			rs = stmt.executeQuery("select xml_schemamapping_file from ade where db_prefix = '" + dbPrefix + "'");		
+			if (rs.next())
+				schemaMappingStr = rs.getString(1);
+		} finally {
+			if (rs != null) 
+				rs.close();
+			
+			if (stmt != null) 
+				stmt.close();
+		}
+	
+		return schemaMappingStr;
+	}
+
 	private boolean validateObjectclassId (int objectclassId) throws SQLException {
 		Statement stmt = null;
 		ResultSet rs = null;
