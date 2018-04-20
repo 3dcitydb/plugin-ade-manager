@@ -16,11 +16,11 @@ import org.citydb.plugins.ade_manager.registry.datatype.ReferencingEntry;
 import org.citydb.plugins.ade_manager.registry.schema.adapter.AbstractADEDBSchemaManager;
 
 public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
-	
+
 	public PostgisADEDBSchemaManager(Connection connection, ConfigImpl config) {
 		super(connection, config);
 	}
-	
+
 	public List<String> query_selfref_fk(String tableName, String schemaName) throws SQLException {
 		List<String> result = new ArrayList<String>();		
 		PreparedStatement pstsmt = null;

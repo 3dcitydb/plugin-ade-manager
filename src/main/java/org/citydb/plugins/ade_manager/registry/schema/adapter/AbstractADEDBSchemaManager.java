@@ -11,7 +11,6 @@ import org.citydb.config.project.database.DatabaseType;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.DefaultADERegistrationProcessor;
 import org.citydb.plugins.ade_manager.registry.datatype.MnRefEntry;
 import org.citydb.plugins.ade_manager.registry.datatype.ReferencedEntry;
 import org.citydb.plugins.ade_manager.registry.datatype.ReferencingEntry;
@@ -20,9 +19,11 @@ import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.registry.schema.SQLScriptRunner;
 import org.citydb.plugins.ade_manager.util.PathResolver;
 
-public abstract class AbstractADEDBSchemaManager extends DefaultADERegistrationProcessor implements ADEDBSchemaManager {
+public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 	protected final Logger LOG = Logger.getInstance();
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
+	protected final Connection connection;
+	protected final ConfigImpl config;
 	
 	public AbstractADEDBSchemaManager(Connection connection, ConfigImpl config) {
 		this.connection = connection;

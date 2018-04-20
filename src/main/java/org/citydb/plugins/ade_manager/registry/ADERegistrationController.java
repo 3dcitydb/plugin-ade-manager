@@ -5,10 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.citydb.config.project.database.DatabaseConfigurationException;
-import org.citydb.database.DatabaseController;
 import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.database.version.DatabaseVersionException;
 import org.citydb.event.EventDispatcher;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
@@ -23,8 +20,7 @@ import org.citydb.registry.ObjectRegistry;
 
 public class ADERegistrationController {
 	private final Logger LOG = Logger.getInstance();
-	private final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
-	private final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();	
+	private final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();	
 	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();		
 	private ConfigImpl config;
 	private Connection connection;
@@ -33,9 +29,9 @@ public class ADERegistrationController {
 		this.config = config;	
     }
 	
-	private void initDBConneciton() throws ADERegistrationException {
+	public void initDBConneciton() throws ADERegistrationException {
 		try {
-			connection = DatabaseConnectionPool.getInstance().getConnection();
+			connection = dbPool.getConnection();
 			// disable database auto-commit in order to enable rolling back database transactions
 			connection.setAutoCommit(false);
 		} catch (SQLException e) {
@@ -45,7 +41,6 @@ public class ADERegistrationController {
 
 	public boolean registerADE() throws ADERegistrationException {
 		LOG.info("ADE Registration started...");
-		initDBConneciton();
 
 		// import ADE metadata from schema mapping file into database	
 		LOG.info("Importing ADE metadata into database...");			
@@ -53,45 +48,27 @@ public class ADERegistrationController {
 		try {						
 			adeMetadataManager.importADEMetadata();
 		} catch (SQLException e) {				
-			throw new ADERegistrationException("Error occurred while importing ADE metadata into database", e);
+			throw new ADERegistrationException("Failed to import ADE metadata into database", e);
 		}		
 		
-		// create database tables, FKs, indexes, and sequences etc.
+		// create database tables, FKs, indexes, and sequences etc. 
 		LOG.info("Creating ADE database schema...");		
 		ADEDBSchemaManager adeDatabasSchemaManager = ADEDBSchemaManagerFactory.getInstance()
 				.createADEDatabaseSchemaManager(connection, config);
 		try {	
 			adeDatabasSchemaManager.createADEDatabaseSchema();
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Error occurred while creating ADE database schema", e);
-		} 
-		
-		// commit database transactions
-		try {
-			adeMetadataManager.commit();			
-		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to import ADE metadata into database", e);
-		}
-		
-		try {
-			adeDatabasSchemaManager.commit();			
-		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to create ADE database schema", e);
-		}		
+		} 	
 		
-		createDeleteScripts(true);
-		
-		// database re-connection is required for completing the ADE registration process
-		LOG.info("ADE registration is completed and will take effect after reconnecting to the database.");	
-		if (dbPool.isConnected()) {
-			dbPool.disconnect();
-			try {
-				databaseController.connect(true);
-			} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
-				throw new ADERegistrationException("Failed to reconnect to the database", e);
-			}
-		}	
-		
+		// create and install delete-functions.
+		LOG.info("Creating and installing delete-function...");
+		try {	
+			createDeleteScripts(true);
+		} catch (ADERegistrationException e) {
+			LOG.info("Failed to create and install delete-script into database. (Skipped)");
+		} 	
+
 		return true;
 	}
 	
@@ -104,7 +81,6 @@ public class ADERegistrationController {
 		 * 3) Re-generate the entire delete-functions.
 		 * 4) Delete ADE metadata from the respective 3DCityDB's Metadata tables
 		 */
-		initDBConneciton();
 		// TODO
 		// Step 1: Cleanup ADE data content by calling the corresponding delete-functions
 		
@@ -114,7 +90,7 @@ public class ADERegistrationController {
 		try {	
 			adeDatabasSchemaManager.dropADEDatabaseSchema(adeId);
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Error occurred while dropping ADE database schema", e);
+			throw new ADERegistrationException("Failed to drop ADE database schema", e);
 		} 
 		LOG.info("ADE database schema and all delete-functions successfully deleted.");
 		
@@ -123,34 +99,24 @@ public class ADERegistrationController {
 		try {
 			adeMetadataManager.deleteADEMetadata(adeId);
 		} catch (SQLException e) {	
-			throw new ADERegistrationException("Error occurred while removing ADE metadata from database", e);
+			throw new ADERegistrationException("Failed to delete ADE metadata from database", e);
 		} 		
 		LOG.info("ADE Metadata successfully deleted");	
-
-		// commit database transactions
-		try {
-			adeDatabasSchemaManager.commit();			
-		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to drop ADE database schema", e);
-		}	
-
-		try {
-			adeMetadataManager.commit();			
-		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to remove ADE metadata from database", e);
-		}
-		
+	
 		// Step 4: re-create and install delete-functions
-		createDeleteScripts(true);	
+		LOG.info("Re-creating and installing delete-function...");
+		try {	
+			createDeleteScripts(true);
+		} catch (ADERegistrationException e) {
+			LOG.info("Failed to create and install delete-script into database. (Skipped)");
+		} 
 		
 		LOG.info("ADE Deregistration is completed.");
 		return true;
 	}
 	
-	public List<ADEMetadataInfo> queryRegisteredADEs() throws ADERegistrationException {
-		initDBConneciton();		
-		List<ADEMetadataInfo> adeList = new ArrayList<ADEMetadataInfo>();		
-		
+	public List<ADEMetadataInfo> queryRegisteredADEs() throws ADERegistrationException {	
+		List<ADEMetadataInfo> adeList = new ArrayList<ADEMetadataInfo>();				
 		ADEMetadataManager adeMetadataManager = new ADEMetadataManager(connection, config);
 		try {
 			adeList = adeMetadataManager.queryADEMetadata();
@@ -163,7 +129,6 @@ public class ADERegistrationController {
 	
 	public void createDeleteScripts(boolean autoInstall) throws ADERegistrationException {
 		LOG.info("Start creating delete-script for the current 3DCityDB instance...");
-		initDBConneciton();
 		String deleteScript = null;
 		DeleteScriptGenerator deleteScriptGenerator = DeleteScriptGeneratorFactory.getInstance().
 				createDatabaseAdapter(connection, config);
@@ -181,20 +146,12 @@ public class ADERegistrationController {
 	
 	public void installDeleteScript(String scriptString) throws ADERegistrationException {
 		LOG.info("Start installing delete-script for the current 3DCityDB instance...");
-		initDBConneciton();
-
 		DeleteScriptGenerator deleteScriptGenerator = DeleteScriptGeneratorFactory.getInstance().
 				createDatabaseAdapter(connection, config);
 		try {
 			deleteScriptGenerator.installDeleteScript(scriptString);;
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Error occurred while running the delete-script", e);
-		}
-		
-		try {
-			deleteScriptGenerator.commit();			
-		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to install the delete-functions into the current database", e);
+			throw new ADERegistrationException("Error occurred while installing the generated delete-script", e);
 		}
 		
 		LOG.info("Delete-script is successfully installed into the connected database.");
@@ -209,6 +166,16 @@ public class ADERegistrationController {
 		} catch (SQLException e) {
 			LOG.error("Failed to close databse connection.");
 		}
+	}
+	
+	public void commitTransactions() throws ADERegistrationException {
+		try {
+			if (connection != null) {
+				connection.commit();
+			}  		
+    	} catch (SQLException e) {
+			throw new ADERegistrationException("Failed to exeute the database transaction", e);
+		} 	
 	}
 	
 	public void rollbackTransactions() {

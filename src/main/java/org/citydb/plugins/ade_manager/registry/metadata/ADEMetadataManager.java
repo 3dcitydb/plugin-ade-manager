@@ -48,14 +48,15 @@ import org.citydb.database.schema.mapping.SchemaMappingException;
 import org.citydb.database.schema.mapping.SchemaMappingValidationException;
 import org.citydb.database.schema.util.SchemaMappingUtil;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.DefaultADERegistrationProcessor;
 import org.citydb.plugins.ade_manager.util.PathResolver;
 import org.citydb.util.CoreConstants;
 
-public class ADEMetadataManager extends DefaultADERegistrationProcessor {	
+public class ADEMetadataManager {	
 	public static final int MIN_ADE_OBJECTCLASSID = 10000;
 	private SchemaMapping adeSchemaMapping;	
 	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
+	private final Connection connection;
+	private final ConfigImpl config;
 	
 	public ADEMetadataManager(Connection connection, ConfigImpl config) {
 		this.connection = connection;

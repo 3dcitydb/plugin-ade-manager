@@ -13,7 +13,6 @@ import javax.xml.namespace.QName;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.DefaultADERegistrationProcessor;
 import org.citydb.plugins.ade_manager.registry.datatype.RelationType;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.metadata.AggregationInfo;
@@ -21,7 +20,7 @@ import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManagerFactory;
 
-public abstract class AbstractDeleteScriptGenerator extends DefaultADERegistrationProcessor implements DeleteScriptGenerator {
+public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGenerator {
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();	
 	protected final Logger LOG = Logger.getInstance();
 	protected final int MAX_FUNCNAME_LENGTH = 30;
@@ -37,8 +36,8 @@ public abstract class AbstractDeleteScriptGenerator extends DefaultADERegistrati
 	protected Map<String, String> functionNames;
 	protected Map<String, String> functionCollection;
 	protected Map<QName, AggregationInfo> aggregationInfoCollection;
-	protected ConfigImpl config;
-	
+	protected final Connection connection;
+	protected final ConfigImpl config;
 	protected ADEMetadataManager adeMetadataManager;
 	protected ADEDBSchemaManager adeDatabaseSchemaManager;
 

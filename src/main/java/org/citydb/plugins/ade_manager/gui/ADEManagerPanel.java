@@ -526,8 +526,10 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		}
 		
 		boolean isComplete = false;
-		try {			
+		try {	
+			adeRegistor.initDBConneciton();
 			isComplete = adeRegistor.registerADE();
+			adeRegistor.commitTransactions();
 		} catch (ADERegistrationException e) {
 			adeRegistor.rollbackTransactions();
 			printErrorMessage("ADE registration aborted", e);
@@ -536,6 +538,16 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		}
 		
 		if (isComplete) {
+			// database re-connection is required for completing the ADE registration process
+			LOG.info("ADE registration is completed and will take effect after reconnecting to the database.");	
+			if (dbPool.isConnected()) {
+				dbPool.disconnect();
+				try {
+					databaseController.connect(true);
+				} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
+					printErrorMessage("Failed to reconnect to the database", e);
+				}
+			}	
 			// update the ADE list table by querying the ADE again
 			showRegisteredADEs();
 		}
@@ -553,7 +565,8 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			return;
 		}
 		
-		try {					
+		try {	
+			adeRegistor.initDBConneciton();
 			List<ADEMetadataInfo> adeList = adeRegistor.queryRegisteredADEs();
 			if (adeList.size() == 0) 
 				LOG.info("Status: No ADEs are registered in the connected database");
@@ -591,7 +604,9 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		boolean isComplete = false;
 		String adeId = adeTableModel.getColumn(selectedRowNum).getValue(0);	
 		try {
+			adeRegistor.initDBConneciton();
 			isComplete = adeRegistor.deregisterADE(adeId);
+			adeRegistor.commitTransactions();
 		} catch (ADERegistrationException e) {
 			adeRegistor.rollbackTransactions();
 			printErrorMessage("ADE Deregistration aborted", e);
@@ -615,6 +630,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		}
 		
 		try {			
+			adeRegistor.initDBConneciton();
 			boolean autoInstall = false;
 			adeRegistor.createDeleteScripts(autoInstall);
 		} catch (ADERegistrationException e) {
@@ -664,11 +680,14 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
     				SwingUtilities.invokeLater(new Runnable() {
     					public void run() {
     						try {
+    							adeRegistor.initDBConneciton();
     							adeRegistor.installDeleteScript(scriptDialog.getScript());
+    							adeRegistor.commitTransactions();
     						} catch (ADERegistrationException e) {
     							adeRegistor.rollbackTransactions();
     							printErrorMessage(e);
     						} finally {
+    							adeRegistor.closeDBConnection();
     							scriptDialog.dispose();
     						}  						
     					}
