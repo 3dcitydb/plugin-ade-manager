@@ -11,6 +11,7 @@ public interface ADEDBSchemaManager {
 	public void createADEDatabaseSchema() throws SQLException;
 	public void dropADEDatabaseSchema(String adeId) throws SQLException;
 	public List<String> query_selfref_fk(String tableName, String schemaName) throws SQLException;
+	public void cleanupADEData(String adeId) throws SQLException;
 	public List<MnRefEntry> query_ref_fk(String tableName, String schemaName) throws SQLException;
 	public List<ReferencingEntry> query_ref_tables_and_columns(String tableName, String schemaName) throws SQLException;
 	public String query_ref_to_parent_fk(String tableName, String schemaName) throws SQLException;

@@ -72,8 +72,7 @@ public class ADERegistrationController {
 		return true;
 	}
 	
-	public boolean deregisterADE(String adeId) throws ADERegistrationException {
-		LOG.info("Start deleting metadata of the selected ADE from database...");
+	public boolean deregisterADE(String adeId) throws ADERegistrationException {		
 		/* 
 		 * In order to remove an ADE from a 3DCityDB instance, the following processing steps are required:
 		 * 1) clean up all the ADE data from the CityGML and ADE tables by calling a cleanup_[ade_name] function. 
@@ -81,28 +80,33 @@ public class ADERegistrationController {
 		 * 3) Re-generate the entire delete-functions.
 		 * 4) Delete ADE metadata from the respective 3DCityDB's Metadata tables
 		 */
-		// TODO
-		// Step 1: Cleanup ADE data content by calling the corresponding delete-functions
-		
-		// Step 2: Dropping ADE database schema and delete-functions
 		ADEDBSchemaManager adeDatabasSchemaManager = ADEDBSchemaManagerFactory.getInstance()
-				.createADEDatabaseSchemaManager(connection, config);	
+				.createADEDatabaseSchemaManager(connection, config);
+		// Step 1: Cleanup ADE data content by calling the corresponding delete-functions
+		LOG.info("Deleting ADE data content...");
+		try {
+			adeDatabasSchemaManager.cleanupADEData(adeId);
+		} catch (SQLException e) {
+			throw new ADERegistrationException("Failed to clean up ADE data", e);
+		}
+		
+		// Step 2: Dropping ADE database schema and delete-functions	
+		LOG.info("Dropping ADE database schema and all delete-functions...");
 		try {	
 			adeDatabasSchemaManager.dropADEDatabaseSchema(adeId);
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to drop ADE database schema", e);
 		} 
-		LOG.info("ADE database schema and all delete-functions successfully deleted.");
 		
-		// Step 3: cleanup ADE metadata
+		// Step 3: Removing ADE metadata
+		LOG.info("Removing ADE Metadata");
 		ADEMetadataManager adeMetadataManager = new ADEMetadataManager(connection, config);		
 		try {
 			adeMetadataManager.deleteADEMetadata(adeId);
 		} catch (SQLException e) {	
 			throw new ADERegistrationException("Failed to delete ADE metadata from database", e);
 		} 		
-		LOG.info("ADE Metadata successfully deleted");	
-	
+
 		// Step 4: re-create and install delete-functions
 		LOG.info("Re-creating and installing delete-function...");
 		try {	
@@ -110,8 +114,7 @@ public class ADERegistrationController {
 		} catch (ADERegistrationException e) {
 			LOG.info("Failed to create and install delete-script into database. (Skipped)");
 		} 
-		
-		LOG.info("ADE Deregistration is completed.");
+
 		return true;
 	}
 	

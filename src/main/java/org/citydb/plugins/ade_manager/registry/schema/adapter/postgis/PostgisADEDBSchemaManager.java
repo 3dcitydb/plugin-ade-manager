@@ -1,5 +1,8 @@
 package org.citydb.plugins.ade_manager.registry.schema.adapter.postgis;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,16 +12,39 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.citydb.config.project.database.DatabaseType;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.datatype.MnRefEntry;
 import org.citydb.plugins.ade_manager.registry.datatype.ReferencedEntry;
 import org.citydb.plugins.ade_manager.registry.datatype.ReferencingEntry;
 import org.citydb.plugins.ade_manager.registry.schema.adapter.AbstractADEDBSchemaManager;
+import org.citydb.plugins.ade_manager.util.PathResolver;
 
 public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 
 	public PostgisADEDBSchemaManager(Connection connection, ConfigImpl config) {
 		super(connection, config);
+	}
+
+	@Override
+	public void cleanupADEData(String adeId) throws SQLException {
+		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
+		PreparedStatement ps = null;
+		Map<Integer, String>cityobjectIds = queryADECityobjectIds(adeId);
+		try {
+			int sum = cityobjectIds.size();
+			for (Integer objectId: cityobjectIds.keySet()) {				
+				String call = "select " + schema + ".delete_cityobject(array_agg(" + objectId + "));";
+				ps = connection.prepareStatement(call);
+				ps.executeQuery();
+				String className = cityobjectIds.get(objectId);
+				LOG.info(className + "(ID = " + objectId + ")" + " deleted.");
+				LOG.info("Number of remaining ADE objects to be deleted: " + --sum);
+			}
+		} finally {
+			if (ps != null)
+				ps.close();
+		}
 	}
 
 	public List<String> query_selfref_fk(String tableName, String schemaName) throws SQLException {
@@ -362,6 +388,14 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 	}
 
 	@Override
+	protected String readCreateADEDBScript() throws IOException {
+		String adeRegistryInputpath = config.getAdeRegistryInputPath();
+		String createDBscriptPath = PathResolver.get_create_ade_db_filepath(adeRegistryInputpath, DatabaseType.POSTGIS);	
+		
+		return new String(Files.readAllBytes(Paths.get(createDBscriptPath)));
+	}
+	
+	@Override
 	protected String processScript(String inputScript) {
 		return inputScript;
 	}
@@ -442,4 +476,5 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 		
 		return funcNames;
 	}
+
 }

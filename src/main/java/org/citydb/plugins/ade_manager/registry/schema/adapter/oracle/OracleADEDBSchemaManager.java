@@ -1,22 +1,32 @@
 package org.citydb.plugins.ade_manager.registry.schema.adapter.oracle;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Scanner;
 
+import org.citydb.config.project.database.DatabaseType;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.datatype.MnRefEntry;
 import org.citydb.plugins.ade_manager.registry.datatype.ReferencedEntry;
 import org.citydb.plugins.ade_manager.registry.datatype.ReferencingEntry;
 import org.citydb.plugins.ade_manager.registry.schema.adapter.AbstractADEDBSchemaManager;
+import org.citydb.plugins.ade_manager.util.PathResolver;
 
 public class OracleADEDBSchemaManager extends AbstractADEDBSchemaManager {
 
 	public OracleADEDBSchemaManager(Connection connection, ConfigImpl config) {
 		super(connection, config);
+	}
+
+	@Override
+	public void cleanupADEData(String adeId) throws SQLException {
+		
 	}
 
 	@Override
@@ -48,6 +58,13 @@ public class OracleADEDBSchemaManager extends AbstractADEDBSchemaManager {
 	public List<ReferencedEntry> query_ref_to_fk(String tableName, String schemaName) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	protected String readCreateADEDBScript() throws IOException {
+		String adeRegistryInputpath = config.getAdeRegistryInputPath();
+		String createDBscriptPath = PathResolver.get_create_ade_db_filepath(adeRegistryInputpath, DatabaseType.ORACLE);	
+		return new String(Files.readAllBytes(Paths.get(createDBscriptPath)));
 	}
 
 	@Override

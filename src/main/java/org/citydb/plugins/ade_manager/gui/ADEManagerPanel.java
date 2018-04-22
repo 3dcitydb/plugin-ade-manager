@@ -613,6 +613,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		} finally {
 			adeRegistor.closeDBConnection();
 		}	
+		LOG.info("ADE Deregistration is completed.");
 		
 		// update the ADE list table by querying the ADE again
 		if (isComplete) {
