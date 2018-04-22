@@ -205,6 +205,8 @@ public class GraphCreator {
 		
 		// read the tagged value of "relationType" from XML annotation		
 		String relationType = getTaggedValueFromXMLAnnotation(propertyXSElementDecl, "relationType");
+		if (relationType == null)
+			relationType = "association";
 		
 		if (propertyDecl.isEnumerationProperty()) {
 			propertyNodeType = GraphNodeArcType.EnumerationProperty;

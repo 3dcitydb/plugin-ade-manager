@@ -332,7 +332,13 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 				String refTable = rs.getString(1);
 				String refColumn = rs.getString(2);				
 				String[] fkColumns = (String[])rs.getArray(3).getArray();
-				result.add(new ReferencedEntry(refTable, refColumn, fkColumns));
+				boolean shouldAdd = true;
+				for (int i = 0; i < fkColumns.length; i++) {
+					if (fkColumns[i].equalsIgnoreCase("id"))
+						shouldAdd = false;
+				}
+				if (shouldAdd)
+					result.add(new ReferencedEntry(refTable, refColumn, fkColumns));				
 			}							
 		} 
 		finally {			
