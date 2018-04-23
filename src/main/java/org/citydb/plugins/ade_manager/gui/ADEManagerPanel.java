@@ -614,11 +614,21 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 			adeRegistor.closeDBConnection();
 		}	
 		LOG.info("ADE Deregistration is completed.");
-		
-		// update the ADE list table by querying the ADE again
+
 		if (isComplete) {
+			// database re-connection is required for completing the ADE de-registration process
+			LOG.info("ADE Deregistration is completed and will take effect after reconnecting to the database.");
+			if (dbPool.isConnected()) {
+				dbPool.disconnect();
+				try {
+					databaseController.connect(true);
+				} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
+					printErrorMessage("Failed to reconnect to the database", e);
+				}
+			}
+			// update the ADE list table by querying the ADE again
 			showRegisteredADEs();
-		}			
+		}		
 	}
 	
 	private void generateDeleteScripts() {
