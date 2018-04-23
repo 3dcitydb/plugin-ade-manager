@@ -34,7 +34,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 		try {
 			int sum = cityobjectIds.size();
 			for (Integer objectId: cityobjectIds.keySet()) {				
-				String call = "select " + schema + ".delete_cityobject(array_agg(" + objectId + "));";
+				String call = "select " + schema + ".del_cityobject(array_agg(" + objectId + "));";
 				ps = connection.prepareStatement(call);
 				ps.executeQuery();
 				String className = cityobjectIds.get(objectId);
