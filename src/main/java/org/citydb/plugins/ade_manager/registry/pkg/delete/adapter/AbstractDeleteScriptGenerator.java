@@ -22,8 +22,7 @@ import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManagerFactory;
 
 public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGenerator {
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();	
-	protected final Logger LOG = Logger.getInstance();
-	protected final int MAX_FUNCNAME_LENGTH = 30;
+	protected final Logger LOG = Logger.getInstance();	
 	protected final String br = System.lineSeparator();
 	protected final String space = " ";
 	protected final String brDent1 = br + "  ";
@@ -31,7 +30,9 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	protected final String brDent3 = brDent2 + "  ";
 	protected final String brDent4 = brDent3 + "  ";
 	protected final String brDent5 = brDent4 + "  ";
-	
+	protected final int MAX_FUNCNAME_LENGTH = 30;
+	protected final String FUNNAME_PREFIX = "del_";
+
 	protected String updateConstraintsSql = "";
 	protected Map<String, String> functionNames;
 	protected Map<String, String> functionCollection;
@@ -57,7 +58,8 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 		} catch (SQLException e) {
 			throw new SQLException("Failed to fetch the table aggregation information from 3dcitydb", e);
 		} 
-		this.generateDeleteScript("cityobject", "citydb");	
+		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
+		this.generateDeleteScript("cityobject", schema);	
 		
 		return this.printScript();
 	}
@@ -89,11 +91,7 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 		if (functionNames.containsKey(tableName))
 			return functionNames.get(tableName);
 		
-		String funcName = "delete_" + tableName;
-		// TODO use Util's NameShortener class
-		if (funcName.length() >= MAX_FUNCNAME_LENGTH)
-			funcName = funcName.substring(0, MAX_FUNCNAME_LENGTH);
-		
+		String funcName = FUNNAME_PREFIX + tableName;
 		functionNames.put(tableName, funcName);
 		
 		return funcName;
