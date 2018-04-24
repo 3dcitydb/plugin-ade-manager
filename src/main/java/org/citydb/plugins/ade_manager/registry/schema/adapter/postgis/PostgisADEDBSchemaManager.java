@@ -48,6 +48,8 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 	}
 
 	public List<String> query_selfref_fk(String tableName, String schemaName) throws SQLException {
+		tableName = appendSchemaPrefix(tableName);
+		
 		List<String> result = new ArrayList<String>();		
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
@@ -61,7 +63,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 				  .append("WHERE c.conrelid::regclass::text = '").append(tableName).append("' ")
 				      .append("AND c.conrelid = c.confrelid ")
 				      .append("AND c.contype = 'f'");
-	
+
 		try {
 			pstsmt = connection.prepareStatement(strBuilder.toString());
 			rs = pstsmt.executeQuery();			
@@ -91,6 +93,8 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 	}
 	
 	public List<MnRefEntry> query_ref_fk(String tableName, String schemaName) throws SQLException {
+		tableName = appendSchemaPrefix(tableName);
+		
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
 		List<MnRefEntry> result = new ArrayList<MnRefEntry>();
@@ -197,12 +201,12 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 			rs = pstsmt.executeQuery();			
 			while (rs.next()) {
 				MnRefEntry refEntry = new MnRefEntry();
-				refEntry.setRootTableName(rs.getString(1));
-				refEntry.setnTableName(rs.getString(2));
+				refEntry.setRootTableName(removeSchemaPrefix(rs.getString(1)));
+				refEntry.setnTableName(removeSchemaPrefix(rs.getString(2)));
 				refEntry.setnFkColumnName(rs.getString(3));
 				refEntry.setnFkName(rs.getString(4));
 				refEntry.setnColIsNotNull(rs.getBoolean(5));
-				refEntry.setmTableName(rs.getString(6));
+				refEntry.setmTableName(removeSchemaPrefix(rs.getString(6)));
 				refEntry.setmFkColumnName(rs.getString(7));
 				refEntry.setmFkName(rs.getString(8));
 				refEntry.setmRefColumnName(rs.getString(9));
@@ -230,6 +234,8 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 	}
 
 	public List<ReferencingEntry> query_ref_tables_and_columns(String tableName, String schemaName) throws SQLException {
+		tableName = appendSchemaPrefix(tableName);
+		
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
 		List<ReferencingEntry> result = new ArrayList<ReferencingEntry>();
@@ -253,7 +259,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 			rs = pstsmt.executeQuery();			
 			
 			while (rs.next()) {
-				String refTable = rs.getString(1);
+				String refTable = removeSchemaPrefix(rs.getString(1));
 				String refColumn = rs.getString(2);
 				result.add(new ReferencingEntry(refTable, refColumn));				
 			}				
@@ -278,6 +284,8 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 	}
 	
 	public String query_ref_to_parent_fk(String tableName, String schemaName) throws SQLException {
+		tableName = appendSchemaPrefix(tableName);
+		
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
 		String result = null;
@@ -293,14 +301,14 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 				      .append("AND p.conrelid::regclass::text = '").append(tableName).append("' ")
 				      .append("AND f.conkey = p.conkey ")
 				      .append("AND f.contype = 'f' ")
-				      .append("AND p.contype = 'p'");
+				      .append("AND p.contype = 'p' ");
 
 		try {
 			pstsmt = connection.prepareStatement(strBuilder.toString());
 			rs = pstsmt.executeQuery();
 						
 			if (rs.next())
-				result = rs.getString(1);				
+				result = removeSchemaPrefix(rs.getString(1));				
 		} 
 		finally {			
 			if (rs != null) { 
@@ -323,6 +331,8 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 	}
 	
 	public List<ReferencedEntry> query_ref_to_fk(String tableName, String schemaName) throws SQLException {
+		tableName = appendSchemaPrefix(tableName);
+				
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
 		List<ReferencedEntry> result = new ArrayList<ReferencedEntry>();
@@ -346,7 +356,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 				      .append("c.conrelid::regclass::text = '").append(tableName).append("' ")
 				      .append("AND c.conrelid <> c.confrelid ")
 				      .append("AND c.contype = 'f' ")
-				      .append("AND c.confrelid::regclass::text <> 'cityobject' ")
+				  //    .append("AND c.confrelid::regclass::text <> 'cityobject' ")
 				  .append("GROUP BY ")
 				      .append("c.confrelid, ")
 				      .append("a_ref.attname");
@@ -355,7 +365,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 			rs = pstsmt.executeQuery();
 						
 			while (rs.next()) {
-				String refTable = rs.getString(1);
+				String refTable = removeSchemaPrefix(rs.getString(1));
 				String refColumn = rs.getString(2);				
 				String[] fkColumns = (String[])rs.getArray(3).getArray();
 				boolean shouldAdd = true;
@@ -383,7 +393,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 				} 
 			}			
 		}
-		
+
 		return result;
 	}
 
@@ -433,7 +443,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 		strBuilder.append("SELECT routines.routine_name, routines.data_type, parameters.data_type, parameters.ordinal_position ")
 				      .append("FROM information_schema.routines ")
 				      .append("LEFT JOIN information_schema.parameters ON routines.specific_name=parameters.specific_name ")
-				      .append("WHERE routines.specific_schema= '").append(schema).append("' and routines.routine_name like 'delete_%' ")
+				      .append("WHERE routines.specific_schema= '").append(schema).append("' and routines.routine_name like 'del_%' ")
 				      .append("ORDER BY routines.routine_name, parameters.ordinal_position");
 		try {
 			pstsmt = connection.prepareStatement(strBuilder.toString());

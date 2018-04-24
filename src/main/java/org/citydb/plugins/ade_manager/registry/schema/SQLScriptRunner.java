@@ -9,9 +9,12 @@ import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.log.Logger;
 
 public class SQLScriptRunner {
@@ -19,9 +22,21 @@ public class SQLScriptRunner {
     private final String DELIMITER_LINE_REGEX = "(?i)DELIMITER.+"; 
     private final String DELIMITER_LINE_SPLIT_REGEX = "(?i)DELIMITER"; 
     private final String DEFAULT_DELIMITER = ";";
-    private final Logger LOG = Logger.getInstance();	   
+    private final Logger LOG = Logger.getInstance();	 
+    private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
     private String delimiter = DEFAULT_DELIMITER;
 
+	@SuppressWarnings("serial")
+	private final List<String> DDL_KEY_WORDS = new ArrayList<String>(){{
+		add("CREATE TABLE ");
+		add("ALTER TABLE ");
+		add("DROP TABLE ");
+		add("REFERENCES ");
+		add("CREATE SEQUENCE ");
+		add("DROP SEQUENCE ");	
+		add(" ON ");
+	}};
+	
 	private SQLScriptRunner() {}
 
 	public static synchronized SQLScriptRunner getInstance() {
@@ -31,6 +46,7 @@ public class SQLScriptRunner {
 	}
 	
     public void runScript(String scriptString, Connection connection) throws SQLException {
+    	String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
     	StringReader reader = null;
     	LineNumberReader lineReader = null;
     	reader = new StringReader(scriptString);    	
@@ -70,9 +86,19 @@ public class SQLScriptRunner {
 						command = null;
 					} else {
 						Statement stmt = connection.createStatement();
+						String commandStr = command.toString();
+						// set schema for database objects
+						for (String ddlKeyword: DDL_KEY_WORDS) {
+							if (commandStr.indexOf(ddlKeyword) >= 0) {
+								if (ddlKeyword.equalsIgnoreCase(" ON ") && commandStr.indexOf("ON DELETE") > 0)
+									continue;
+								commandStr = commandStr.replace(ddlKeyword, ddlKeyword + schema + ".");
+							}
+						}
+
 						try {
 							try {
-								stmt.execute(command.toString());
+								stmt.execute(commandStr);
 							} catch (SQLException e) {
 								throw new SQLException("Error on command: " + command, e);
 							}

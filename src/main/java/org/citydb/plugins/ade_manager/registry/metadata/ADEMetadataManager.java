@@ -59,10 +59,12 @@ public class ADEMetadataManager {
 	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	private final Connection connection;
 	private final ConfigImpl config;
+	private String schema;
 	
 	public ADEMetadataManager(Connection connection, ConfigImpl config) {
 		this.connection = connection;
 		this.config = config;
+		this.schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
 	}
 	
 	public void importADEMetadata() throws SQLException {				
@@ -100,7 +102,7 @@ public class ADEMetadataManager {
 			throw new SQLException("Failed to import metadata, Cause: An ADE must have a root schema");
 
 		long insertedADERowId;
-		String insertADEQueryStr = "INSERT INTO ADE"
+		String insertADEQueryStr = "INSERT INTO " + schema + ".ADE"
 				+ "(ID, ADEID, NAME, DESCRIPTION, VERSION, DB_PREFIX, XML_SCHEMAMAPPING_FILE, DROP_DB_SCRIPT, CREATION_DATE, CREATION_PERSON) VALUES"
 				+ "(?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement psInsertADE = connection.prepareStatement(insertADEQueryStr);
@@ -113,7 +115,7 @@ public class ADEMetadataManager {
 		}
 				
 		Map<String, List<Long>> insertedSchemas = null;
-		String insertSchemaQueryStr = "INSERT INTO SCHEMA"
+		String insertSchemaQueryStr = "INSERT INTO "  + schema + ".SCHEMA"
 				+ "(ID, IS_ADE_ROOT, CITYGML_VERSION, XML_NAMESPACE_URI, XML_NAMESPACE_PREFIX, XML_SCHEMA_LOCATION, XML_SCHEMAFILE, XML_SCHEMAFILE_TYPE, ADE_ID) VALUES"
 				+ "(?,?,?,?,?,?,?,?,?)";
 		PreparedStatement psInsertSchema = connection.prepareStatement(insertSchemaQueryStr);
@@ -125,7 +127,7 @@ public class ADEMetadataManager {
 			psInsertSchema.close();			
 		}
 		
-		String insertSchemaReferencingQueryString = "INSERT INTO schema_referencing(REFERENCED_ID, REFERENCING_ID) VALUES(?,?)";
+		String insertSchemaReferencingQueryString = "INSERT INTO "  + schema + ".schema_referencing(REFERENCED_ID, REFERENCING_ID) VALUES(?,?)";
 		PreparedStatement psInsertSchemaReferencing = connection.prepareStatement(insertSchemaReferencingQueryString);
 		try {
 			insertSchemaReferencing(insertedSchemas, adeRootSchemaId, psInsertSchemaReferencing);		
@@ -136,7 +138,7 @@ public class ADEMetadataManager {
 		}
 		
 		Map<Long, String> objectObjectclassIds;
-		String insertObjectclassQueryString = "INSERT INTO OBJECTCLASS (ID, IS_ADE_CLASS, IS_TOPLEVEL, CLASSNAME, TABLENAME, SUPERCLASS_ID, BASECLASS_ID, ADE_ID) VALUES(?,?,?,?,?,?,?,?)";
+		String insertObjectclassQueryString = "INSERT INTO "  + schema + ".OBJECTCLASS (ID, IS_ADE_CLASS, IS_TOPLEVEL, CLASSNAME, TABLENAME, SUPERCLASS_ID, BASECLASS_ID, ADE_ID) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = connection.prepareStatement(insertObjectclassQueryString);
 		try {			
 			objectObjectclassIds = insertObjectclasses(insertedADERowId, ps);			
@@ -146,7 +148,7 @@ public class ADEMetadataManager {
 			ps.close();			
 		}
 		
-		String insertSchemaToObjectclassQueryString = "INSERT INTO schema_to_objectclass(SCHEMA_ID, OBJECTCLASS_ID) VALUES(?,?)";
+		String insertSchemaToObjectclassQueryString = "INSERT INTO "  + schema + ".schema_to_objectclass(SCHEMA_ID, OBJECTCLASS_ID) VALUES(?,?)";
 		PreparedStatement psInsertSchemaToObjectclass = connection.prepareStatement(insertSchemaToObjectclassQueryString);
 		try {
 			insertSchemaToObjectclass(objectObjectclassIds, insertedSchemas, psInsertSchemaToObjectclass);			
@@ -156,7 +158,7 @@ public class ADEMetadataManager {
 			psInsertSchemaToObjectclass.close();
 		}
 		
-		String insertAggregationInfoQueryString = "INSERT INTO aggregation_info(CHILD_ID, PARENT_ID, MIN_OCCURS, MAX_OCCURS, IS_COMPOSITE) VALUES(?,?,?,?,?)";
+		String insertAggregationInfoQueryString = "INSERT INTO " + schema + ".aggregation_info(CHILD_ID, PARENT_ID, MIN_OCCURS, MAX_OCCURS, IS_COMPOSITE) VALUES(?,?,?,?,?)";
 		PreparedStatement psInsertAggregationInfo = connection.prepareStatement(insertAggregationInfoQueryString);
 		try {
 			insertAggregationInfo(psInsertAggregationInfo);			
@@ -174,7 +176,7 @@ public class ADEMetadataManager {
 	
 		try {					
 			stmt = connection.createStatement();
-			rs = stmt.executeQuery("select * from ade order by id");
+			rs = stmt.executeQuery("select * from " + schema + "." + "ade order by id");
 			
 			while (rs.next()) {
 				String adeid = rs.getString("adeid");
@@ -209,14 +211,14 @@ public class ADEMetadataManager {
 				      .append("a.max_occurs as max_occurs, ")
 				      .append("a.is_composite as is_composite ")
 				  .append("FROM ")
-				      .append("aggregation_info a ")
+				      .append(schema).append(".aggregation_info a ")
 				  .append("JOIN ")
-				      .append("objectclass c ")
+				  .append(schema).append(".objectclass c ")
 				      .append("on a.child_id = c.id ")
 				  .append("JOIN ")
-				      .append("objectclass p ")
-				      .append("on a.parent_id = p.id ");
-		
+				  	.append(schema).append(".objectclass p ")
+				    .append("on a.parent_id = p.id ");
+
 		try {
 			pstsmt = connection.prepareStatement(strBuilder.toString());
 			rs = pstsmt.executeQuery();						
@@ -289,7 +291,7 @@ public class ADEMetadataManager {
 		Statement stmt = null;	
 		try {					
 			stmt = connection.createStatement();
-			stmt.executeUpdate("Delete from ade where adeid = '" + adeId + "'");
+			stmt.executeUpdate("Delete from " + schema + ".ade where adeid = '" + adeId + "'");
 		} finally {
 			if (stmt != null)
 				stmt.close();
@@ -302,7 +304,7 @@ public class ADEMetadataManager {
 		String dropDBScript = null;		
 		try {					
 			stmt = connection.createStatement();
-			rs = stmt.executeQuery("select drop_db_script from ade where adeid = '" + adeId + "'");		
+			rs = stmt.executeQuery("select drop_db_script from " + schema + ".ade where adeid = '" + adeId + "'");		
 			if (rs.next()) 
 				dropDBScript = rs.getString(1);	
 		} finally {
@@ -562,10 +564,10 @@ public class ADEMetadataManager {
 		DatabaseType dbType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();
 						
 		if (dbType == DatabaseType.ORACLE) {
-			query.append("select ").append(seqType).append(".nextval from dual");
+			query.append("select ").append(schema).append(".").append(seqType).append(".nextval from dual");
 		}
 		else if (dbType == DatabaseType.POSTGIS){
-			query.append("select nextval('").append(seqType).append("')");
+			query.append("select nextval('").append(schema).append(".").append(seqType).append("')");
 		}
 		
 		long id = 0;
@@ -613,7 +615,7 @@ public class ADEMetadataManager {
 	
 		try {						
 			stmt = connection.createStatement();
-			rs = stmt.executeQuery("select xml_schemamapping_file from ade where db_prefix = '" + dbPrefix + "'");		
+			rs = stmt.executeQuery("select xml_schemamapping_file from " + schema + ".ade where db_prefix = '" + dbPrefix + "'");		
 			if (rs.next())
 				schemaMappingStr = rs.getString(1);
 		} finally {
@@ -634,7 +636,7 @@ public class ADEMetadataManager {
 	
 		try {						
 			stmt = connection.createStatement();
-			rs = stmt.executeQuery("select * from objectclass where id = " + objectclassId);		
+			rs = stmt.executeQuery("select * from " + schema + ".objectclass where id = " + objectclassId);		
 			if (rs.next())
 				isValid = false;
 		} finally {
@@ -655,7 +657,7 @@ public class ADEMetadataManager {
 	
 		try {					
 			stmt = connection.createStatement();
-			rs = stmt.executeQuery("select * from ade where db_prefix = '" + dbPrefix + "'");
+			rs = stmt.executeQuery("select * from " + schema + ".ade where db_prefix = '" + dbPrefix + "'");
 			
 			if (rs.next())
 				isValid = false;

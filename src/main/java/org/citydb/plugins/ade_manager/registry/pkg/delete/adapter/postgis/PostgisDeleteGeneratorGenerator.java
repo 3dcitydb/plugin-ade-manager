@@ -66,7 +66,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		pre_block += result[1];
 	
 		// Main Delete for the current table
-		delete_block += create_local_delete(tableName);
+		delete_block += create_local_delete(tableName , schemaName);
 		
 		// Code-block for deleting referenced tables with 1:0..1 composition or N: 0..1 aggregation 
 		// e.g. the composition relationship between building and surface geometry,
@@ -94,7 +94,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		// Putting all together
 		delete_func_ddl += declare_block + br + 
 				"BEGIN" + pre_block +
-				brDent1 + "-- delete " + tableName + "s" + 
+				brDent1 + "-- delete " + schemaName + "." + tableName + "s" + 
 				delete_agg_start + 
 				delete_block + 
 				delete_agg_end + 
@@ -107,10 +107,10 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		return delete_func_ddl;
 	}
 
-	private String create_local_delete(String tableName) {
+	private String create_local_delete(String tableName, String schemaName) {
 		String code_blcok = "";		
 		code_blcok += brDent2 + "DELETE FROM"
-						+ brDent3 + tableName + " t"
+						+ brDent3 + schemaName + "." + tableName + " t"
 					+ brDent2 + "USING"
 						+ brDent3 + "unnest($1) a(a_id)"
 					+ brDent2 + "WHERE"
@@ -126,9 +126,9 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		for (String fkColumn : selfFkColumns) {			
 			code_block += brDent1 + "-- delete referenced parts"
 						+ brDent1 + "PERFORM"
-							+ brDent2 + schemaName + "."+ createFunctionName(tableName) + "(array_agg(t.id))"
+							+ brDent2 + schemaName + "." + createFunctionName(tableName) + "(array_agg(t.id))"
 						+ brDent1 + "FROM"
-							+ brDent2 + tableName + " t,"
+							+ brDent2 + schemaName + "." + tableName + " t,"
 							+ brDent2 + "unnest($1) a(a_id)"
 						+ brDent1 + "WHERE"
 							+ brDent2 + "t." + fkColumn + " = a.a_id"
@@ -236,7 +236,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 					+ brDent1 + "PERFORM"
 						+ brDent2 + schemaName + "." + createFunctionName(tableName) + "(array_agg(t.id))"
 					+ brDent1 + "FROM"
-						+ brDent2 + tableName + " t,"		
+						+ brDent2 + schemaName + "." + tableName + " t,"		
 						+ brDent2 + "unnest($1) a(a_id)"
 					+ brDent1 + "WHERE"
 						+ brDent2 + "t." + fk_column_name + " = a.a_id;" + br;	
@@ -250,7 +250,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		code_block += brDent1 + "-- delete references to " + m_table_name + "s"
 					+ brDent1 + "WITH " + createFunctionName(m_table_name) + "_refs AS ("
 						+ brDent2 + "DELETE FROM"
-							+ brDent3 + n_m_table_name + " t"
+							+ brDent3 + schemaName + "." + n_m_table_name + " t"
 						+ brDent2 + "USING"
 							+ brDent3 + "unnest($1) a(a_id)"
 						+ brDent2 + "WHERE"
@@ -296,7 +296,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			index++; 
 		}
 		
-		code_block += brDent1 + "-- delete " + m_table_name + "(s)"
+		code_block += brDent1 + "-- delete " + schemaName + "." + m_table_name + "(s)"
 					+ brDent1 + "IF -1 = ALL(" + m_table_name + "_ids) IS NOT NULL THEN"
 						+ brDent2 + "PERFORM"
 							+ brDent3 + schemaName + "." + createFunctionName(m_table_name) + "(array_agg(a.a_id))"

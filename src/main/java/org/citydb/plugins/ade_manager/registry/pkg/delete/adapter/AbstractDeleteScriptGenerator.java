@@ -110,7 +110,7 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 			return RelationType.no_agg_comp;
 		} 			
 	}	
-	
+
 	private String printScript() {	
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		PrintStream writer = new PrintStream(os);

@@ -19,10 +19,13 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	protected final Connection connection;
 	protected final ConfigImpl config;
+	protected String schema;
+	protected final String defaultSchemaName = "citydb";
 	
 	public AbstractADEDBSchemaManager(Connection connection, ConfigImpl config) {
 		this.connection = connection;
 		this.config = config;
+		this.schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
 	}
 	
 	public void createADEDatabaseSchema() throws SQLException {		
@@ -51,11 +54,11 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		Map<Integer, String> objectclassIds = new java.util.HashMap<Integer, String>();	
 		try {					
 			stmt = connection.createStatement();
-			rs = stmt.executeQuery("select cityobject.id, objectclass.classname "
-					+ "FROM cityobject, objectclass, ade "
-					+ "WHERE cityobject.objectclass_id = objectclass.id "
-					+ "AND ade.id = objectclass.ade_id "
-					+ "AND ade.adeid = '" + adeId + "'");
+			rs = stmt.executeQuery("select " + schema + ".cityobject.id, " + schema + ".objectclass.classname "
+					+ "FROM " + schema + ".cityobject, " + schema + ".objectclass, "+ schema + ".ade "
+					+ "WHERE " + schema + ".cityobject.objectclass_id = " + schema + ".objectclass.id "
+					+ "AND " + schema + ".ade.id = " + schema + ".objectclass.ade_id "
+					+ "AND " + schema + ".ade.adeid = '" + adeId + "'");
 			
 			while (rs.next()) {
 				int adeid = rs.getInt(1);
@@ -71,6 +74,21 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		}
 	
 		return objectclassIds;		
+	}
+	
+	protected String appendSchemaPrefix(String tableName) {
+		if (!schema.equalsIgnoreCase(defaultSchemaName)) {
+			if (tableName.indexOf(schema + ".") == -1) {
+				return schema + "." + tableName;
+			}			
+		}
+		return tableName;
+	}
+	
+	protected String removeSchemaPrefix(String tableName) {
+		if (tableName == null)
+			return tableName;
+		return tableName.substring(tableName.indexOf(".") + 1);
 	}
 
 	protected abstract String readCreateADEDBScript() throws IOException;
