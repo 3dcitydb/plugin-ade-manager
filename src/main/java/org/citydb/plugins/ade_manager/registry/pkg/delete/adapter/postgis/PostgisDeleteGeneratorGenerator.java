@@ -1,5 +1,7 @@
 package org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.postgis;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -16,15 +18,6 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 
 	public PostgisDeleteGeneratorGenerator(Connection connection, ConfigImpl config) {
 		super(connection, config);
-	}
-
-	@Override
-	protected void generateDeleteScript(String initTableName, String schemaName) throws SQLException {
-		try {
-			registerFunction(initTableName, schemaName);
-		} catch (SQLException e) {
-			throw new SQLException("Failed to create generate delete script", e);
-		}
 	}
 	
 	@Override
@@ -105,6 +98,30 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				"LANGUAGE plpgsql STRICT;";	
 
 		return delete_func_ddl;
+	}
+
+	@Override
+	protected String printScript() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		PrintStream writer = new PrintStream(os);
+		// header text
+		writer.println(addSQLComment("Automatically generated 3DcityDB-delete-functions"));
+		for (String funcName: functionNames.values()) {
+			writer.println("--" + funcName);
+		}
+		writer.println("------------------------------------------");
+		
+		// main body containing the function definitions
+		for (String tableName: functionCollection.keySet()) {
+			writer.println(addSQLComment("Delete function for table: " + tableName.toUpperCase() 
+					+ brDent1 + "caller = 0 (default): function is called from neither its parent, nor children tables"
+					+ brDent1 + "caller = 1 : function is called from its parent table" 
+					+ brDent1 + "caller = 2 : function is called from its children tables" ));
+			writer.println(functionCollection.get(tableName));
+			writer.println("------------------------------------------");
+		};
+		
+		return os.toString();
 	}
 
 	private String create_local_delete(String tableName, String schemaName) {

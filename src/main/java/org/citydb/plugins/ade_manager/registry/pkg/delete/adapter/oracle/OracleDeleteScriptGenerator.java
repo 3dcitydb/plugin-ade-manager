@@ -13,12 +13,13 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	}
 
 	@Override
-	protected void generateDeleteScript(String initTableName, String schemaName) {
-		// TODO
+	protected String constructDeleteFunction(String tableName, String schemaName) throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
-	protected String constructDeleteFunction(String tableName, String schemaName) throws SQLException {
+	protected String printScript() {
 		// TODO Auto-generated method stub
 		return null;
 	}
