@@ -1,6 +1,5 @@
 package org.citydb.plugins.ade_manager.registry.pkg.delete.adapter;
 
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
@@ -61,20 +60,7 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 		
 		return this.printScript();
 	}
-	
-	@Override
-	public void installDeleteScript(String scriptString) throws SQLException {	
-		CallableStatement cs = null;
-		try {
-			cs = connection.prepareCall(scriptString);
-			cs.execute();
-		}
-		finally {
-			if (cs != null)
-				cs.close();
-		}		
-	}
-	
+
 	protected abstract String constructDeleteFunction(String tableName, String schemaName) throws SQLException;
 	protected abstract String printScript();
 

@@ -2,6 +2,7 @@ package org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.postgis;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -18,6 +19,19 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 
 	public PostgisDeleteGeneratorGenerator(Connection connection, ConfigImpl config) {
 		super(connection, config);
+	}
+	
+	@Override
+	public void installDeleteScript(String scriptString) throws SQLException {	
+		CallableStatement cs = null;
+		try {
+			cs = connection.prepareCall(scriptString);
+			cs.execute();
+		}
+		finally {
+			if (cs != null)
+				cs.close();
+		}		
 	}
 	
 	@Override
