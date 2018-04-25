@@ -200,7 +200,6 @@ public class DBScriptGenerator {
 			column.setTypeCode(Types.INTEGER);
 		}
 		else {
-			LOG.error("Incorrect Data Type at column: " + column.getName());
 			column.setTypeCode(Types.CLOB);
 		}
 		
