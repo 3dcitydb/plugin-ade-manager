@@ -74,9 +74,6 @@ distributions.main.contents {
         from 'resources/license/APACHE-2.0.txt'
         from 'resources/license/LICENSE.txt'
     }
-    into('contribs/agg') {
-        from 'contribs/agg'
-    }
 }
 
 task wrapper(type: Wrapper) {
