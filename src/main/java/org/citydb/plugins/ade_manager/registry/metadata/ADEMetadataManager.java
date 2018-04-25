@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.namespace.QName;
@@ -196,6 +198,41 @@ public class ADEMetadataManager {
 		}
 	
 		return ades;
+	}
+	
+	public Map<Integer, String> querySubObjectclassesFromSuperTable(String superTable) throws SQLException {
+		Statement stmt = null;
+		ResultSet rs = null;
+		Map<Integer, String> result = new TreeMap<Integer, String>();
+	
+		try {					
+			stmt = connection.createStatement();
+			rs = stmt.executeQuery("SELECT o1.id, o1.tablename "
+					+ "FROM objectclass o1 "
+					+ "JOIN objectclass o2 "
+					+ "ON o1.superclass_id = o2.id "
+					+ "WHERE o2.tablename = '" + superTable + "'");
+			
+			while (rs.next()) {
+				int objectclassId = rs.getInt(1);
+				String tableName = rs.getString(2);	
+				if (!tableName.equalsIgnoreCase(superTable)) {
+					Map<Integer, String> nestedSub = querySubObjectclassesFromSuperTable(tableName);
+					for (Entry<Integer, String> entry: nestedSub.entrySet()) {
+						result.put(entry.getKey(), entry.getValue());
+					}					
+				}
+				result.put(objectclassId, tableName);
+			}
+		} finally {
+			if (rs != null) 
+				rs.close();
+	
+			if (stmt != null) 
+				stmt.close();
+		}
+	
+		return result;
 	}
 
 	public Map<QName, AggregationInfo> queryAggregationInfo() throws SQLException {

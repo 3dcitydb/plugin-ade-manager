@@ -7,6 +7,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.datatype.MnRefEntry;
@@ -42,7 +44,9 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		
 		String declare_block = 
 				br +  "DECLARE" + 
-				brDent1 + "deleted_ids int[] := '{}';";
+				brDent1 + "deleted_ids int[] := '{}';"+
+				brDent1 + "object_id integer;" +
+				brDent1 + "objectclass_id integer;";
 		
 		String pre_block = "";
 		String post_block = "";
@@ -171,9 +175,12 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	private String[] create_ref_delete(String tableName, String schemaName) throws SQLException {
 		String vars = "";
 		String ref_block = "";
+		String ref_hook_block = "";
 		String ref_child_block = "";
 		
-		List<MnRefEntry> refEntries = adeDatabaseSchemaManager.query_ref_fk(tableName, schemaName);
+		Map<Integer, String> subObjectclasses = adeMetadataManager.querySubObjectclassesFromSuperTable(tableName);
+		List<String> directChildTables = new ArrayList<String>();
+		List<MnRefEntry> refEntries = adeDatabaseSchemaManager.query_ref_fk(tableName, schemaName);		
 		for (MnRefEntry ref : refEntries) {
 			String rootTableName = ref.getRootTableName();			
 			String n_table_name = ref.getnTableName();
@@ -187,13 +194,15 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			
 			if (!functionCollection.containsKey(n_table_name) && m_table_name == null)
 				registerFunction(n_table_name, schemaName);
-
-			// PF = FK is the case e.g. ADE hook and inheritance relationships
-			if (n_fk_column_name.equalsIgnoreCase("id")) { 						
-				ref_child_block += brDent1 + "IF $2 <> 2 THEN"
-								 	+ brDent2 + "-- delete " + n_table_name + "s"
-								 	+ brDent2 + "PERFORM " + schemaName + "." + createFunctionName(n_table_name) + "($1, 1);"
-								 	+ brDent1 + "END IF;" + br;
+			
+			if (n_fk_column_name.equalsIgnoreCase("id")) { 
+				directChildTables.add(n_table_name);
+				if (!subObjectclasses.containsValue(n_table_name)) {
+					// code-block for deleting ADE hook data 
+					ref_hook_block += brDent1 + "-- delete " + n_table_name + "s"
+								 	+ brDent1 + "PERFORM " + schemaName + "." + createFunctionName(n_table_name) + "($1, 1);"
+								 	+ br;
+				}			 	 
 			}
 			else {											
 				if (nRootRelation == RelationType.composition) {							
@@ -255,8 +264,38 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				}
 			}
 		} 
-		ref_block += ref_child_block;
+
+		if (subObjectclasses.size() > 0) {
+			for (Entry<Integer, String> entry: subObjectclasses.entrySet()) {
+				int childObjectclassId = entry.getKey();
+				String childTableName = entry.getValue();
+				if (childTableName.equalsIgnoreCase(tableName))
+					continue;
+				
+				int caller = 0;
+				if (directChildTables.contains(childTableName))
+					caller = 1;
+				ref_child_block += br
+						 + brDent3 + "-- delete " + childTableName						 
+						 + brDent3 + "IF objectclass_id = " + childObjectclassId + " THEN"
+					 	 + brDent4 + "PERFORM " + schemaName + "." + createFunctionName(childTableName) + "(array_agg(object_id), " + caller + ");"
+						 + brDent3 + "END IF;";
+			}			
+		}
 		
+		if (ref_child_block.length() > 0) {
+			ref_child_block  = brDent1 + "IF $2 <> 2 THEN"							 
+							 + brDent2 + "FOREACH object_id IN ARRAY $1"
+							 + brDent2 + "LOOP"
+								+ brDent3 + "EXECUTE format('SELECT objectclass_id FROM " + schemaName + ".cityobject WHERE id = %L', object_id) INTO objectclass_id;"
+								+ ref_child_block 
+							 + brDent2 + "END LOOP;"
+							 + brDent1 + "END IF;"
+							 + br;
+		}
+		
+		ref_block += ref_hook_block	+ ref_child_block;
+
 		String[] result = {vars, ref_block};
 		return result; 
 	}
@@ -351,15 +390,19 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 
 	private String create_ref_to_parent_delete(String tableName, String schemaName) throws SQLException {
-		String parent_table = adeDatabaseSchemaManager.query_ref_to_parent_fk(tableName, schemaName);
 		String code_block = "";
+		String parent_table = adeDatabaseSchemaManager.query_ref_to_parent_fk(tableName, schemaName);		
 		if (parent_table != null) {
-			if (!functionCollection.containsKey(parent_table))
-				registerFunction(parent_table, schemaName);			
-			code_block += brDent1 + "IF $2 <> 1 THEN"
-					    	+ brDent2 + "-- delete " + parent_table
-					    	+ brDent2 + "PERFORM " + schemaName + "." + createFunctionName(parent_table) + "(deleted_ids, 2);"
-					    + brDent1 + "END IF;" + br;
+			List<String> adeHookTables = adeMetadataManager.getADEHookTables(parent_table);
+			if (!adeHookTables.contains(tableName)) {
+				if (!functionCollection.containsKey(parent_table))
+					registerFunction(parent_table, schemaName);
+				
+				code_block += brDent1 + "IF $2 <> 1 THEN"
+						    	+ brDent2 + "-- delete " + parent_table
+						    	+ brDent2 + "PERFORM " + schemaName + "." + createFunctionName(parent_table) + "(deleted_ids, 2);"
+						    + brDent1 + "END IF;" + br;
+			}			
 		}
 		return code_block;
 	}
