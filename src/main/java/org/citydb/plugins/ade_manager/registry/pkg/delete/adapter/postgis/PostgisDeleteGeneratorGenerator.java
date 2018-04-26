@@ -187,7 +187,6 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			String n_fk_column_name = ref.getnFkColumnName();
 			String m_table_name = ref.getmTableName();
 			String m_fk_column_name = ref.getmFkColumnName();
-			String m_ref_column_name = ref.getmRefColumnName();
 			boolean n_column_is_not_null = ref.isnColIsNotNull();
 			
 			RelationType nRootRelation = checkTableRelationType(n_table_name, rootTableName);
@@ -242,7 +241,6 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 														n_fk_column_name, 
 														m_table_name,
 														m_fk_column_name,
-														m_ref_column_name, 
 														schemaName, 
 														mRootRelation);
 				}	
@@ -315,7 +313,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 	
 	private String create_n_m_ref_delete(String n_m_table_name, String n_fk_column_name, String m_table_name, 
-			String m_fk_column_name, String m_ref_column_name, String schemaName, RelationType tableRelation) throws SQLException {
+			String m_fk_column_name, String schemaName, RelationType tableRelation) throws SQLException {
 		String code_block = "";
 		code_block += brDent1 + "-- delete references to " + m_table_name + "s"
 					+ brDent1 + "WITH " + createFunctionName(m_table_name) + "_refs AS ("
@@ -334,15 +332,15 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 						+ brDent2 + m_table_name + "_ids"
 					+ brDent1 + "FROM"
 						+ brDent2 + createFunctionName(m_table_name) + "_refs;" + br
-				+ create_m_ref_delete(m_table_name, m_ref_column_name, schemaName, tableRelation);		
+				+ create_m_ref_delete(m_table_name, schemaName, tableRelation);		
 		
 		return code_block;
 	}
 	
-	private String create_m_ref_delete(String m_table_name, String m_ref_column_name, String schemaName, RelationType tableRelation) throws SQLException {	
+	private String create_m_ref_delete(String m_table_name, String schemaName, RelationType tableRelation) throws SQLException {	
 		List<MnRefEntry> nmEntries = adeDatabaseSchemaManager.query_ref_fk(m_table_name, schemaName);	
 		List<ReferencingEntry> aggComprefList = new ArrayList<ReferencingEntry>(); 
-		
+			
 		for (MnRefEntry ref : nmEntries) {
 			String _nFkColumn = ref.getnFkColumnName();
 			String _mTable = ref.getmTableName();
@@ -429,7 +427,6 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		
 		for (ReferencedEntry entry : refEntries) {
 			String ref_table_name = entry.getRefTable();
-			String ref_column_name = entry.getRefColumn();
 			String[] fk_columns = entry.getFkColumns();
 
 			RelationType tableRelation = checkTableRelationType(ref_table_name, tableName);
@@ -457,7 +454,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				
 				// Check if we need add additional code-block for cleaning up the sub-features
 				// for the case of aggregation relationship. 
-				fk_block += this.create_m_ref_delete(ref_table_name, ref_column_name, schemaName, tableRelation);
+				fk_block += this.create_m_ref_delete(ref_table_name, schemaName, tableRelation);
 			}
 		}
 		

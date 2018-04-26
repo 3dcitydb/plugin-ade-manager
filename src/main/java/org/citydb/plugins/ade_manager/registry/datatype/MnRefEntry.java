@@ -4,11 +4,8 @@ public class MnRefEntry {
 	private String rootTableName;
 	private String nTableName;
 	private String nFkColumnName;
-	private String nFkName;
 	private String mTableName;
 	private String mFkColumnName;
-	private String mRefColumnName;
-	private String mFkName;
 	private boolean nColIsNotNull;
 
 	public MnRefEntry() {}
@@ -59,30 +56,6 @@ public class MnRefEntry {
 
 	public void setmFkColumnName(String mFkColumnName) {
 		this.mFkColumnName = mFkColumnName;
-	}
-
-	public String getmRefColumnName() {
-		return mRefColumnName;
-	}
-
-	public void setmRefColumnName(String mRefColumnName) {
-		this.mRefColumnName = mRefColumnName;
-	}
-
-	public String getnFkName() {
-		return nFkName;
-	}
-
-	public void setnFkName(String nFkName) {
-		this.nFkName = nFkName;
-	}
-
-	public String getmFkName() {
-		return mFkName;
-	}
-
-	public void setmFkName(String mFkName) {
-		this.mFkName = mFkName;
 	}
 
 }
