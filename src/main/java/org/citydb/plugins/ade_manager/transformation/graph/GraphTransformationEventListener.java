@@ -35,15 +35,16 @@ public class GraphTransformationEventListener implements GraTraEventListener {
 						
 		} else if (g.getMessage() == GraTraEvent.STEP_COMPLETED) {
 			this.steps++;
+			// TODO print this info in progressbar-dialog via event dispatcher
+			log.info("Matched transformation rule applied. (Step: " + this.steps + ")");
+			
 			Match currentMatch = g.getMatch();
 			Rule currentRule = currentMatch.getRule();
 			String currentRuleName = currentRule.getName();			
-			log.debug("[" + g.getMessage() + "] Rule <" + currentRuleName + "> is applied ! Step" + this.steps );
-			
+			log.debug("[" + g.getMessage() + "] Rule <" + currentRuleName + "> is applied ! Step" + this.steps );					
 		} else if (g.getMessage() == GraTraEvent.LAYER_FINISHED) {
-			if (graTra instanceof LayeredGraTraImpl){
-				if (((LayeredGraTraImpl) graTra).getCurrentLayer() >= 0) {
-								
+			if (graTra instanceof LayeredGraTraImpl){				
+				if (((LayeredGraTraImpl) graTra).getCurrentLayer() >= 0) {								
 					log.debug("[" + g.getMessage() + "] Layer <" + ((LayeredGraTraImpl) graTra).getCurrentLayer()  + "> finished !" );
 				} else if (((LayeredGraTraImpl) graTra).getGraTraOptions().hasOption(GraTraOptions.LOOP_OVER_LAYER)) {
 					log.debug("[" + g.getMessage() + "] Loop over layer. First layer will start. !" );

@@ -9,7 +9,6 @@ import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.List;
 
-import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citygml4j.xml.schema.Schema;
 import org.citygml4j.xml.schema.SchemaHandler;
@@ -27,8 +26,6 @@ import agg.xt_basis.Node;
 import agg.xt_basis.Type;
 
 public class GraphTransformationManager {
-	private final Logger LOG = Logger.getInstance();
-	
 	private Schema schema;
 	private SchemaHandler schemaHandler;	
 	
@@ -99,10 +96,7 @@ public class GraphTransformationManager {
 	private void marshallingEdGraphGrammer(String exportPathString){		
 		XMLHelper xmlh = new XMLHelper();
 		xmlh.addTopObject(this.edGraphGrammar);
-		
-		if (xmlh.save_to_xml(exportPathString)) {			
-			LOG.info("Graph has been created.");
-		}
+		xmlh.save_to_xml(exportPathString);
 	}	
 	
 	private void convertDbObjectNameToLowercase() {

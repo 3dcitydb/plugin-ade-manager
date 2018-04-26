@@ -255,7 +255,7 @@ public class GraphCreator {
 		else {
 			String propertyTypeName = propertyDecl.getXSElementDecl().getType().getName();
 			propertyNode = this.createPropertyNode(GraphNodeArcType.GenericAttribute, nameAndPath, isForeign, propertyTypeName, minOccurs, maxOccurs, namespace);
-			LOG.warn("Map Porperty element '" + propertyDecl.getLocalName() + "' onto CLOB column; Type name: \"" + propertyTypeName + "\"");
+			LOG.debug("Map Porperty element '" + propertyDecl.getLocalName() + "' onto CLOB column; Type name: \"" + propertyTypeName + "\"");
 		}
 		
 		if (propertyNode != null)
@@ -303,7 +303,7 @@ public class GraphCreator {
 			classNode = this.createComplexTypeNode(path, isForeign, className, namespaceUri, isAbstract, derivedFrom, topLevel);							
 		}
 		else {
-			LOG.warn("Unsupported XML/GML Type '" 
+			LOG.debug("Unsupported XML/GML Type '" 
 					+ decl.getXSElementDecl().getType().getName()
 					+ "' for the ADE class '" + decl.getXSElementDecl().getName() + "'. (skipped).");
 		}
