@@ -287,7 +287,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			ref_child_block  = brDent1 + "IF $2 <> 2 THEN"							 
 							 + brDent2 + "FOREACH object_id IN ARRAY $1"
 							 + brDent2 + "LOOP"
-								+ brDent3 + "EXECUTE format('SELECT objectclass_id FROM " + schemaName + ".cityobject WHERE id = %L', object_id) INTO objectclass_id;"
+								+ brDent3 + "EXECUTE format('SELECT objectclass_id FROM " + schemaName + "." + tableName + " WHERE id = %L', object_id) INTO objectclass_id;"
 								+ ref_child_block 
 							 + brDent2 + "END LOOP;"
 							 + brDent1 + "END IF;"
@@ -339,15 +339,26 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		return code_block;
 	}
 	
-	private String create_m_ref_delete(String m_table_name, String m_ref_column_name, String schemaName, RelationType tableRelation) throws SQLException {
-		List<ReferencingEntry> refList = adeDatabaseSchemaManager.query_ref_tables_and_columns(m_table_name, schemaName);
+	private String create_m_ref_delete(String m_table_name, String m_ref_column_name, String schemaName, RelationType tableRelation) throws SQLException {	
+		List<MnRefEntry> nmEntries = adeDatabaseSchemaManager.query_ref_fk(m_table_name, schemaName);	
 		List<ReferencingEntry> aggComprefList = new ArrayList<ReferencingEntry>(); 
-		for (ReferencingEntry ref : refList) {				
-			if (checkTableRelationType(ref.getRefTable(), m_table_name) == RelationType.no_agg_comp) {
-				aggComprefList.add(ref);
-			}
+		
+		for (MnRefEntry ref : nmEntries) {
+			String _nFkColumn = ref.getnFkColumnName();
+			String _mTable = ref.getmTableName();
+			String _nTable = ref.getnTableName();
+			if (!_nFkColumn.equalsIgnoreCase("id")) {
+				if (_mTable != null) {
+					if (checkTableRelationType(m_table_name, _mTable) != RelationType.no_agg_comp) {
+						aggComprefList.add(new ReferencingEntry(_nTable, _nFkColumn));
+					}	
+				}			
+				if (checkTableRelationType(m_table_name, _nTable) != RelationType.no_agg_comp) {
+					aggComprefList.add(new ReferencingEntry(_nTable, _nFkColumn));
+				}
+			}			
 		}
-				
+			
 		String code_block = "";		
 		String join_block = "";
 		String where_block = "";
