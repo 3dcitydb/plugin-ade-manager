@@ -208,8 +208,8 @@ public class ADEMetadataManager {
 		try {					
 			stmt = connection.createStatement();
 			rs = stmt.executeQuery("SELECT o1.id, o1.tablename "
-					+ "FROM objectclass o1 "
-					+ "JOIN objectclass o2 "
+					+ "FROM " + schema + ".objectclass o1 "
+					+ "JOIN " + schema + ".objectclass o2 "
 					+ "ON o1.superclass_id = o2.id "
 					+ "WHERE o2.tablename = '" + superTable + "'");
 			

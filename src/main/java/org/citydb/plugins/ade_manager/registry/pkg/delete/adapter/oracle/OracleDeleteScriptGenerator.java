@@ -3,7 +3,6 @@ package org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.oracle;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.AbstractDeleteScriptGenerator;
 
@@ -37,7 +36,10 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	
 	@Override
 	protected String constructDeleteFunction(String tableName, String schemaName) throws SQLException {
-		// TODO Auto-generated method stub
+	//	List<String> test1 = querier.query_selfref_fk("building", schemaName);
+	//	List<MnRefEntry> test2 = querier.query_ref_fk("building", schemaName);
+	//	String test3 = querier.query_ref_to_parent_fk("building", schemaName);
+	//	List<ReferencedEntry> test4 = querier.query_ref_to_fk("building", schemaName);
 		return null;
 	}
 

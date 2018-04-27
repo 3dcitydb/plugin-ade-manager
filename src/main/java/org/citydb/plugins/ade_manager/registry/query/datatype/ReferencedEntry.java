@@ -1,13 +1,11 @@
-package org.citydb.plugins.ade_manager.registry.datatype;
+package org.citydb.plugins.ade_manager.registry.query.datatype;
 
 public class ReferencedEntry {
 	private String refTable;
-	private String refColumn;
 	private String[] fkColumns;
 
-	public ReferencedEntry(String refTable, String refColumn, String[] fkColumns) {
+	public ReferencedEntry(String refTable, String[] fkColumns) {
 		this.refTable = refTable;
-		this.refColumn = refColumn;
 		this.fkColumns = fkColumns;
 	}
 	
@@ -17,14 +15,6 @@ public class ReferencedEntry {
 
 	public void setRefTable(String refTable) {
 		this.refTable = refTable;
-	}
-
-	public String getRefColumn() {
-		return refColumn;
-	}
-
-	public void setRefColumn(String refColumn) {
-		this.refColumn = refColumn;
 	}
 
 	public String[] getFkColumns() {

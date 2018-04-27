@@ -11,11 +11,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.datatype.MnRefEntry;
-import org.citydb.plugins.ade_manager.registry.datatype.ReferencedEntry;
-import org.citydb.plugins.ade_manager.registry.datatype.ReferencingEntry;
-import org.citydb.plugins.ade_manager.registry.datatype.RelationType;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.AbstractDeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
+import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencedEntry;
+import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencingEntry;
+import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
 public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerator {
 
@@ -156,7 +156,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 	
 	private String create_selfref_delete(String tableName, String schemaName) throws SQLException {
-		List<String> selfFkColumns = adeDatabaseSchemaManager.query_selfref_fk(tableName, schemaName);
+		List<String> selfFkColumns = querier.query_selfref_fk(tableName, schemaName);
 		String code_block = "";
 		for (String fkColumn : selfFkColumns) {			
 			code_block += brDent1 + "-- delete referenced parts"
@@ -180,14 +180,13 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		
 		Map<Integer, String> subObjectclasses = adeMetadataManager.querySubObjectclassesFromSuperTable(tableName);
 		List<String> directChildTables = new ArrayList<String>();
-		List<MnRefEntry> refEntries = adeDatabaseSchemaManager.query_ref_fk(tableName, schemaName);		
+		List<MnRefEntry> refEntries = querier.query_ref_fk(tableName, schemaName);		
 		for (MnRefEntry ref : refEntries) {
 			String rootTableName = ref.getRootTableName();			
 			String n_table_name = ref.getnTableName();
 			String n_fk_column_name = ref.getnFkColumnName();
 			String m_table_name = ref.getmTableName();
 			String m_fk_column_name = ref.getmFkColumnName();
-			boolean n_column_is_not_null = ref.isnColIsNotNull();
 			
 			RelationType nRootRelation = checkTableRelationType(n_table_name, rootTableName);
 			
@@ -227,7 +226,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			}	
 			// If the n_fk_column is not nullable and the table m exists, the table n should be an associative table 
 			// between the root table and table m
-			if (n_column_is_not_null && m_table_name != null) {												
+			if (m_table_name != null) {												
 				if (!functionCollection.containsKey(m_table_name))
 					registerFunction(m_table_name, schemaName);
 
@@ -338,7 +337,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 	
 	private String create_m_ref_delete(String m_table_name, String schemaName, RelationType tableRelation) throws SQLException {	
-		List<MnRefEntry> nmEntries = adeDatabaseSchemaManager.query_ref_fk(m_table_name, schemaName);	
+		List<MnRefEntry> nmEntries = querier.query_ref_fk(m_table_name, schemaName);	
 		List<ReferencingEntry> aggComprefList = new ArrayList<ReferencingEntry>(); 
 			
 		for (MnRefEntry ref : nmEntries) {
@@ -365,7 +364,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			String refTable = ref.getRefTable();
 			String refColumn = ref.getRefColumn();
 			join_block += "LEFT JOIN"
-							+ brDent3 + refTable + " n" + index
+							+ brDent3 + schemaName + "." + refTable + " n" + index
 							+ brDent3 + "ON n" + index + "." + refColumn + "  = a.a_id";			
 			where_block += "n" + index + "." + refColumn + " IS NULL";
 			if (index < aggComprefList.size()) {
@@ -400,7 +399,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 
 	private String create_ref_to_parent_delete(String tableName, String schemaName) throws SQLException {
 		String code_block = "";
-		String parent_table = adeDatabaseSchemaManager.query_ref_to_parent_fk(tableName, schemaName);		
+		String parent_table = querier.query_ref_to_parent_fk(tableName, schemaName);		
 		if (parent_table != null) {
 			List<String> adeHookTables = adeMetadataManager.getADEHookTables(parent_table);
 			if (!adeHookTables.contains(tableName)) {
@@ -423,7 +422,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		String into_block = "";
 		String fk_block = "";
 		
-		List<ReferencedEntry> refEntries = adeDatabaseSchemaManager.query_ref_to_fk(tableName, schemaName);
+		List<ReferencedEntry> refEntries = querier.query_ref_to_fk(tableName, schemaName);
 		
 		for (ReferencedEntry entry : refEntries) {
 			String ref_table_name = entry.getRefTable();

@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.registry.datatype;
+package org.citydb.plugins.ade_manager.registry.query.datatype;
 
 public class ReferencingEntry {
 	private String refColumn;

@@ -25,7 +25,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.citydb.plugins.ade_manager.registry.datatype;
+package org.citydb.plugins.ade_manager.registry.query.datatype;
 
 public enum RelationType {
 	aggregation,

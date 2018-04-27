@@ -10,12 +10,11 @@ import javax.xml.namespace.QName;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.datatype.RelationType;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.metadata.AggregationInfo;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
-import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
-import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManagerFactory;
+import org.citydb.plugins.ade_manager.registry.query.Querier;
+import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
 public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGenerator {
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();	
@@ -37,13 +36,13 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	protected final Connection connection;
 	protected final ConfigImpl config;
 	protected ADEMetadataManager adeMetadataManager;
-	protected ADEDBSchemaManager adeDatabaseSchemaManager;
+	protected Querier querier;
 
 	public AbstractDeleteScriptGenerator(Connection connection, ConfigImpl config) {
 		this.connection = connection;
 		this.config = config;
 		this.adeMetadataManager = new ADEMetadataManager(connection, config);
-		this.adeDatabaseSchemaManager = ADEDBSchemaManagerFactory.getInstance().createADEDatabaseSchemaManager(connection, config);
+		this.querier = new Querier(connection);
 	}
 	
 	@Override

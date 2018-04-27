@@ -19,8 +19,7 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	protected final Connection connection;
 	protected final ConfigImpl config;
-	protected String schema;
-	protected final String defaultSchemaName = "citydb";
+	protected String schema;	
 	
 	public AbstractADEDBSchemaManager(Connection connection, ConfigImpl config) {
 		this.connection = connection;
@@ -74,21 +73,6 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		}
 	
 		return objectclassIds;		
-	}
-	
-	protected String appendSchemaPrefix(String tableName) {
-		if (!schema.equalsIgnoreCase(defaultSchemaName)) {
-			if (tableName.indexOf(schema + ".") == -1) {
-				return schema + "." + tableName;
-			}			
-		}
-		return tableName;
-	}
-	
-	protected String removeSchemaPrefix(String tableName) {
-		if (tableName == null)
-			return tableName;
-		return tableName.substring(tableName.indexOf(".") + 1);
 	}
 
 	protected abstract String readCreateADEDBScript() throws IOException;

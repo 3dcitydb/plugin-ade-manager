@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.registry.datatype;
+package org.citydb.plugins.ade_manager.registry.query.datatype;
 
 public class MnRefEntry {
 	private String rootTableName;
@@ -6,17 +6,8 @@ public class MnRefEntry {
 	private String nFkColumnName;
 	private String mTableName;
 	private String mFkColumnName;
-	private boolean nColIsNotNull;
 
 	public MnRefEntry() {}
-
-	public boolean isnColIsNotNull() {
-		return nColIsNotNull;
-	}
-
-	public void setnColIsNotNull(boolean nColIsNotNull) {
-		this.nColIsNotNull = nColIsNotNull;
-	}
 
 	public String getRootTableName() {
 		return rootTableName;
