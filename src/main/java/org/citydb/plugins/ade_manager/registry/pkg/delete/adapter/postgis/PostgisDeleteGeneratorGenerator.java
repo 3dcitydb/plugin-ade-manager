@@ -1,6 +1,5 @@
 package org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.postgis;
 
-import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -38,6 +37,8 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	
 	@Override
 	protected String constructDeleteFunction(String tableName, String schemaName) throws SQLException  {
+		String func_annotation = addSQLComment("Function for deleting records in the table: " + tableName.toUpperCase());
+		
 		String delete_func_ddl =
 				"CREATE OR REPLACE FUNCTION " + schemaName + "." + createFunctionName(tableName) + 
 				"(int[], caller INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + "$body$";
@@ -103,7 +104,8 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		post_block += create_ref_to_parent_delete(tableName, schemaName);
 		
 		// Putting all together
-		delete_func_ddl += declare_block + br + 
+		delete_func_ddl += func_annotation + br + 
+				declare_block + br + 
 				"BEGIN" + pre_block +
 				brDent1 + "-- delete " + schemaName + "." + tableName + "s" + 
 				delete_agg_start + 
@@ -119,27 +121,12 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 
 	@Override
-	protected String printScript() {
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		PrintStream writer = new PrintStream(os);
-		// header text
-		writer.println(addSQLComment("Automatically generated 3DcityDB-delete-functions"));
-		for (String funcName: functionNames.values()) {
-			writer.println("--" + funcName);
-		}
-		writer.println("------------------------------------------");
-		
-		// main body containing the function definitions
+	protected void printDDLForAllDeleteFunctions(PrintStream writer) {
 		for (String tableName: functionCollection.keySet()) {
-			writer.println(addSQLComment("Delete function for table: " + tableName.toUpperCase() 
-					+ brDent1 + "caller = 0 (default): function is called from neither its parent, nor children tables"
-					+ brDent1 + "caller = 1 : function is called from its parent table" 
-					+ brDent1 + "caller = 2 : function is called from its children tables" ));
-			writer.println(functionCollection.get(tableName));
-			writer.println("------------------------------------------");
+			String functionBody = functionCollection.get(tableName);
+			writer.println(functionBody);
+			writer.println("------------------------------------------" + br);
 		};
-		
-		return os.toString();
 	}
 
 	private String create_local_delete(String tableName, String schemaName) {

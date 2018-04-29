@@ -1,13 +1,14 @@
 package org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.oracle;
 
+import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.AbstractDeleteScriptGenerator;
+import org.citydb.util.CoreConstants;
 
 public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
-	private final String scriptSeparator = "---";
 	
 	public OracleDeleteScriptGenerator(Connection connection, ConfigImpl config) {
 		super(connection, config);
@@ -15,8 +16,8 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 
 	@Override
 	public void installDeleteScript(String scriptString) throws SQLException{
-		String pkgHeader = scriptString.split(scriptSeparator)[0];
-		String pkgBody = scriptString.split(scriptSeparator)[1];
+		String pkgHeader = scriptString.split(CoreConstants.DEFAULT_DELIMITER)[0];
+		String pkgBody = scriptString.split(CoreConstants.DEFAULT_DELIMITER)[1];
 		Statement headerStmt = null;
 		Statement bodyStmt = null;
 		try {
@@ -37,70 +38,70 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	@Override
 	protected String constructDeleteFunction(String tableName, String schemaName) throws SQLException {
 		String delete_func_ddl =
-				"CREATE OR REPLACE FUNCTION " + schemaName + "." + createFunctionName(tableName) + 
-				"((pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY " + br + "IS";
+				dent + "CREATE OR REPLACE FUNCTION " + createFunctionName(tableName) + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY " + 
+				brDent1 + "IS";
 		
 		String declare_block = 
-							brDent1 + "deleted_ids ID_ARRAY := ID_ARRAY();"+
-							brDent1 + "object_id number;" +
-							brDent1 + "objectclass_id number;";
+					brDent2 + "deleted_ids ID_ARRAY := ID_ARRAY();"+
+					brDent2 + "object_id number;" +
+					brDent2 + "objectclass_id number;";
 		
 		String pre_block = "";
 		String post_block = "";
 		String delete_block = "";	
 		
 		String delete_into_block = 
-				brDent1 + "INTO"  
-				  + brDent2 +  "deleted_id";
+					brDent2 + "INTO"  
+					  + brDent3 +  "deleted_id";
 		
 		String return_block = 
-				brDent1 + "RETURN deleted_id;";
+					brDent2 + "RETURN deleted_id;";
 		
 		// TODO...
 				
 		// Putting all together
 		delete_func_ddl += 
-				declare_block + 
-				br + "BEGIN" + 
-				pre_block + 
-				brDent1 + "-- delete " + schemaName + "." + tableName.toLowerCase() + "s" + 
-				delete_block + 
-				delete_into_block + ";" +
-				br +
-				post_block +  
-				br + 
-				return_block +
-				"END;";	
+					declare_block + 
+					brDent1 + "BEGIN" + 
+					pre_block + 
+					brDent2 + "-- delete " + schemaName + "." + tableName.toLowerCase() + "s" + 
+					delete_block + 
+					delete_into_block + ";" +
+					br +
+					post_block +  
+					br + 
+					return_block +
+					brDent1 + 
+					"END;";	
 
 		return delete_func_ddl;
 	}
 
 	@Override
-	protected String printScript() {
-		// Test...
-		String ddl = 
-			// package header	
-			"CREATE OR REPLACE PACKAGE citydb_delete" + br +
-			"AS" + br +
-			"  FUNCTION delete_test1(a number) RETURN NUMBER;" + br +
-			"  FUNCTION delete_test2(a number) RETURN NUMBER;" + br +			
-			"END citydb_delete; " + br +
-			scriptSeparator + br +
-			// package body	
-			"CREATE OR REPLACE PACKAGE BODY citydb_delete" + br +
-			"AS " + br +
-			"  FUNCTION delete_test1(a number) RETURN NUMBER" + br +
-			"  IS " + br +
-			"  BEGIN" +  br +
-			"    RETURN a;" + br +
-			"  END; " + br +
-			"  FUNCTION delete_test2(a number) RETURN NUMBER" + br +
-			"  IS " + br +
-			"  BEGIN" +  br +
-			"    RETURN a;" + br +
-			"  END; " + br +			
-			"END citydb_delete;";
-		return ddl;
+	protected void printDDLForAllDeleteFunctions(PrintStream writer) {
+		// package header
+		String script = 					
+				"CREATE OR REPLACE PACKAGE citydb_delete" + br +
+				"AS";
+		
+		for (String tableName: functionCollection.keySet()) {
+			script += brDent1 + "FUNCTION " + functionNames.get(tableName) + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY" + br;
+		};
+		script += "END citydb_delete;" + br
+				+ CoreConstants.DEFAULT_DELIMITER + br;
+		
+		// package body	
+		script += "CREATE OR REPLACE PACKAGE BODY citydb_delete" + br +
+				  "AS " + br;
+		
+		for (String tableName: functionCollection.keySet()) {
+			String functionBody = functionCollection.get(tableName);
+			script += functionBody + 
+					brDent1 + "------------------------------------------" + br;
+		};	
+		script += "END citydb_delete;";
+		
+		writer.println(script);
 	}
 
 }

@@ -1,5 +1,7 @@
 package org.citydb.plugins.ade_manager.registry.pkg.delete.adapter;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
@@ -21,11 +23,12 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	protected final Logger LOG = Logger.getInstance();	
 	protected final String br = System.lineSeparator();
 	protected final String space = " ";
-	protected final String brDent1 = br + "  ";
-	protected final String brDent2 = brDent1 + "  ";
-	protected final String brDent3 = brDent2 + "  ";
-	protected final String brDent4 = brDent3 + "  ";
-	protected final String brDent5 = brDent4 + "  ";
+	protected final String dent = "  ";
+	protected final String brDent1 = br + dent;
+	protected final String brDent2 = brDent1 + dent;
+	protected final String brDent3 = brDent2 + dent;
+	protected final String brDent4 = brDent3 + dent;
+	protected final String brDent5 = brDent4 + dent;
 	protected final int MAX_FUNCNAME_LENGTH = 30;
 	protected final String FUNNAME_PREFIX = "del_";
 
@@ -57,16 +60,31 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
 		this.registerFunction("cityobject", schema);	
 		
-		return this.printScript();
+		return this.printDeleteScript();
 	}
 
 	protected abstract String constructDeleteFunction(String tableName, String schemaName) throws SQLException;
-	protected abstract String printScript();
+	protected abstract void printDDLForAllDeleteFunctions(PrintStream writer);
 
+	protected String printDeleteScript() {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		PrintStream writer = new PrintStream(os);
+		
+		writer.println(addSQLComment("Automatically generated 3DcityDB-delete-functions"));		
+		for (String funcName: functionNames.values()) {
+			writer.println("--" + funcName);
+		}
+		writer.println("------------------------------------------" + br);		
+		printDDLForAllDeleteFunctions(writer);
+		
+		return os.toString();
+	};
+	
 	protected void registerFunction(String tableName, String schemaName) throws SQLException {
 		if (!functionCollection.containsKey(tableName)) {
-			functionCollection.put(tableName, ""); // dummy
+			functionCollection.put(tableName, ""); 
 			functionCollection.put(tableName, constructDeleteFunction(tableName, schemaName));
+			LOG.info("Function '" + createFunctionName(tableName) + "' created." );
 		}			
 	}
 	
@@ -98,6 +116,6 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 		StringBuilder builder = new StringBuilder();
 		builder.append("/*").append(brDent1).append(text).append(br).append("*/");			
 		return builder.toString();
-	}
+	}	
 
 }
