@@ -36,11 +36,43 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	
 	@Override
 	protected String constructDeleteFunction(String tableName, String schemaName) throws SQLException {
-	//	List<String> test1 = querier.query_selfref_fk("building", schemaName);
-	//	List<MnRefEntry> test2 = querier.query_ref_fk("building", schemaName);
-	//	String test3 = querier.query_ref_to_parent_fk("building", schemaName);
-	//	List<ReferencedEntry> test4 = querier.query_ref_to_fk("building", schemaName);
-		return null;
+		String delete_func_ddl =
+				"CREATE OR REPLACE FUNCTION " + schemaName + "." + createFunctionName(tableName) + 
+				"((pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY " + br + "IS";
+		
+		String declare_block = 
+							brDent1 + "deleted_ids ID_ARRAY := ID_ARRAY();"+
+							brDent1 + "object_id number;" +
+							brDent1 + "objectclass_id number;";
+		
+		String pre_block = "";
+		String post_block = "";
+		String delete_block = "";	
+		
+		String delete_into_block = 
+				brDent1 + "INTO"  
+				  + brDent2 +  "deleted_id";
+		
+		String return_block = 
+				brDent1 + "RETURN deleted_id;";
+		
+		// TODO...
+				
+		// Putting all together
+		delete_func_ddl += 
+				declare_block + 
+				br + "BEGIN" + 
+				pre_block + 
+				brDent1 + "-- delete " + schemaName + "." + tableName.toLowerCase() + "s" + 
+				delete_block + 
+				delete_into_block + ";" +
+				br +
+				post_block +  
+				br + 
+				return_block +
+				"END;";	
+
+		return delete_func_ddl;
 	}
 
 	@Override
