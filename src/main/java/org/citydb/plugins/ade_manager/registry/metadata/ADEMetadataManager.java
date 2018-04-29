@@ -485,7 +485,7 @@ public class ADEMetadataManager {
 		
 		AbstractExtension<?> objectExtension = objectClass.getExtension();
 		if (objectExtension != null) {
-			AbstractObjectType<?> superType = (AbstractObjectType<?>) objectExtension.getBase();
+			AbstractType<?> superType = (AbstractType<?>) objectExtension.getBase();
 			superclassId = superType.getObjectClassId();	
 			if (superclassId >= MIN_ADE_OBJECTCLASSID && !insertedObjectclasses.containsKey((long)superclassId))
 				insertSingleObjectclass(superType, insertedObjectclasses, insertedADERowId, ps);
@@ -633,8 +633,13 @@ public class ADEMetadataManager {
 		
 		if (objectclassId <= 3)
 			return objectclassId;
-		else 
-			return getBaseclassId((AbstractType<?>)objectType.getExtension().getBase());
+		else {
+			if (objectType.getExtension() != null) {
+				return getBaseclassId((AbstractType<?>)objectType.getExtension().getBase());
+			}
+			else
+				return objectclassId;
+		}		
 	}
 	
 	private String getStringFromFile(Path schemaMappingFile) {
