@@ -138,7 +138,7 @@ public class OracleSQLBuilder extends AbstractSQLBuilder{
 		StringBuilder strBuilder = new StringBuilder(); 
 		strBuilder.append("SELECT ")
 				  		.append("a_ref.table_name AS ref_table_name, ")
-				  		.append("LISTAGG(ac.column_name, ','||chr(10)||'') WITHIN GROUP (ORDER BY ac.position) AS fk_columns ")
+				  		.append("LISTAGG(ac.column_name, ',') WITHIN GROUP (ORDER BY ac.position) AS fk_columns ")
 				  .append("FROM ")
 				  		.append("all_constraints c ")
 				  .append("JOIN ")

@@ -215,7 +215,7 @@ public class ADEMetadataManager {
 			
 			while (rs.next()) {
 				int objectclassId = rs.getInt(1);
-				String tableName = rs.getString(2);	
+				String tableName = rs.getString(2).toLowerCase();	
 				if (!tableName.equalsIgnoreCase(superTable)) {
 					Map<Integer, String> nestedSub = querySubObjectclassesFromSuperTable(tableName);
 					for (Entry<Integer, String> entry: nestedSub.entrySet()) {

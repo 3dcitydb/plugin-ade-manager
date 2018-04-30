@@ -32,7 +32,7 @@ public class Querier {
 			rs = pstsmt.executeQuery();			
 			
 			while (rs.next()) {
-				result.add(rs.getString(1));
+				result.add(removeSchemaPrefix(rs.getString(1)));
 			}				
 		} 
 		finally {			
@@ -68,9 +68,9 @@ public class Querier {
 				MnRefEntry refEntry = new MnRefEntry();
 				refEntry.setRootTableName(removeSchemaPrefix(rs.getString(1)));
 				refEntry.setnTableName(removeSchemaPrefix(rs.getString(2)));
-				refEntry.setnFkColumnName(rs.getString(3));
+				refEntry.setnFkColumnName(removeSchemaPrefix(rs.getString(3)));
 				refEntry.setmTableName(removeSchemaPrefix(rs.getString(4)));
-				refEntry.setmFkColumnName(rs.getString(5));
+				refEntry.setmFkColumnName(removeSchemaPrefix(rs.getString(5)));
 				result.add(refEntry);		
 			}				
 		} 
@@ -138,8 +138,8 @@ public class Querier {
 			rs = pstsmt.executeQuery();
 						
 			while (rs.next()) {
-				String refTable = removeSchemaPrefix(rs.getString(1));			
-				String[] fkColumns = rs.getString(2).split(",");
+				String refTable = removeSchemaPrefix(rs.getString(1));	
+				String[] fkColumns = rs.getString(2).toLowerCase().split(",");
 				boolean shouldAdd = true;
 				for (int i = 0; i < fkColumns.length; i++) {
 					if (fkColumns[i].equalsIgnoreCase("id"))
@@ -172,6 +172,6 @@ public class Querier {
 	private String removeSchemaPrefix(String tableName) {
 		if (tableName == null)
 			return tableName;
-		return tableName.substring(tableName.indexOf(".") + 1);
+		return tableName.toLowerCase().substring(tableName.indexOf(".") + 1);
 	}
 }

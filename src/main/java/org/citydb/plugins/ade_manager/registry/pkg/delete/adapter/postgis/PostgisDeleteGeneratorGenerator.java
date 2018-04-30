@@ -384,24 +384,6 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		return code_block;
 	}
 
-	private String create_ref_to_parent_delete(String tableName, String schemaName) throws SQLException {
-		String code_block = "";
-		String parent_table = querier.query_ref_to_parent_fk(tableName, schemaName);		
-		if (parent_table != null) {
-			List<String> adeHookTables = adeMetadataManager.getADEHookTables(parent_table);
-			if (!adeHookTables.contains(tableName)) {
-				if (!functionCollection.containsKey(parent_table))
-					registerFunction(parent_table, schemaName);
-				
-				code_block += brDent1 + "IF $2 <> 1 THEN"
-						    	+ brDent2 + "-- delete " + parent_table
-						    	+ brDent2 + "PERFORM " + schemaName + "." + createFunctionName(parent_table) + "(deleted_ids, 2);"
-						    + brDent1 + "END IF;" + br;
-			}			
-		}
-		return code_block;
-	}
-
 	private String[] create_ref_to_delete(String tableName, String schemaName) throws SQLException {
 		String vars = "";
 		String returning_block = "";
@@ -414,7 +396,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		for (ReferencedEntry entry : refEntries) {
 			String ref_table_name = entry.getRefTable();
 			String[] fk_columns = entry.getFkColumns();
-
+	
 			RelationType tableRelation = checkTableRelationType(ref_table_name, tableName);
 			
 			// Exclude the case of normal associations for which the referenced features should be not be deleted. 
@@ -453,6 +435,24 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 						};
 		
 		return result;
+	}
+
+	private String create_ref_to_parent_delete(String tableName, String schemaName) throws SQLException {
+		String code_block = "";
+		String parent_table = querier.query_ref_to_parent_fk(tableName, schemaName);		
+		if (parent_table != null) {
+			List<String> adeHookTables = adeMetadataManager.getADEHookTables(parent_table);
+			if (!adeHookTables.contains(tableName)) {
+				if (!functionCollection.containsKey(parent_table))
+					registerFunction(parent_table, schemaName);
+				
+				code_block += brDent1 + "IF $2 <> 1 THEN"
+						    	+ brDent2 + "-- delete " + parent_table
+						    	+ brDent2 + "PERFORM " + schemaName + "." + createFunctionName(parent_table) + "(deleted_ids, 2);"
+						    + brDent1 + "END IF;" + br;
+			}			
+		}
+		return code_block;
 	}
 
 }

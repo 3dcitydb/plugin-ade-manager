@@ -29,6 +29,7 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	protected final String brDent3 = brDent2 + dent;
 	protected final String brDent4 = brDent3 + dent;
 	protected final String brDent5 = brDent4 + dent;
+	protected final String brDent6 = brDent5 + dent;
 	protected final int MAX_FUNCNAME_LENGTH = 30;
 	protected final String FUNNAME_PREFIX = "del_";
 
@@ -58,7 +59,7 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 			throw new SQLException("Failed to fetch the table aggregation information from 3dcitydb", e);
 		} 
 		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
-		this.registerFunction("cityobject", schema);	
+		this.registerFunction("building_furniture", schema);	
 		
 		return this.printDeleteScript();
 	}
