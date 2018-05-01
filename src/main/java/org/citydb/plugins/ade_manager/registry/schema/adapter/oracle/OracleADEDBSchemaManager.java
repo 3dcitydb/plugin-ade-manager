@@ -5,14 +5,18 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.Scanner;
 
 import org.citydb.config.project.database.DatabaseType;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.schema.adapter.AbstractADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.util.PathResolver;
+
+import oracle.jdbc.OracleTypes;
 
 public class OracleADEDBSchemaManager extends AbstractADEDBSchemaManager {
 
@@ -22,7 +26,24 @@ public class OracleADEDBSchemaManager extends AbstractADEDBSchemaManager {
 
 	@Override
 	public void cleanupADEData(String adeId) throws SQLException {
-		//TODO
+		Map<Integer, String> cityobjectIds = queryADECityobjectIds(adeId);
+		StringBuilder deleteStmt = new StringBuilder().append("{? = call citydb_delete.del_cityobject(ID_ARRAY(?))}");
+		int sum = cityobjectIds.size();
+		for (Integer objectId: cityobjectIds.keySet()) {			
+			CallableStatement deleteCall = connection.prepareCall(deleteStmt.toString());
+			try {
+				String className = cityobjectIds.get(objectId);
+				LOG.debug("Deleting " + className + "(ID = " + objectId + ")");
+				deleteCall.registerOutParameter(1, OracleTypes.ARRAY, "ID_ARRAY");
+				deleteCall.setInt(2, objectId);
+				deleteCall.executeUpdate();				
+				LOG.info(className + "(ID = " + objectId + ")" + " deleted.");
+				LOG.info("Number of remaining ADE objects to be deleted: " + --sum);
+			} finally {
+				if (deleteCall != null)
+					deleteCall.close();
+			}
+		}		
 	}
 
 	@Override

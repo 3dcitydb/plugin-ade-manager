@@ -90,7 +90,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 					  + brDent3 +  "deleted_ids";
 		
 		String return_block = 
-					brDent2 + "RETURN deleted_ids;";
+					brDent2 + "RETURN deleted_ids;" + br;
 		
 		// Code-block for deleting self-references in case of e.g. building/buildingParts
 		if (checkTableRelationType(tableName, tableName) == RelationType.composition) {
@@ -123,6 +123,12 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		// Code-block for deleting the records in the parent table: e.g. deleting a record in the BUILDING table requires
 		// the deletion of the corresponding record in the CITYOBJECT table.
 		post_block += create_ref_to_parent_delete(tableName, schemaName);
+		
+		String exception_block = 
+					brDent2 + "EXCEPTION" + 
+							brDent3 + "WHEN NO_DATA_FOUND THEN" + 
+								brDent4 + "dbms_output.put_line('No data have been deleted in this table');" +		
+								brDent4 + "RETURN deleted_ids;";	
 				
 		// Putting all together
 		delete_func_ddl += 
@@ -133,8 +139,9 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 					delete_block + 
 					delete_into_block + ";" +
 					br +
-					post_block +  
-					return_block +
+					post_block +  					
+					return_block +	
+					exception_block +
 					brDent1 + "END;";	
 
 		return delete_func_ddl;
@@ -239,7 +246,9 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 				if (!subObjectclasses.containsValue(n_table_name)) {
 					// code-block for deleting ADE hook data 
 					ref_hook_block += brDent2 + "-- delete " + n_table_name + "s"
-								 	+ brDent2 + "dummy_ids := " + createFunctionName(n_table_name) + "(pids, 1);"
+									+ brDent2 + "IF pids IS NOT EMPTY THEN"
+								 		+ brDent3 + "dummy_ids := " + createFunctionName(n_table_name) + "(pids, 1);"
+								 	+ brDent2 + "END IF;"
 								 	+ br;
 				}			 	 
 			}
