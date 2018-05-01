@@ -19,7 +19,27 @@ import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
 public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	private final String SCRIPT_DELIMITER = "---DELIMITER---";
-	
+	/** -- SQL-Script for Tests
+	 * declare
+		   dummy_ids ID_ARRAY;
+		   object_id number;
+		   cur sys_refcursor;
+		begin
+		  open cur for 'select id from cityobject where objectclass_id = 26';
+		  loop
+		    fetch cur into object_id;
+		    exit when cur%notfound;
+		    begin
+		       -- Call the function
+		       dummy_ids := citydb_delete.del_cityobject (ID_ARRAY(object_id));
+		       dbms_output.put_line('cityobject with ID ' || object_id || ' deleted!');
+		    exception
+		      when others then
+		        dbms_output.put_line('Error occurred while deleting cityobject with ID ' || object_id || ' threw: ' || SQLERRM);
+		    end;
+		  end loop;
+		end; 
+	 * **/
 	public OracleDeleteScriptGenerator(Connection connection, ConfigImpl config) {
 		super(connection, config);
 	}
@@ -298,21 +318,20 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 					caller = 1;
 				
 				ref_child_block += br
-						 + brDent5 + "-- delete " + childTableName						 
-						 + brDent5 + "IF objectclass_id = " + childObjectclassId + " THEN"
-						 	+ brDent6 + "object_ids.extend;"
-							+ brDent6 + "object_ids(object_ids.count) := object_id;"	
-					 	 	+ brDent6 + "dummy_ids := " + createFunctionName(childTableName) + "(object_ids, " + caller + ");"
+						 + brDent5 + "-- delete " + childTableName						 	
+						 + brDent5 + "IF objectclass_id = " + childObjectclassId + " THEN"	
+					 	 	+ brDent6 + "dummy_ids := " + createFunctionName(childTableName) + "(ID_ARRAY(object_id), " + caller + ");"
 						 + brDent5 + "END IF;";
 			}			
 		}
 		
 		if (ref_child_block.length() > 0) {
-			ref_child_block  = brDent2 + "IF caller <> 2 THEN"							 
+			ref_child_block  = brDent2 + "IF caller <> 2 THEN"	
 								 + brDent3 + "FOR i in 1..pids.count"
 								 + brDent3 + "LOOP"
+								 	+ brDent4 + "object_id := pids(i);"
 									+ brDent4 + "EXECUTE IMMEDIATE " +  "'SELECT objectclass_id FROM " + schemaName + "." + tableName + " WHERE id = :1' "  
-								    		  + "INTO objectclass_id USING object_ids(i);"
+								    		  + "INTO objectclass_id USING object_id;"
 									+ ref_child_block 
 								 + brDent3 + "END LOOP;"
 							 + brDent2 + "END IF;"
