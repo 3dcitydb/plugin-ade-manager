@@ -26,30 +26,26 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
 		PreparedStatement ps = null;
 		Map<Integer, String>cityobjectIds = queryADECityobjectIds(adeId);
-		int batchSize = 100;
-		try {
-			int sum = cityobjectIds.size();
-			String call = "select " + schema + ".del_cityobject(?);";
-			ps = connection.prepareStatement(call);	
-			int counter = 0;
-			Object[] inputArray = new Object[batchSize];
+		int sum = cityobjectIds.size();	
+		int batchSize = 20;
+		int counter = 0;
+		String call = "select " + schema + ".del_cityobject(array_agg(?))";
+		try {								
+			ps = connection.prepareStatement(call);			
 			for (Integer objectId: cityobjectIds.keySet()) {
-				inputArray[counter] = objectId;
-				counter++;				
+				counter++;
+				ps.setInt(1, objectId);
+				ps.addBatch();
 				if (counter == batchSize) {
-					ps.setArray(1, connection.createArrayOf("INTEGER", inputArray));
-					ps.executeQuery();
+					ps.executeBatch();
 					counter = 0;
-					inputArray = new Object[batchSize];
-				}					
+				}				
 				String className = cityobjectIds.get(objectId);
 				LOG.info(className + "(ID = " + objectId + ")" + " deleted.");
 				LOG.info("Number of remaining ADE objects to be deleted: " + --sum);
 			}
-			if (counter > 0) {
-				ps.setArray(1, connection.createArrayOf("INTEGER", inputArray));
-				ps.executeQuery();
-			}								
+			if (counter > 0) 
+				ps.executeBatch();
 		} finally {
 			if (ps != null)
 				ps.close();
