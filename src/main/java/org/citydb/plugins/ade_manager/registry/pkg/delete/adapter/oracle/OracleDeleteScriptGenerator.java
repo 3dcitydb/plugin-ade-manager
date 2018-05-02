@@ -319,7 +319,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 			for (Entry<Integer, String> entry: subObjectclasses.entrySet()) {
 				int childObjectclassId = entry.getKey();
 				String childTableName = entry.getValue();
-				if (childTableName.equalsIgnoreCase(tableName) || childTableName.equalsIgnoreCase("textureparam"))
+				if (childTableName.equalsIgnoreCase(tableName) || querier.getAssociativeTables(schemaName).contains(childTableName))
 					continue;
 				
 				int caller = 0;

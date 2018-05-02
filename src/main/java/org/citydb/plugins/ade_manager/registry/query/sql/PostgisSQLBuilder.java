@@ -22,56 +22,22 @@ public class PostgisSQLBuilder extends AbstractSQLBuilder{
 	public String create_query_ref_fk(String tableName, String schemaName) {
 		tableName = appendSchemaPrefix(tableName, schemaName);	
 		StringBuilder strBuilder = new StringBuilder(); 
-		strBuilder.append("select ")
-				  	  .append("nRef.root_table_name, ")
-				  	  .append("nRef.n_table_name, ")
-				  	  .append("nRef.n_fk_column_name, ")
-				  	  .append("mRef.m_table_name, ")
-				  	  .append("mRef.m_fk_column_name ")
-				  .append("FROM (")
-				  	  .append("SELECT ")
-				  	 	  .append("c.confrelid::regclass::text AS root_table_name, ")
-				  	 	  .append("c.conrelid::regclass::text AS n_table_name, ")
-				  	 	  .append("a.attname::text AS n_fk_column_name, ")
-				  	 	  .append("c.conkey as nFk ")
-				  	  .append("FROM ")
-				  	  	  .append("pg_constraint c ")
-				  	  .append("JOIN ")
-				  	  	  .append("pg_attribute a ")
-				  	  	  .append("ON a.attrelid = c.conrelid ")
-				  	  	  .append("AND a.attnum = ANY (c.conkey) ")
-				  	  .append("WHERE ")
-				  	       .append("c.confrelid::regclass::text = '").append(tableName).append("' ")
-				  	       .append("AND c.conrelid <> c.confrelid ")
-				  	       .append("AND c.contype = 'f' ")
-				  	       .append(") nRef ")
-				 .append("LEFT JOIN (")
-				     .append("SELECT ")
-				     	 .append("mn.conrelid::regclass::text AS n_table_name, ")
-					     .append("mn.confrelid::regclass::text AS m_table_name, ")
-					     .append("mna.attname::text AS m_fk_column_name ")
-					 .append("FROM ")
-					     .append("pg_constraint mn ")
-					 .append("JOIN ")
-					     .append("pg_attribute mna ")
-					     .append("ON mna.attrelid = mn.conrelid ")
-					     .append("AND mna.attnum = ANY (mn.conkey) ")
-					 .append("JOIN ")
-					     .append("pg_constraint pk ")
-					     .append("ON pk.conrelid = mn.conrelid ")
-					     .append("AND pk.conkey @> mn.conkey ")
-					 .append("WHERE ")
-					     .append("mn.contype = 'f' ")
-					     .append("AND pk.contype = 'p' ")	
-					 .append(") mRef ")
-				 .append("ON ")
-				 	 .append("mRef.n_table_name = nRef.n_table_name ")
-					 .append("AND mRef.m_table_name <> nRef.n_table_name ")
-					 .append("AND mRef.m_fk_column_name <> nRef.n_fk_column_name ")
-					 .append("AND mRef.m_table_name <> nRef.root_table_name ")
-				 .append("ORDER BY ")
-					 .append("nRef.n_table_name, ")
-					 .append("mRef.m_table_name");
+		strBuilder.append("SELECT ")
+			  	 	  .append("c.confrelid::regclass::text AS root_table_name, ")
+			  	 	  .append("c.conrelid::regclass::text AS n_table_name, ")
+			  	 	  .append("a.attname::text AS n_fk_column_name ")
+			  	  .append("FROM ")
+			  	  	  .append("pg_constraint c ")
+			  	  .append("JOIN ")
+			  	  	  .append("pg_attribute a ")
+			  	  	  .append("ON a.attrelid = c.conrelid ")
+			  	  	  .append("AND a.attnum = ANY (c.conkey) ")
+			  	  .append("WHERE ")
+			  	       .append("c.confrelid::regclass::text = '").append(tableName).append("' ")
+			  	       .append("AND c.conrelid <> c.confrelid ")
+			  	       .append("AND c.contype = 'f' ")		  	       
+			  	  .append("ORDER BY ")
+			  	  	   .append("n_table_name");
 		
 		return strBuilder.toString();
 	}
@@ -121,6 +87,28 @@ public class PostgisSQLBuilder extends AbstractSQLBuilder{
 				      .append("c.confrelid, ")
 				      .append("a_ref.attname");
 				
+		return strBuilder.toString();
+	}
+
+	@Override
+	public String create_query_associative_tables(String schemaName) {
+		StringBuilder strBuilder = new StringBuilder(); 
+		strBuilder.append("SELECT ")
+				  		.append("table_name ")
+				  .append("FROM ")
+				  		.append("information_schema.tables at ")
+				  .append("WHERE ")
+				  		.append("NOT EXISTS ( ")
+				  			.append("SELECT ")
+				  				.append("table_name ")
+				  			.append("FROM " )
+				  				.append("information_schema.columns c ")
+				  			.append("WHERE ")
+				  				.append("c.table_name = at.table_name AND ")
+				  				.append("c.column_name = 'id' ")
+				  		.append(") ")
+				  .append("AND table_schema = '").append(schemaName).append("'");
+		
 		return strBuilder.toString();
 	}
 

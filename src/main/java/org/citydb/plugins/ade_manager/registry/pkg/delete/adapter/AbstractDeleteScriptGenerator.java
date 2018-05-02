@@ -59,7 +59,7 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 			throw new SQLException("Failed to fetch the table aggregation information from 3dcitydb", e);
 		} 
 		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
-		this.registerFunction("building_furniture", schema);	
+		this.registerFunction("cityobject", schema);	
 		
 		return this.printDeleteScript();
 	}

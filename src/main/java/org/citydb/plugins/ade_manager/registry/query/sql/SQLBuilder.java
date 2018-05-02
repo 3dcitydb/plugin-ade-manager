@@ -5,4 +5,5 @@ public interface SQLBuilder {
 	public String create_query_ref_fk(String tableName, String schemaName);
 	public String create_query_ref_to_parent_fk(String tableName, String schemaName) ;
 	public String create_query_ref_to_fk(String tableName, String schemaName);
+	public String create_query_associative_tables(String schemaName);
 }

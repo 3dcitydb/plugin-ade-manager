@@ -15,6 +15,7 @@ import org.citydb.plugins.ade_manager.registry.query.sql.SQLBuilderFactory;
 public class Querier {
 	private final Connection connection;
 	private final SQLBuilder sqlBuilder;
+	private List<String> associativeTables;
 	
 	public Querier (Connection connection) {
 		this.connection = connection;
@@ -59,18 +60,33 @@ public class Querier {
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
 		List<MnRefEntry> result = new ArrayList<MnRefEntry>();
-
+		List<String> aTables = getAssociativeTables(schemaName);
 		try {
 			String sql = sqlBuilder.create_query_ref_fk(tableName, schemaName);
 			pstsmt = connection.prepareStatement(sql);
 			rs = pstsmt.executeQuery();			
 			while (rs.next()) {
+				String rootTable = removeSchemaPrefix(rs.getString(1));
+				String nTable = removeSchemaPrefix(rs.getString(2));
+				String nFkColumn = removeSchemaPrefix(rs.getString(3));
 				MnRefEntry refEntry = new MnRefEntry();
-				refEntry.setRootTableName(removeSchemaPrefix(rs.getString(1)));
-				refEntry.setnTableName(removeSchemaPrefix(rs.getString(2)));
-				refEntry.setnFkColumnName(removeSchemaPrefix(rs.getString(3)));
-				refEntry.setmTableName(removeSchemaPrefix(rs.getString(4)));
-				refEntry.setmFkColumnName(removeSchemaPrefix(rs.getString(5)));
+				refEntry.setRootTableName(rootTable);
+				refEntry.setnTableName(nTable);
+				refEntry.setnFkColumnName(nFkColumn);
+				if (aTables.contains(nTable)) {
+					List<ReferencedEntry> rfs = query_ref_to_fk(nTable, schemaName);
+					for (ReferencedEntry rf: rfs) {
+						String ref_to_table = rf.getRefTable();
+						String[] fk_columns = rf.getFkColumns();
+						for (int i = 0; i < fk_columns.length; i++) {
+							String mFk_column = fk_columns[i];
+							if (!mFk_column.equalsIgnoreCase(nFkColumn)) {
+								refEntry.setmTableName(ref_to_table);
+								refEntry.setmFkColumnName(mFk_column);
+							}
+						}						
+					}
+				}
 				result.add(refEntry);		
 			}				
 		} 
@@ -169,9 +185,46 @@ public class Querier {
 		return result;
 	}
 
+	public List<String> getAssociativeTables(String schemaName) throws SQLException {
+		if (associativeTables == null) {
+			associativeTables = new ArrayList<String>();
+			PreparedStatement pstsmt = null;
+			ResultSet rs = null;
+			try {
+				String sql = sqlBuilder.create_query_associative_tables(schemaName);
+				pstsmt = connection.prepareStatement(sql);
+				rs = pstsmt.executeQuery();
+							
+				while (rs.next()) {
+					String aTable = removeSchemaPrefix(rs.getString(1));	
+					associativeTables.add(aTable);	
+				}							
+			} 
+			finally {			
+				if (rs != null) { 
+					try {
+						rs.close();
+					} catch (SQLException e) {
+						throw e;
+					}
+				}	
+				if (pstsmt != null) { 
+					try {
+						pstsmt.close();
+					} catch (SQLException e) {
+						throw e;
+					} 
+				}			
+			}
+		}
+		
+		return associativeTables;
+	}
+
 	private String removeSchemaPrefix(String tableName) {
 		if (tableName == null)
 			return tableName;
 		return tableName.toLowerCase().substring(tableName.indexOf(".") + 1);
 	}
+	
 }

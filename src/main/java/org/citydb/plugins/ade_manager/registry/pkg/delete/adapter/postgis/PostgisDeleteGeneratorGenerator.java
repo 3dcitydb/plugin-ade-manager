@@ -176,7 +176,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			String m_fk_column_name = ref.getmFkColumnName();
 			
 			RelationType nRootRelation = checkTableRelationType(n_table_name, rootTableName);
-			
+
 			if (!functionCollection.containsKey(n_table_name) && m_table_name == null)
 				registerFunction(n_table_name, schemaName);
 			
@@ -253,7 +253,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			for (Entry<Integer, String> entry: subObjectclasses.entrySet()) {
 				int childObjectclassId = entry.getKey();
 				String childTableName = entry.getValue();
-				if (childTableName.equalsIgnoreCase(tableName))
+				if (childTableName.equalsIgnoreCase(tableName) || querier.getAssociativeTables(schemaName).contains(childTableName))
 					continue;
 				
 				int caller = 0;
