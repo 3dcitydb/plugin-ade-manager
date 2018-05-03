@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.delete;
+package org.citydb.plugins.ade_manager.deletion;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
