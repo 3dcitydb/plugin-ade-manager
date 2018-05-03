@@ -31,6 +31,8 @@ import java.io.File;
 import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
 
+import org.citydb.config.ConfigNamespaceFilter;
+import org.citydb.config.project.exporter.SimpleQuery;
 import org.citydb.config.project.plugin.PluginConfig;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.util.CoreConstants;
@@ -43,7 +45,8 @@ import org.citydb.util.CoreConstants;
 		"adeVersion",	
 		"adeDbPrefix",	
 		"initialObjectclassId",
-		"adeRegistryInputPath"
+		"adeRegistryInputPath",
+		"deleteQuery"
 })
 
 public class ConfigImpl extends PluginConfig {
@@ -54,11 +57,14 @@ public class ConfigImpl extends PluginConfig {
 	private String adeVersion;
 	private String adeDbPrefix;
 	private int initialObjectclassId;
-	private String adeRegistryInputPath;	
+	private String adeRegistryInputPath;
+	private SimpleQuery deleteQuery;
 	@XmlTransient
 	private String inputGraphPath;
 	@XmlTransient
 	private String tmpGraphDirPath;
+	@XmlTransient
+	private ConfigNamespaceFilter namespaceFilter;
 	
 	public ConfigImpl() {
 		inputGraphPath = "/org/citydb/plugins/ade_manager/graph/Working_Graph.ggx";
@@ -70,6 +76,7 @@ public class ConfigImpl extends PluginConfig {
 		tmpGraphDirPath = tmp.getAbsolutePath();		
 		
 		initialObjectclassId = ADEMetadataManager.MIN_ADE_OBJECTCLASSID;
+		deleteQuery = new SimpleQuery();
 	}
 
 	public String getTransformationOutputPath() {
@@ -144,4 +151,19 @@ public class ConfigImpl extends PluginConfig {
 		this.adeRegistryInputPath = adeRegistryInputPath;
 	}
 	
+	public ConfigNamespaceFilter getNamespaceFilter() {
+		return namespaceFilter;
+	}
+
+	public void setNamespaceFilter(ConfigNamespaceFilter namespaceFilter) {
+		this.namespaceFilter = namespaceFilter;
+	}
+
+	public SimpleQuery getDeleteQuery() {
+		return deleteQuery;
+	}
+
+	public void setDeleteQuery(SimpleQuery deleteQuery) {
+		this.deleteQuery = deleteQuery;
+	}
 }

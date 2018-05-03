@@ -10,54 +10,46 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.sql.SQLException;
 import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.citydb.config.i18n.Language;
-import org.citydb.config.project.database.DatabaseConfigurationException;
-import org.citydb.database.DatabaseController;
-import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.database.version.DatabaseVersionException;
 import org.citydb.event.Event;
-import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
+import org.citydb.event.global.DatabaseConnectionStateEvent;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.log.Logger;
+import org.citydb.modules.database.gui.operations.DatabaseOperationView;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
-import org.citydb.plugins.ade_manager.gui.popup.ScriptDialog;
-import org.citydb.plugins.ade_manager.gui.table.ADEMetadataRow;
 import org.citydb.plugins.ade_manager.gui.table.ADESchemaNamespaceRow;
 import org.citydb.plugins.ade_manager.gui.table.TableModel;
-import org.citydb.plugins.ade_manager.registry.ADERegistrationController;
-import org.citydb.plugins.ade_manager.registry.ADERegistrationException;
-import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
+import org.citydb.plugins.ade_manager.gui.tabpanel.ADEDeletePanel;
+import org.citydb.plugins.ade_manager.gui.tabpanel.ADERegistryPanel;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.transformation.TransformationException;
 import org.citydb.plugins.ade_manager.transformation.TransformationController;
-import org.citydb.registry.ObjectRegistry;
 
 @SuppressWarnings("serial")
 public class ADEManagerPanel extends JPanel implements EventHandler {	
-	protected static final int BORDER_THICKNESS = 4;
-	protected static final int MAX_TEXTFIELD_HEIGHT = 20;
-	protected static final int MAX_LABEL_WIDTH = 60;
-	protected static final int BUTTON_WIDTH = 180;
-	
+	public static final int BORDER_THICKNESS = 4;
+	public static final int MAX_TEXTFIELD_HEIGHT = 20;
+	public static final int MAX_LABEL_WIDTH = 60;
+	public static final int BUTTON_WIDTH = 180;
+		
 	private JPanel browseXMLSchemaPanel;
 	private JTextField browseXMLSchemaText = new JTextField();
 	private JButton browseXMLSchemaButton = new JButton();
@@ -78,52 +70,38 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 	private JTextField browseOutputText = new JTextField();
 	private JButton browserOutputButton = new JButton();
 	private JButton transformAndExportButton = new JButton();
-	private JPanel browseRegistryPanel;
-	private JTextField browseRegistryText = new JTextField();
-	private JButton browseRegistryButton = new JButton();		
-	private JPanel adeButtonsPanel;
-	private JButton registerADEButton = new JButton();	
-	private JButton fetchADEsButton = new JButton();	
-	private JButton removeADEButton = new JButton();
-	private JButton generateDeleteScriptsButton = new JButton();
-	private JScrollPane adeTableScrollPanel;
-	private JTable adeTable;
-	private JPanel adeTablebuttonPanel;	
-	private TableModel<ADEMetadataRow> adeTableModel = new TableModel<ADEMetadataRow>(ADEMetadataRow.getColumnNames());
-	private TableModel<ADESchemaNamespaceRow> schemaTableModel = new TableModel<ADESchemaNamespaceRow>(ADESchemaNamespaceRow.getColumnNames());	
+	private int standardButtonHeight = (new JButton("D")).getPreferredSize().height;
 	
-	private final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
-	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
-	private final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();
+	private JTabbedPane databaseOperationTab;
+	private DatabaseOperationView[] databaseOperationPanels;
+	
+	private TableModel<ADESchemaNamespaceRow> schemaTableModel = new TableModel<ADESchemaNamespaceRow>(ADESchemaNamespaceRow.getColumnNames());	
 	private final Logger LOG = Logger.getInstance();
 	
 	private ViewController viewController;	
 	private TransformationController adeTransformer;
-	private ADERegistrationController adeRegistor;	
+	
 	private ConfigImpl config;
 	
 	public ADEManagerPanel(ViewController viewController, ADEManagerPlugin plugin) {	
 		this.config = plugin.getConfig();		
 		this.viewController = viewController;
-		this.adeRegistor = new ADERegistrationController(config);
+		
 		this.adeTransformer = new TransformationController(config);
-		eventDispatcher.addEventHandler(org.citydb.plugins.ade_manager.event.EventType.SCRIPT_CREATION_EVENT, this);
 		
 		initGui();
 		addListeners();	
 		setEnabledMetadataSettings(false);
 	}
 
+	public ViewController getViewController() {
+		return viewController;
+	}
+
 	private void initGui() {	
-		// adjust buttons size
-		int standardButtonHeight = (new JButton("D")).getPreferredSize().height;
-		readXMLSchemaButton.setPreferredSize(new Dimension(BUTTON_WIDTH, standardButtonHeight));
-		transformAndExportButton.setPreferredSize(new Dimension(BUTTON_WIDTH, standardButtonHeight));
-		fetchADEsButton.setPreferredSize(new Dimension(BUTTON_WIDTH, standardButtonHeight));
-		removeADEButton.setPreferredSize(new Dimension(BUTTON_WIDTH, standardButtonHeight));
-		registerADEButton.setPreferredSize(new Dimension(BUTTON_WIDTH, standardButtonHeight));
-		generateDeleteScriptsButton.setPreferredSize(new Dimension(BUTTON_WIDTH, standardButtonHeight));
-		
+		readXMLSchemaButton.setPreferredSize(new Dimension(BUTTON_WIDTH, getStandardButtonHeight()));
+		transformAndExportButton.setPreferredSize(new Dimension(BUTTON_WIDTH, getStandardButtonHeight()));
+	
 		// Input panel
 		browseXMLSchemaPanel = new JPanel();
 		browseXMLSchemaPanel.setLayout(new GridBagLayout());
@@ -189,33 +167,27 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		transformationOutputPanel.setBorder(BorderFactory.createTitledBorder(""));
 		transformationOutputPanel.add(browseOutputText, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
 		transformationOutputPanel.add(browserOutputButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-				
-		// ADE table panel
-		adeTable = new JTable(adeTableModel);
-		adeTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-		adeTable.setCellSelectionEnabled(false);
-		adeTable.setColumnSelectionAllowed(false);
-		adeTable.setRowSelectionAllowed(true);
-		adeTable.setRowHeight(20);		
-		adeTableScrollPanel = new JScrollPane(adeTable);
-		adeTableScrollPanel.setPreferredSize(new Dimension(adeTable.getPreferredSize().width, 150));
-		adeTableScrollPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(), BorderFactory.createEmptyBorder(0, 0, 4, 4)));
-		
-		adeTablebuttonPanel = new JPanel();
-		adeTablebuttonPanel.setLayout(new GridBagLayout());
-		adeTablebuttonPanel.add(fetchADEsButton, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		adeTablebuttonPanel.add(removeADEButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-				
-		browseRegistryPanel = new JPanel();
-		browseRegistryPanel.setLayout(new GridBagLayout());
-		browseRegistryPanel.setBorder(BorderFactory.createTitledBorder(""));
-		browseRegistryPanel.add(browseRegistryText, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		browseRegistryPanel.add(browseRegistryButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		
-		adeButtonsPanel = new JPanel();
-		adeButtonsPanel.setLayout(new GridBagLayout());
-		adeButtonsPanel.add(registerADEButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		adeButtonsPanel.add(generateDeleteScriptsButton, GuiUtil.setConstraints(3,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+
+		// TabPanels for database performing database transactions
+		databaseOperationTab = new JTabbedPane();
+		GridBagConstraints c = GuiUtil.setConstraints(0,2,1.0,1.0,GridBagConstraints.BOTH,5,0,0,0);
+		c.gridwidth = 4;
+		add(databaseOperationTab, c);
+
+		databaseOperationPanels = new DatabaseOperationView[2];
+		databaseOperationPanels[0] = new ADERegistryPanel(this, config);
+		databaseOperationPanels[1] = new ADEDeletePanel(config);
+
+		for (int i = 0; i < databaseOperationPanels.length; ++i)
+			databaseOperationTab.insertTab(null, databaseOperationPanels[i].getIcon(), null, databaseOperationPanels[i].getToolTip(), i);
+
+		databaseOperationTab.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {			
+				int index = databaseOperationTab.getSelectedIndex();
+				for (int i = 0; i < databaseOperationTab.getTabCount(); ++i)
+					databaseOperationTab.setComponentAt(i, index == i ? databaseOperationPanels[index].getViewComponent() : null);
+			}
+		});
 		
 		// Assemble all panels
 		JPanel mainScrollView = new JPanel();
@@ -226,11 +198,8 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		mainScrollView.add(readXMLSchemaButton, GuiUtil.setConstraints(0,index++,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
 		mainScrollView.add(schemaAndMetadataPanel, GuiUtil.setConstraints(0,index++,0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
 		mainScrollView.add(transformationOutputPanel, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		mainScrollView.add(transformAndExportButton, GuiUtil.setConstraints(0,index++,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
-		mainScrollView.add(adeTableScrollPanel, GuiUtil.setConstraints(0,index++,0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
-		mainScrollView.add(adeTablebuttonPanel, GuiUtil.setConstraints(0,index++,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		mainScrollView.add(browseRegistryPanel, GuiUtil.setConstraints(0,index++,0.0,0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
-		mainScrollView.add(adeButtonsPanel, GuiUtil.setConstraints(0,index++,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+		mainScrollView.add(transformAndExportButton, GuiUtil.setConstraints(0,index++,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,0,BORDER_THICKNESS));
+		mainScrollView.add(databaseOperationTab, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,0,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
 		mainScrollView.add(Box.createVerticalGlue(), GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
 
 		JScrollPane mainScrollPanel = new JScrollPane(mainScrollView);
@@ -255,14 +224,11 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		((TitledBorder) transformationOutputPanel.getBorder()).setTitle("Output");
 		browserOutputButton.setText(Language.I18N.getString("common.button.browse"));
 		transformAndExportButton.setText("Transform");
-
-		((TitledBorder) browseRegistryPanel.getBorder()).setTitle("Input for ADE Registry");
-		browseRegistryButton.setText(Language.I18N.getString("common.button.browse"));
 		
-		registerADEButton.setText("Register ADE into DB");
-		fetchADEsButton.setText("Fetch ADEs from DB");
-		removeADEButton.setText("Remove seleted ADE from DB");
-		generateDeleteScriptsButton.setText("Generate Delete Scripts");
+		for (int i = 0; i < databaseOperationPanels.length; ++i) {
+			databaseOperationTab.setTitleAt(i, databaseOperationPanels[i].getLocalizedTitle());
+			databaseOperationPanels[i].doTranslation();
+		}
 	}
 
 	public void loadSettings() {
@@ -272,8 +238,15 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		descriptionInputField.setText(config.getAdeDescription());
 		versionInputField.setText(config.getAdeVersion());
 		dbPrefixInputField.setText(config.getAdeDbPrefix());
-		initObjectClassIdInputField.setText(String.valueOf(config.getInitialObjectclassId()));
-		browseRegistryText.setText(config.getAdeRegistryInputPath());
+		initObjectClassIdInputField.setText(String.valueOf(config.getInitialObjectclassId()));		
+		
+		int index = 0;
+		for (int i = 0; i < databaseOperationPanels.length; ++i) {
+			databaseOperationPanels[i].loadSettings();			
+		}
+
+		databaseOperationTab.setSelectedIndex(-1);
+		databaseOperationTab.setSelectedIndex(index);
 	}
 
 	public void setSettings() {
@@ -284,7 +257,26 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		config.setAdeVersion(versionInputField.getText());
 		config.setAdeDbPrefix(dbPrefixInputField.getText());
 		config.setInitialObjectclassId(Integer.valueOf(initObjectClassIdInputField.getText()));
-		config.setAdeRegistryInputPath(browseRegistryText.getText());
+		
+		for (int i = 0; i < databaseOperationPanels.length; ++i)
+			databaseOperationPanels[i].setSettings();
+	}
+	
+	public int getStandardButtonHeight() {
+		return standardButtonHeight;
+	}
+	
+	public void printErrorMessage(Exception e) {
+		printErrorMessage("Unexpected Error", e);
+	}
+	
+	public void printErrorMessage(String info, Exception e) {
+		LOG.error(info + ". Cause: " + e.getMessage());			
+		Throwable cause = e.getCause();
+		while (cause != null) {
+			LOG.error("Cause: " + cause.getMessage());
+			cause = cause.getCause();
+		}
 	}
 
 	private void addListeners() {
@@ -339,61 +331,6 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 				thread.start();
 			}
 		});
-		
-		fetchADEsButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						showRegisteredADEs();						
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
-		});
-		
-		registerADEButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						registerADE();
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
-		});
-		
-		removeADEButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						deregisterADE();
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
-		});
-		
-		generateDeleteScriptsButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						generateDeleteScripts();
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
-		});
-		
-		browseRegistryButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				browserRegistryInputDirectory();
-			}
-		});
-		
 	}
 	
 	private void browserXMLschemaFile() {
@@ -461,21 +398,6 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		}
 	}
 
-	private void browserRegistryInputDirectory() {
-		JFileChooser chooser = new JFileChooser();
-		chooser.setDialogTitle("Input Folder");
-		chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-		chooser.setCurrentDirectory(new File(browseRegistryText.getText()).getParentFile());
-	
-		int result = chooser.showOpenDialog(getTopLevelAncestor());
-		if (result == JFileChooser.CANCEL_OPTION)
-			return;
-	
-		String browseString = chooser.getSelectedFile().toString();
-		if (!browseString.isEmpty())
-			browseRegistryText.setText(browseString);
-	}
-
 	private void transformADESchema() {	
 		setSettings();
 	
@@ -514,204 +436,10 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		LOG.info("Transformation finished");
 	}
 
-	private void registerADE() {
-		setSettings();
-		
-		// database connection is required
-		try {
-			checkAndConnectToDB();
-		} catch (SQLException e) {
-			printErrorMessage("ADE registration aborted", e);
-			return;
-		}
-		
-		boolean isComplete = false;
-		try {	
-			adeRegistor.initDBConneciton();
-			isComplete = adeRegistor.registerADE();
-			adeRegistor.commitTransactions();
-		} catch (ADERegistrationException e) {
-			adeRegistor.rollbackTransactions();
-			printErrorMessage("ADE registration aborted", e);
-		} finally {
-			adeRegistor.closeDBConnection();
-		}
-		
-		if (isComplete) {
-			// database re-connection is required for completing the ADE registration process
-			LOG.info("ADE registration is completed and will take effect after reconnecting to the database.");	
-			if (dbPool.isConnected()) {
-				dbPool.disconnect();
-				try {
-					databaseController.connect(true);
-				} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
-					printErrorMessage("Failed to reconnect to the database", e);
-				}
-			}	
-			// update the ADE list table by querying the ADE again
-			showRegisteredADEs();
-		}
-	
-	}
-	
-	private void showRegisteredADEs() {
-		setSettings();	
-		
-		// database connection is required
-		try {
-			checkAndConnectToDB();
-		} catch (SQLException e) {
-			printErrorMessage("Querying ADEs aborted", e);
-			return;
-		}
-		
-		try {	
-			adeRegistor.initDBConneciton();
-			List<ADEMetadataInfo> adeList = adeRegistor.queryRegisteredADEs();
-			if (adeList.size() == 0) 
-				LOG.info("Status: No ADEs are registered in the connected database");
-			
-			adeTableModel.reset();			
-			for (ADEMetadataInfo adeEntity: adeList) {
-				if (adeEntity == null) 
-					continue; 				
-				adeTableModel.addNewRow(new ADEMetadataRow(adeEntity));
-			}
-		} catch (ADERegistrationException e) {
-			printErrorMessage(e);
-		} finally {
-			adeRegistor.closeDBConnection();
-		}
-	}
-	
-	private void deregisterADE(){
-		setSettings();	
-		
-		// database connection is required
-		try {
-			checkAndConnectToDB();
-		} catch (SQLException e) {
-			printErrorMessage("ADE Deregistration aborted", e);
-			return;
-		}
-		
-		int selectedRowNum = adeTable.getSelectedRow();
-		if (selectedRowNum == -1) {
-			viewController.errorMessage("ADE Deregistration aborted", "Please select one of the listed ADEs");
-			return;
-		}
-		
-		boolean isComplete = false;
-		String adeId = adeTableModel.getColumn(selectedRowNum).getValue(0);	
-		try {
-			adeRegistor.initDBConneciton();
-			isComplete = adeRegistor.deregisterADE(adeId);
-			adeRegistor.commitTransactions();
-		} catch (ADERegistrationException e) {
-			adeRegistor.rollbackTransactions();
-			printErrorMessage("ADE Deregistration aborted", e);
-		} finally {
-			adeRegistor.closeDBConnection();
-		}	
-		
-		if (isComplete) {
-			// database re-connection is required for completing the ADE de-registration process
-			LOG.info("ADE Deregistration is completed and will take effect after reconnecting to the database.");
-			if (dbPool.isConnected()) {
-				dbPool.disconnect();
-				try {
-					databaseController.connect(true);
-				} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
-					printErrorMessage("Failed to reconnect to the database", e);
-				}
-			}
-			// update the ADE list table by querying the ADE again
-			showRegisteredADEs();
-		}		
-	}
-	
-	private void generateDeleteScripts() {
-		// database connection is required
-		try {
-			checkAndConnectToDB();
-		} catch (SQLException e) {
-			printErrorMessage("Delete-script creation aborted", e);
-			return;
-		}
-		
-		try {			
-			adeRegistor.initDBConneciton();
-			boolean autoInstall = false;
-			adeRegistor.createDeleteScripts(autoInstall);
-		} catch (ADERegistrationException e) {
-			printErrorMessage("Delete-script creation aborted", e);
-		} finally {
-			adeRegistor.closeDBConnection();			
-		}	
-	}
-	
-	private void printErrorMessage(Exception e) {
-		printErrorMessage("Unexpected Error", e);
-	}
-	
-	private void printErrorMessage(String info, Exception e) {
-		LOG.error(info + ". Cause: " + e.getMessage());			
-		Throwable cause = e.getCause();
-		while (cause != null) {
-			LOG.error("Cause: " + cause.getMessage());
-			cause = cause.getCause();
-		}
-	}
-	
-	private void checkAndConnectToDB() throws SQLException {
-		String[] connectConfirm = { Language.I18N.getString("pref.kmlexport.connectDialog.line1"),
-				Language.I18N.getString("pref.kmlexport.connectDialog.line3") };
-
-		if (!dbPool.isConnected() && JOptionPane.showConfirmDialog(getTopLevelAncestor(), connectConfirm,
-				Language.I18N.getString("pref.kmlexport.connectDialog.title"),
-				JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-			try {
-				databaseController.connect(true);
-			} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
-				throw new SQLException("Failed to connect to the target database", e);
-			}
-		}
-	}
-
 	public void handleEvent(Event event) throws Exception {
-		if (event.getEventType() == org.citydb.plugins.ade_manager.event.EventType.SCRIPT_CREATION_EVENT) {
-            ScriptCreationEvent scriptCreationEvent = (ScriptCreationEvent) event;
-            String script = scriptCreationEvent.getScript();
-            boolean autoInstall = scriptCreationEvent.isAutoInstall();
-            
-            final ScriptDialog scriptDialog = new ScriptDialog(viewController.getTopFrame(), script, autoInstall);			
-    		scriptDialog.getButton().addActionListener(new ActionListener() {
-    			public void actionPerformed(ActionEvent e) {
-    				SwingUtilities.invokeLater(new Runnable() {
-    					public void run() {
-    						try {
-    							adeRegistor.initDBConneciton();
-    							adeRegistor.installDeleteScript(scriptDialog.getScript());
-    							adeRegistor.commitTransactions();
-    						} catch (ADERegistrationException e) {
-    							adeRegistor.rollbackTransactions();
-    							printErrorMessage(e);
-    						} finally {
-    							adeRegistor.closeDBConnection();
-    							scriptDialog.dispose();
-    						}  						
-    					}
-    				});
-    			}
-    		});
-
-    		SwingUtilities.invokeLater(new Runnable() {
-    			public void run() {
-    				scriptDialog.setLocationRelativeTo(getTopLevelAncestor());
-    				scriptDialog.setVisible(true);
-    			}
-    		});
-        }		
+		DatabaseConnectionStateEvent state = (DatabaseConnectionStateEvent)event;
+		for (int i = 0; i < databaseOperationPanels.length; ++i)
+			databaseOperationPanels[i].handleDatabaseConnectionStateEvent(state);
 	}
 
 }
