@@ -12,8 +12,6 @@ import org.citydb.citygml.exporter.CityGMLExportException;
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
 import org.citydb.concurrent.PoolSizeAdaptationStrategy;
 import org.citydb.concurrent.WorkerPool;
-import org.citydb.database.adapter.AbstractDatabaseAdapter;
-import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.event.Event;
 import org.citydb.event.EventDispatcher;
@@ -23,19 +21,15 @@ import org.citydb.event.global.InterruptEvent;
 import org.citydb.event.global.ObjectCounterEvent;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.concurrent.DBDeleteWorkerFactory;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.query.Query;
 import org.citydb.query.builder.QueryBuildException;
-import org.citydb.query.builder.config.ConfigQueryBuilder;
 import org.citydb.util.Util;
 import org.citygml4j.builder.jaxb.CityGMLBuilder;
 import org.citygml4j.model.gml.GMLClass;
 
 public class DBDeleteController implements EventHandler {
 	private final Logger log = Logger.getInstance();
-	private final AbstractDatabaseAdapter databaseAdapter;
 	private final SchemaMapping schemaMapping;
-	private final ConfigImpl config;
 	private final EventDispatcher eventDispatcher;
 	private DBDeleteSplitter dbSplitter;
 
@@ -43,16 +37,17 @@ public class DBDeleteController implements EventHandler {
 	private AtomicBoolean isInterrupted = new AtomicBoolean(false);
 	private WorkerPool<DBSplittingResult> dbWorkerPool;
 	private HashMap<Integer, Long> objectCounter;
+	private Query query;
 	
 	public DBDeleteController(CityGMLBuilder cityGMLBuilder, 
 			SchemaMapping schemaMapping, 
-			ConfigImpl config, 
+			Query query, 
 			EventDispatcher eventDispatcher) {
+		
+		this.query = query;
 		this.schemaMapping = schemaMapping;
-		this.config = config;
 		this.eventDispatcher = eventDispatcher;
 
-		databaseAdapter = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter();
 		objectCounter = new HashMap<>();
 		new EnumMap<>(GMLClass.class);
 	}
@@ -67,15 +62,6 @@ public class DBDeleteController implements EventHandler {
 		// adding listeners
 		eventDispatcher.addEventHandler(EventType.OBJECT_COUNTER, this);
 		eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
-				
-		// build query from filter settings
-		Query query = null;
-		try {
-			ConfigQueryBuilder queryBuilder = new ConfigQueryBuilder(schemaMapping, databaseAdapter);
-			query = queryBuilder.buildQuery(config.getDeleteQuery(), config.getNamespaceFilter());
-		} catch (QueryBuildException e) {
-			throw new CityGMLExportException("Failed to build the export query expression.", e);
-		}
 
 		dbWorkerPool = new WorkerPool<DBSplittingResult>(
 				"db_deleter_pool",

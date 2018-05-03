@@ -46,6 +46,7 @@ public class DBDeleteSplitter {
 			WorkerPool<DBSplittingResult> dbWorkerPool, 
 			Query query,
 			EventDispatcher eventDispatcher) throws SQLException {
+		
 		this.schemaMapping = schemaMapping;
 		this.dbWorkerPool = dbWorkerPool;
 		this.query = query;
