@@ -59,7 +59,7 @@ public class DBDeleteController implements EventHandler {
 				2,
 				10,
 				PoolSizeAdaptationStrategy.AGGRESSIVE,
-				new DBDeleteWorkerFactory(),
+				new DBDeleteWorkerFactory(eventDispatcher),
 				300,
 				false);
 
@@ -101,6 +101,8 @@ public class DBDeleteController implements EventHandler {
 		if (shouldRun)
 			log.info("Total process time: " + Util.formatElapsedTime(System.currentTimeMillis() - start) + ".");
 
+		objectCounter.clear();
+		
 		return shouldRun;
 	}
 
@@ -108,7 +110,7 @@ public class DBDeleteController implements EventHandler {
 	public void handleEvent(Event e) throws Exception {
 		if (e.getEventType() == EventType.OBJECT_COUNTER) {
 			HashMap<Integer, Long> counter = ((ObjectCounterEvent)e).getCounter();
-
+			
 			for (Entry<Integer, Long> entry : counter.entrySet()) {
 				Long tmp = objectCounter.get(entry.getKey());
 				objectCounter.put(entry.getKey(), tmp == null ? entry.getValue() : tmp + entry.getValue());

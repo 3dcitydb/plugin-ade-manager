@@ -12,18 +12,22 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 
 import org.citydb.config.i18n.Language;
 import org.citydb.config.project.database.DBOperationType;
 import org.citydb.config.project.exporter.SimpleQuery;
+import org.citydb.config.project.global.LogLevel;
 import org.citydb.config.project.query.filter.selection.SimpleSelectionFilterMode;
 import org.citydb.config.project.query.filter.type.FeatureTypeFilter;
 import org.citydb.database.adapter.AbstractDatabaseAdapter;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.event.Event;
+import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
+import org.citydb.event.global.InterruptEvent;
 import org.citydb.event.global.PropertyChangeEvent;
 import org.citydb.gui.components.checkboxtree.DefaultCheckboxTreeCellRenderer;
 import org.citydb.gui.components.feature.FeatureTypeTree;
@@ -36,6 +40,7 @@ import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.deletion.DBDeleteController;
 import org.citydb.plugins.ade_manager.deletion.DBDeleteException;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
+import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
 import org.citydb.query.Query;
 import org.citydb.query.builder.QueryBuildException;
 import org.citydb.query.builder.config.ConfigQueryBuilder;
@@ -194,6 +199,34 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 			LOG.error("Failed to build the export query expression.");
 			return;
 		}
+		
+		final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
+		final StatusDialog exportDialog = new StatusDialog(viewContoller.getTopFrame(), 
+				"CityGML Delete",
+				null,
+				"Deleting city objects",
+				true);
+
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				exportDialog.setLocationRelativeTo(viewContoller.getTopFrame());
+				exportDialog.setVisible(true);
+			}
+		});
+		
+		exportDialog.getCancelButton().addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						eventDispatcher.triggerEvent(new InterruptEvent(
+								"User abort of database delete.", 
+								LogLevel.INFO, 
+								Event.GLOBAL_CHANNEL,
+								this));
+					}
+				});
+			}
+		});
 
 		viewContoller.setStatusText("Delete");
 		LOG.info("Initializing database delete...");
@@ -212,6 +245,12 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 			}
 		}
 
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				exportDialog.dispose();
+			}
+		});
+		
 		// cleanup
 		deleter.cleanup();
 
