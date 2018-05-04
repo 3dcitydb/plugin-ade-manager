@@ -1,14 +1,12 @@
 package org.citydb.plugins.ade_manager.deletion;
 
 import java.sql.SQLException;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.citydb.citygml.exporter.CityGMLExportException;
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
 import org.citydb.concurrent.PoolSizeAdaptationStrategy;
 import org.citydb.concurrent.WorkerPool;
@@ -23,40 +21,33 @@ import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.concurrent.DBDeleteWorkerFactory;
 import org.citydb.query.Query;
 import org.citydb.query.builder.QueryBuildException;
+import org.citydb.registry.ObjectRegistry;
 import org.citydb.util.Util;
-import org.citygml4j.builder.jaxb.CityGMLBuilder;
-import org.citygml4j.model.gml.GMLClass;
 
 public class DBDeleteController implements EventHandler {
 	private final Logger log = Logger.getInstance();
 	private final SchemaMapping schemaMapping;
 	private final EventDispatcher eventDispatcher;
+	
 	private DBDeleteSplitter dbSplitter;
-
 	private volatile boolean shouldRun = true;
 	private AtomicBoolean isInterrupted = new AtomicBoolean(false);
 	private WorkerPool<DBSplittingResult> dbWorkerPool;
 	private HashMap<Integer, Long> objectCounter;
 	private Query query;
 	
-	public DBDeleteController(CityGMLBuilder cityGMLBuilder, 
-			SchemaMapping schemaMapping, 
-			Query query, 
-			EventDispatcher eventDispatcher) {
-		
+	public DBDeleteController(Query query) {				
+		this.schemaMapping = ObjectRegistry.getInstance().getSchemaMapping();
+		this.eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
+		this.objectCounter = new HashMap<>();
 		this.query = query;
-		this.schemaMapping = schemaMapping;
-		this.eventDispatcher = eventDispatcher;
-
-		objectCounter = new HashMap<>();
-		new EnumMap<>(GMLClass.class);
 	}
 
 	public void cleanup() {
 		eventDispatcher.removeEventHandler(this);
 	}
 
-	public boolean doProcess() throws CityGMLExportException {
+	public boolean doProcess() throws DBDeleteException {
 		long start = System.currentTimeMillis();
 		
 		// adding listeners
@@ -74,9 +65,8 @@ public class DBDeleteController implements EventHandler {
 
 		dbWorkerPool.prestartCoreWorkers();
 
-		// fail if we could not start a single import worker
 		if (dbWorkerPool.getPoolSize() == 0)
-			throw new CityGMLExportException("Failed to start database export worker pool. Check the database connection pool settings.");
+			throw new DBDeleteException("Failed to start database delete worker pool. Check the database connection pool settings.");
 
 		// get database splitter and start query
 		dbSplitter = null;
@@ -92,24 +82,24 @@ public class DBDeleteController implements EventHandler {
 				dbSplitter.startQuery();
 			}
 		} catch (SQLException | QueryBuildException e) {
-			throw new CityGMLExportException("Failed to query the database.", e);
+			throw new DBDeleteException("Failed to query the database.", e);
 		}
 
 		try {
 			dbWorkerPool.shutdownAndWait();
 		} catch (InterruptedException e) {
-			throw new CityGMLExportException("Failed to shutdown worker pools.", e);
+			throw new DBDeleteException("Failed to shutdown worker pools.", e);
 		}
 
 		// show exported features
 		if (!objectCounter.isEmpty()) {
-			log.info("Exported city objects:");
+			log.info("Delete city objects:");
 			Map<String, Long> typeNames = Util.mapObjectCounter(objectCounter, schemaMapping);					
 			typeNames.keySet().stream().sorted().forEach(object -> log.info(object + ": " + typeNames.get(object)));			
 		}
 
 		if (shouldRun)
-			log.info("Total export time: " + Util.formatElapsedTime(System.currentTimeMillis() - start) + ".");
+			log.info("Total process time: " + Util.formatElapsedTime(System.currentTimeMillis() - start) + ".");
 
 		return shouldRun;
 	}

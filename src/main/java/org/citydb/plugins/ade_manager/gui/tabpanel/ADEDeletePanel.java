@@ -4,7 +4,8 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import javax.swing.BorderFactory;
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -13,10 +14,14 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 
+import org.citydb.config.i18n.Language;
 import org.citydb.config.project.database.DBOperationType;
 import org.citydb.config.project.exporter.SimpleQuery;
 import org.citydb.config.project.query.filter.selection.SimpleSelectionFilterMode;
 import org.citydb.config.project.query.filter.type.FeatureTypeFilter;
+import org.citydb.database.adapter.AbstractDatabaseAdapter;
+import org.citydb.database.connection.DatabaseConnectionPool;
+import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.event.Event;
 import org.citydb.event.EventHandler;
 import org.citydb.event.global.PropertyChangeEvent;
@@ -24,14 +29,26 @@ import org.citydb.gui.components.checkboxtree.DefaultCheckboxTreeCellRenderer;
 import org.citydb.gui.components.feature.FeatureTypeTree;
 import org.citydb.gui.factory.PopupMenuDecorator;
 import org.citydb.gui.util.GuiUtil;
+import org.citydb.log.Logger;
 import org.citydb.modules.database.gui.operations.DatabaseOperationView;
+import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.deletion.DBDeleteController;
+import org.citydb.plugins.ade_manager.deletion.DBDeleteException;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
+import org.citydb.query.Query;
+import org.citydb.query.builder.QueryBuildException;
+import org.citydb.query.builder.config.ConfigQueryBuilder;
+import org.citydb.registry.ObjectRegistry;
 import org.citygml4j.model.module.citygml.CityGMLVersion;
 import org.jdesktop.swingx.JXTextField;
 import org.jdesktop.swingx.prompt.PromptSupport.FocusBehavior;
 
 public class ADEDeletePanel extends DatabaseOperationView implements EventHandler {
+	private final Logger LOG = Logger.getInstance();
+	private final ADEManagerPanel parentPanel;
+	private final ViewController viewContoller;
+	
 	private JPanel featureClassfilterPanel;
 	private FeatureTypeTree typeTree;	
 	private JLabel objectNumberLabel = new JLabel();
@@ -41,8 +58,11 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 	
 	private final ConfigImpl config;
 	
-	public ADEDeletePanel(ConfigImpl config) {
+	public ADEDeletePanel(ADEManagerPanel parentPanel, ConfigImpl config) {
+		this.parentPanel = parentPanel;
 		this.config = config;
+		this.viewContoller = this.parentPanel.getViewController();
+		
 		initGui();
 	}
 	
@@ -80,6 +100,18 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 		int index = 0;
 		component.add(featureClassfilterPanel, GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
 		component.add(deletePanel, GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+	
+		deleteButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Thread thread = new Thread() {
+					public void run() {
+						doDelete();						
+					}
+				};
+				thread.setDaemon(true);
+				thread.start();
+			}
+		});
 	}
 	
 	@Override
@@ -137,6 +169,59 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 		FeatureTypeFilter featureTypeFilter = query.getFeatureTypeFilter();
 		featureTypeFilter.reset();
 		featureTypeFilter.setTypeNames(typeTree.getSelectedTypeNames());		
+	}
+	
+	private void doDelete() {
+		viewContoller.clearConsole();
+		setSettings();
+
+		SimpleQuery simpleQueryConfig = config.getDeleteQuery();
+		if (simpleQueryConfig.getFeatureTypeFilter().getTypeNames().isEmpty()) {
+			viewContoller.errorMessage(Language.I18N.getString("export.dialog.error.incorrectData"),
+					Language.I18N.getString("common.dialog.error.incorrectData.featureClass"));
+			return;
+		}
+		
+		final AbstractDatabaseAdapter databaseAdapter = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter();
+		final SchemaMapping schemaMapping = ObjectRegistry.getInstance().getSchemaMapping();
+
+		// build query from filter settings
+		Query query = null;
+		try {
+			ConfigQueryBuilder queryBuilder = new ConfigQueryBuilder(schemaMapping, databaseAdapter);
+			query = queryBuilder.buildQuery(config.getDeleteQuery(), config.getNamespaceFilter());
+		} catch (QueryBuildException e) {
+			LOG.error("Failed to build the export query expression.");
+			return;
+		}
+
+		viewContoller.setStatusText("Delete");
+		LOG.info("Initializing database delete...");
+
+		DBDeleteController deleter = new DBDeleteController(query);
+		boolean success = false;
+		try {
+			success = deleter.doProcess();
+		} catch (DBDeleteException e) {
+			LOG.error(e.getMessage());
+
+			Throwable cause = e.getCause();
+			while (cause != null) {
+				LOG.error("Cause: " + cause.getMessage());
+				cause = cause.getCause();
+			}
+		}
+
+		// cleanup
+		deleter.cleanup();
+
+		if (success) {
+			LOG.info("Database delete successfully finished.");
+		} else {
+			LOG.warn("Database delete aborted.");
+		}
+
+		viewContoller.setStatusText(Language.I18N.getString("main.status.ready.label"));
 	}
 
 	@Override

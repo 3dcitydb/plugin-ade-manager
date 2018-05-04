@@ -176,7 +176,7 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 
 		databaseOperationPanels = new DatabaseOperationView[2];
 		databaseOperationPanels[0] = new ADERegistryPanel(this, config);
-		databaseOperationPanels[1] = new ADEDeletePanel(config);
+		databaseOperationPanels[1] = new ADEDeletePanel(this, config);
 
 		for (int i = 0; i < databaseOperationPanels.length; ++i)
 			databaseOperationTab.insertTab(null, databaseOperationPanels[i].getIcon(), null, databaseOperationPanels[i].getToolTip(), i);
