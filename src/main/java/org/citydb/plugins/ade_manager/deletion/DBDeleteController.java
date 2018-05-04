@@ -49,48 +49,62 @@ public class DBDeleteController implements EventHandler {
 
 	public boolean doProcess() throws DBDeleteException {
 		long start = System.currentTimeMillis();
+		int minThreads = 2;
+		int maxThreads = Math.max(minThreads, Runtime.getRuntime().availableProcessors());
 		
 		// adding listeners
 		eventDispatcher.addEventHandler(EventType.OBJECT_COUNTER, this);
 		eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
 
-		dbWorkerPool = new WorkerPool<DBSplittingResult>(
-				"db_deleter_pool",
-				2,
-				10,
-				PoolSizeAdaptationStrategy.AGGRESSIVE,
-				new DBDeleteWorkerFactory(eventDispatcher),
-				300,
-				false);
-
-		dbWorkerPool.prestartCoreWorkers();
-
-		if (dbWorkerPool.getPoolSize() == 0)
-			throw new DBDeleteException("Failed to start database delete worker pool. Check the database connection pool settings.");
-
-		// get database splitter and start query
-		dbSplitter = null;
 		try {
-			dbSplitter = new DBDeleteSplitter(
-					schemaMapping,
-					dbWorkerPool,
-					query,
-					eventDispatcher);
+			dbWorkerPool = new WorkerPool<DBSplittingResult>(
+					"db_deleter_pool",
+					minThreads,
+					maxThreads,
+					PoolSizeAdaptationStrategy.AGGRESSIVE,
+					new DBDeleteWorkerFactory(eventDispatcher),
+					300,
+					false);
 
-			if (shouldRun) {
-				dbSplitter.setCalculateNumberMatched(true);
-				dbSplitter.startQuery();
+			dbWorkerPool.prestartCoreWorkers();
+
+			if (dbWorkerPool.getPoolSize() == 0)
+				throw new DBDeleteException("Failed to start database delete worker pool. Check the database connection pool settings.");
+
+			// get database splitter and start query
+			dbSplitter = null;
+			try {
+				dbSplitter = new DBDeleteSplitter(
+						schemaMapping,
+						dbWorkerPool,
+						query,
+						eventDispatcher);
+
+				if (shouldRun) {
+					dbSplitter.setCalculateNumberMatched(true);
+					dbSplitter.startQuery();
+				}
+			} catch (SQLException | QueryBuildException e) {
+				throw new DBDeleteException("Failed to query the database.", e);
 			}
-		} catch (SQLException | QueryBuildException e) {
-			throw new DBDeleteException("Failed to query the database.", e);
-		}
 
-		try {
-			dbWorkerPool.shutdownAndWait();
-		} catch (InterruptedException e) {
-			throw new DBDeleteException("Failed to shutdown worker pools.", e);
-		}
+			try {
+				dbWorkerPool.shutdownAndWait();
+			} catch (InterruptedException e) {
+				throw new DBDeleteException("Failed to shutdown worker pools.", e);
+			}
+		} finally {
+			// clean up
+			if (dbWorkerPool != null && !dbWorkerPool.isTerminated())
+				dbWorkerPool.shutdownNow();
 
+			try {
+				eventDispatcher.flushEvents();
+			} catch (InterruptedException e) {
+				//
+			}
+		}		
+		
 		// show exported features
 		if (!objectCounter.isEmpty()) {
 			log.info("Delete city objects:");

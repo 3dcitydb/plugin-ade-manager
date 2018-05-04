@@ -84,7 +84,7 @@ public class DBDeleteSplitter {
 				try {
 					dbWorkerPool.join();
 				} catch (InterruptedException e) {
-					//
+					e.printStackTrace();
 				}
 			}
 		} finally {
@@ -163,8 +163,7 @@ public class DBDeleteSplitter {
 					dbWorkerPool.addWork(splitter);
 				} while (rs.next() && shouldRun);
 			} else
-				log.info("No top-level feature matches the request.");
-
+				log.info("No feature matches the request.");
 		} finally {
 			if (rs != null)
 				rs.close();

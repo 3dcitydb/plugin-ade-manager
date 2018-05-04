@@ -1,15 +1,19 @@
 package org.citydb.plugins.ade_manager.gui.tabpanel;
 
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.util.concurrent.locks.ReentrantLock;
+
 import javax.swing.BorderFactory;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -17,13 +21,16 @@ import javax.swing.border.TitledBorder;
 
 import org.citydb.config.i18n.Language;
 import org.citydb.config.project.database.DBOperationType;
+import org.citydb.config.project.database.DatabaseConfigurationException;
 import org.citydb.config.project.exporter.SimpleQuery;
 import org.citydb.config.project.global.LogLevel;
 import org.citydb.config.project.query.filter.selection.SimpleSelectionFilterMode;
 import org.citydb.config.project.query.filter.type.FeatureTypeFilter;
+import org.citydb.database.DatabaseController;
 import org.citydb.database.adapter.AbstractDatabaseAdapter;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.schema.mapping.SchemaMapping;
+import org.citydb.database.version.DatabaseVersionException;
 import org.citydb.event.Event;
 import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
@@ -44,12 +51,13 @@ import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
 import org.citydb.query.Query;
 import org.citydb.query.builder.QueryBuildException;
 import org.citydb.query.builder.config.ConfigQueryBuilder;
+import org.citydb.query.filter.FilterException;
+import org.citydb.query.filter.counter.CounterFilter;
 import org.citydb.registry.ObjectRegistry;
 import org.citygml4j.model.module.citygml.CityGMLVersion;
-import org.jdesktop.swingx.JXTextField;
-import org.jdesktop.swingx.prompt.PromptSupport.FocusBehavior;
 
 public class ADEDeletePanel extends DatabaseOperationView implements EventHandler {
+	private final ReentrantLock mainLock = new ReentrantLock();
 	private final Logger LOG = Logger.getInstance();
 	private final ADEManagerPanel parentPanel;
 	private final ViewController viewContoller;
@@ -57,13 +65,13 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 	private JPanel featureClassfilterPanel;
 	private FeatureTypeTree typeTree;	
 	private JLabel objectNumberLabel = new JLabel();
-	private JXTextField objectNumberInputField = new JXTextField();
+	private JFormattedTextField objectNumberInputField;
 	private JButton deleteButton = new JButton();
 	private JPanel component;
 	
 	private final ConfigImpl config;
 	
-	public ADEDeletePanel(ADEManagerPanel parentPanel, ConfigImpl config) {
+	public ADEDeletePanel(ADEManagerPanel parentPanel, ConfigImpl config) {		
 		this.parentPanel = parentPanel;
 		this.config = config;
 		this.viewContoller = this.parentPanel.getViewController();
@@ -94,13 +102,16 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 		featureClassfilterPanel.setBorder(BorderFactory.createTitledBorder(""));
 		featureClassfilterPanel.add(typeTree, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));	
 	
+		DecimalFormat counterFormat = new DecimalFormat("###################");
+		counterFormat.setMaximumIntegerDigits(19);
+		objectNumberInputField = new JFormattedTextField(counterFormat);
+		objectNumberInputField.setFocusLostBehavior(JFormattedTextField.COMMIT);
+		
 		JPanel deletePanel = new JPanel();
 		deletePanel.setLayout(new GridBagLayout());
 		deletePanel.add(objectNumberLabel, GuiUtil.setConstraints(0,0,0.0,0.0,GridBagConstraints.BOTH,0,0,0,5));
 		deletePanel.add(objectNumberInputField, GuiUtil.setConstraints(1,0,1.0,0.0,GridBagConstraints.HORIZONTAL,0,0,0,5));
 		deletePanel.add(deleteButton, GuiUtil.setConstraints(2,0,0.0,0.0,GridBagConstraints.NONE,0,5,0,0));	
-		objectNumberInputField.setPromptForeground(Color.LIGHT_GRAY);
-		objectNumberInputField.setFocusBehavior(FocusBehavior.SHOW_PROMPT);
 		
 		int index = 0;
 		component.add(featureClassfilterPanel, GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
@@ -147,7 +158,6 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 	@Override
 	public void doTranslation() {
 		objectNumberLabel.setText("Maximum number of Toplevel-Features to be deleted:");
-		objectNumberInputField.setPrompt(("defulat is unlimited"));
 		deleteButton.setText("Delete");
 		((TitledBorder) featureClassfilterPanel.getBorder()).setTitle("Feature Classes");
 	}
@@ -164,6 +174,9 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 		typeTree.getCheckingModel().clearChecking();
 		typeTree.setSelected(featureTypeFilter.getTypeNames());
 		typeTree.repaint();
+		
+		org.citydb.config.project.query.filter.counter.CounterFilter counterFilter = query.getCounterFilter();
+		objectNumberInputField.setValue(counterFilter.getUpperLimit());
 	}
 
 	@Override
@@ -173,94 +186,133 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 		query.setUseTypeNames(true);
 		FeatureTypeFilter featureTypeFilter = query.getFeatureTypeFilter();
 		featureTypeFilter.reset();
-		featureTypeFilter.setTypeNames(typeTree.getSelectedTypeNames());		
+		featureTypeFilter.setTypeNames(typeTree.getSelectedTypeNames());	
+		
+		// counter filter
+		org.citydb.config.project.query.filter.counter.CounterFilter counterFilter = query.getCounterFilter();
+		counterFilter.reset();	
+		if (objectNumberInputField.isEditValid() && objectNumberInputField.getValue() != null) {
+			counterFilter.setUpperLimit(((Number)objectNumberInputField.getValue()).longValue());
+		} else {
+			counterFilter.setUpperLimit(null);
+		}
 	}
 	
 	private void doDelete() {
-		viewContoller.clearConsole();
-		setSettings();
-
-		SimpleQuery simpleQueryConfig = config.getDeleteQuery();
-		if (simpleQueryConfig.getFeatureTypeFilter().getTypeNames().isEmpty()) {
-			viewContoller.errorMessage(Language.I18N.getString("export.dialog.error.incorrectData"),
-					Language.I18N.getString("common.dialog.error.incorrectData.featureClass"));
-			return;
-		}
+		final ReentrantLock lock = this.mainLock;
+		lock.lock();
 		
-		final AbstractDatabaseAdapter databaseAdapter = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter();
-		final SchemaMapping schemaMapping = ObjectRegistry.getInstance().getSchemaMapping();
-
-		// build query from filter settings
-		Query query = null;
 		try {
-			ConfigQueryBuilder queryBuilder = new ConfigQueryBuilder(schemaMapping, databaseAdapter);
-			query = queryBuilder.buildQuery(config.getDeleteQuery(), config.getNamespaceFilter());
-		} catch (QueryBuildException e) {
-			LOG.error("Failed to build the export query expression.");
-			return;
+			viewContoller.clearConsole();
+			setSettings();
+			
+			final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();
+			if (!databaseController.isConnected()) {
+				try {
+					databaseController.connect(true);
+					if (!databaseController.isConnected())
+						return;
+				} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
+					//
+				}
+			}
+
+			SimpleQuery simpleQueryConfig = config.getDeleteQuery();
+			if (simpleQueryConfig.getFeatureTypeFilter().getTypeNames().isEmpty()) {
+				viewContoller.errorMessage(Language.I18N.getString("export.dialog.error.incorrectData"),
+						Language.I18N.getString("common.dialog.error.incorrectData.featureClass"));
+				return;
+			}
+			
+			final AbstractDatabaseAdapter databaseAdapter = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter();
+			final SchemaMapping schemaMapping = ObjectRegistry.getInstance().getSchemaMapping();
+
+			// build query from filter settings
+			Query query = null;
+			try {
+				ConfigQueryBuilder queryBuilder = new ConfigQueryBuilder(schemaMapping, databaseAdapter);
+				query = queryBuilder.buildQuery(config.getDeleteQuery(), config.getNamespaceFilter());
+				Long upperLimit = config.getDeleteQuery().getCounterFilter().getUpperLimit();
+				if (upperLimit != null) {
+					CounterFilter counterFilter = new CounterFilter(upperLimit); 
+					query.setCounterFilter(counterFilter); 
+				}				
+			} catch (QueryBuildException | FilterException e) {
+				LOG.error("Failed to build the export query expression.");
+				return;
+			}
+			
+			final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
+			final StatusDialog exportDialog = new StatusDialog(viewContoller.getTopFrame(), 
+					"CityGML Delete",
+					null,
+					"Deleting city objects",
+					true);
+
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					exportDialog.setLocationRelativeTo(viewContoller.getTopFrame());
+					exportDialog.setVisible(true);
+				}
+			});
+			
+			exportDialog.getCancelButton().addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					SwingUtilities.invokeLater(new Runnable() {
+						public void run() {
+							eventDispatcher.triggerEvent(new InterruptEvent(
+									"User abort of database delete.", 
+									LogLevel.INFO, 
+									Event.GLOBAL_CHANNEL,
+									this));
+						}
+					});
+				}
+			});
+
+			viewContoller.setStatusText("Delete");
+			LOG.info("Initializing database delete...");
+
+			DBDeleteController deleter = new DBDeleteController(query);
+			boolean success = false;
+			try {
+				success = deleter.doProcess();
+			} catch (DBDeleteException e) {
+				LOG.error(e.getMessage());
+
+				Throwable cause = e.getCause();
+				while (cause != null) {
+					LOG.error("Cause: " + cause.getMessage());
+					cause = cause.getCause();
+				}
+			}
+
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					exportDialog.dispose();
+				}
+			});
+			
+			// cleanup
+			try {
+				eventDispatcher.flushEvents();
+			} catch (InterruptedException e1) {
+				//
+			}
+			
+			deleter.cleanup();
+
+			if (success) {
+				LOG.info("Database delete successfully finished.");
+			} else {
+				LOG.warn("Database delete aborted.");
+			}
+
+			viewContoller.setStatusText(Language.I18N.getString("main.status.ready.label"));
 		}
-		
-		final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
-		final StatusDialog exportDialog = new StatusDialog(viewContoller.getTopFrame(), 
-				"CityGML Delete",
-				null,
-				"Deleting city objects",
-				true);
-
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				exportDialog.setLocationRelativeTo(viewContoller.getTopFrame());
-				exportDialog.setVisible(true);
-			}
-		});
-		
-		exportDialog.getCancelButton().addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						eventDispatcher.triggerEvent(new InterruptEvent(
-								"User abort of database delete.", 
-								LogLevel.INFO, 
-								Event.GLOBAL_CHANNEL,
-								this));
-					}
-				});
-			}
-		});
-
-		viewContoller.setStatusText("Delete");
-		LOG.info("Initializing database delete...");
-
-		DBDeleteController deleter = new DBDeleteController(query);
-		boolean success = false;
-		try {
-			success = deleter.doProcess();
-		} catch (DBDeleteException e) {
-			LOG.error(e.getMessage());
-
-			Throwable cause = e.getCause();
-			while (cause != null) {
-				LOG.error("Cause: " + cause.getMessage());
-				cause = cause.getCause();
-			}
+		finally {
+			lock.unlock();
 		}
-
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				exportDialog.dispose();
-			}
-		});
-		
-		// cleanup
-		deleter.cleanup();
-
-		if (success) {
-			LOG.info("Database delete successfully finished.");
-		} else {
-			LOG.warn("Database delete aborted.");
-		}
-
-		viewContoller.setStatusText(Language.I18N.getString("main.status.ready.label"));
 	}
 
 	@Override

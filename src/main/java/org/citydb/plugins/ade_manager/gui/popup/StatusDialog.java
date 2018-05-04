@@ -36,7 +36,9 @@ import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
 import org.citydb.event.global.EventType;
 import org.citydb.event.global.ObjectCounterEvent;
+import org.citydb.event.global.ProgressBarEventType;
 import org.citydb.event.global.StatusDialogMessage;
+import org.citydb.event.global.StatusDialogProgressBar;
 import org.citydb.event.global.StatusDialogTitle;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.registry.ObjectRegistry;
@@ -48,6 +50,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -75,6 +78,8 @@ public class StatusDialog extends JDialog implements EventHandler {
 	private JButton button;
 	private volatile boolean acceptStatusUpdate = true;
 	private long featureCounter;
+	private int progressBarCounter;
+	private int maxFeatureNumber;
 	
 	public StatusDialog(JFrame frame, 
 			String windowTitle, 
@@ -87,6 +92,7 @@ public class StatusDialog extends JDialog implements EventHandler {
 		eventDispatcher.addEventHandler(EventType.OBJECT_COUNTER, this);
 		eventDispatcher.addEventHandler(EventType.STATUS_DIALOG_MESSAGE, this);
 		eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
+		eventDispatcher.addEventHandler(EventType.STATUS_DIALOG_PROGRESS_BAR, this);
 		
 		initGUI(windowTitle, statusTitle, statusMessage, setButton);
 	}
@@ -184,6 +190,29 @@ public class StatusDialog extends JDialog implements EventHandler {
 			ObjectCounterEvent counter = (ObjectCounterEvent)e;
 			featureCounter += counter.getCounter().size();
 			featureCounterLabel.setText(String.valueOf(featureCounter));
+		}
+		else if (e.getEventType() == EventType.STATUS_DIALOG_PROGRESS_BAR) {
+			StatusDialogProgressBar progressBarEvent = (StatusDialogProgressBar)e;
+			
+			if (progressBarEvent.getType() == ProgressBarEventType.INIT) {
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {		
+						progressBar.setIndeterminate(progressBarEvent.isSetIntermediate());
+					}
+				});
+				
+				if (!progressBarEvent.isSetIntermediate()) {
+					maxFeatureNumber = progressBarEvent.getValue();
+					progressBar.setMaximum(maxFeatureNumber);
+					progressBar.setValue(0);
+					progressBarCounter = 0;
+					remainingFeatureCounterLabel.setText(String.valueOf(maxFeatureNumber));
+				}
+			} else {
+				progressBarCounter += progressBarEvent.getValue();
+				progressBar.setValue(maxFeatureNumber);
+				remainingFeatureCounterLabel.setText(String.valueOf(maxFeatureNumber - progressBarCounter));
+			}
 		}
 		else if (e.getEventType() == EventType.INTERRUPT) {
 			acceptStatusUpdate = false;

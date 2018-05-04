@@ -23,7 +23,7 @@ public class DBDeleteWorkerFactory implements WorkerFactory<DBSplittingResult>{
 		try {
 			dbWorker = new DBDeleteWorker(eventDispatcher);
 		} catch (SQLException e) {
-			LOG.error("Failed to create export worker: " + e.getMessage());
+			LOG.error("Failed to create delete worker: " + e.getMessage());
 		} 
 
 		return dbWorker;

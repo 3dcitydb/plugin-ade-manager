@@ -18,12 +18,13 @@ import org.citydb.event.EventHandler;
 import org.citydb.event.global.EventType;
 import org.citydb.event.global.InterruptEvent;
 import org.citydb.event.global.ObjectCounterEvent;
+import org.citydb.event.global.ProgressBarEventType;
+import org.citydb.event.global.StatusDialogProgressBar;
 
 import oracle.jdbc.OracleTypes;
 
 public class DBDeleteWorker extends DefaultWorker<DBSplittingResult>  implements EventHandler {
-	private final EventDispatcher eventDispatcher;
-	
+	private final EventDispatcher eventDispatcher;	
 	private Connection connection;
 	private DatabaseType databaseType;
 	private String dbSchema;
@@ -35,9 +36,8 @@ public class DBDeleteWorker extends DefaultWorker<DBSplittingResult>  implements
 
 		connection = DatabaseConnectionPool.getInstance().getConnection();
 		connection.setAutoCommit(false);	
-		
-		databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();
-		dbSchema = DatabaseConnectionPool.getInstance().getConnection().getSchema();
+		dbSchema = connection.getSchema();		
+		databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();		
 		
 		if (databaseType == DatabaseType.ORACLE) {
 			deleteCall = connection.prepareCall("{? = call citydb_delete.del_cityobject(ID_ARRAY(?))}");
@@ -56,13 +56,13 @@ public class DBDeleteWorker extends DefaultWorker<DBSplittingResult>  implements
 		
 		try {
 			callDeleteObject(objectId);
-			updateDeleteContext(objectclassId, objectId);
+			updateDeleteContext(objectclassId);
 		} catch (SQLException e) {
 			eventDispatcher.triggerEvent(new InterruptEvent("Aborting delete due to errors.", LogLevel.WARN, e, eventChannel, this));
 			try {
 				connection.rollback();
 			} catch (SQLException e1) {
-				//
+				e1.printStackTrace();
 			}
 			
 			interrupt();
@@ -81,23 +81,22 @@ public class DBDeleteWorker extends DefaultWorker<DBSplittingResult>  implements
 				try {
 					deleteCall.close();
 				} catch (SQLException e2) {
-					//
+					e2.printStackTrace();
 				}
 			}	
 			if (connection != null) {
 				try {
 					connection.close();
 				} catch (SQLException e) {
-					//
+					e.printStackTrace();
 				}
 			}
-			
-			connection = null;
+
+			connection = null;			
 			eventDispatcher.removeEventHandler(this);
 		}
 	}
 	
-	@SuppressWarnings("static-access")
 	private void callDeleteObject(long objectId) throws SQLException {
 		if (databaseType == DatabaseType.ORACLE) {
 			deleteCall.registerOutParameter(1, OracleTypes.ARRAY, "ID_ARRAY");
@@ -110,19 +109,16 @@ public class DBDeleteWorker extends DefaultWorker<DBSplittingResult>  implements
 			Array array = connection.createArrayOf("INTEGER", inputArray);
 			deleteCall.setArray(2, array);
 		}
-		else {
-			//
-		}
-				
-		try {workerThread.sleep(500);} catch (InterruptedException e) {}
+		else {}
 		
-	//	deleteCall.executeUpdate();		
+		deleteCall.executeUpdate();		
 	}
 	
-	private void updateDeleteContext(int objectclassId, long objectId) {
+	private void updateDeleteContext(int objectclassId) {
 		HashMap<Integer, Long> objectCounter = new HashMap<>();
-		objectCounter.put(objectclassId, objectId);
+		objectCounter.put(objectclassId, (long) 1);
 		eventDispatcher.triggerEvent(new ObjectCounterEvent(objectCounter, this));
+		eventDispatcher.triggerEvent(new StatusDialogProgressBar(ProgressBarEventType.UPDATE, 1, this));
 	}
 
 	@Override
