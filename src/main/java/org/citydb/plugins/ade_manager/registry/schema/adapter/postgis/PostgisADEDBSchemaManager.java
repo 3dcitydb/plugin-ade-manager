@@ -22,37 +22,6 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 	}
 
 	@Override
-	public void cleanupADEData(String adeId) throws SQLException {
-		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
-		PreparedStatement ps = null;
-		Map<Integer, String>cityobjectIds = queryADECityobjectIds(adeId);
-		int sum = cityobjectIds.size();	
-		int batchSize = 20;
-		int counter = 0;
-		String call = "select " + schema + ".del_cityobject(array_agg(?))";
-		try {								
-			ps = connection.prepareStatement(call);			
-			for (Integer objectId: cityobjectIds.keySet()) {
-				counter++;
-				ps.setInt(1, objectId);
-				ps.addBatch();
-				if (counter == batchSize) {
-					ps.executeBatch();
-					counter = 0;
-				}				
-				String className = cityobjectIds.get(objectId);
-				LOG.info(className + "(ID = " + objectId + ")" + " deleted.");
-				LOG.info("Number of remaining ADE objects to be deleted: " + --sum);
-			}
-			if (counter > 0) 
-				ps.executeBatch();
-		} finally {
-			if (ps != null)
-				ps.close();
-		}
-	}
-
-	@Override
 	protected String readCreateADEDBScript() throws IOException {
 		String adeRegistryInputpath = config.getAdeRegistryInputPath();
 		String createDBscriptPath = PathResolver.get_create_ade_db_filepath(adeRegistryInputpath, DatabaseType.POSTGIS);	

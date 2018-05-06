@@ -5,14 +5,26 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
+import org.citydb.config.ConfigNamespaceFilter;
+import org.citydb.config.project.exporter.SimpleQuery;
+import org.citydb.database.adapter.AbstractDatabaseAdapter;
 import org.citydb.database.connection.DatabaseConnectionPool;
+import org.citydb.database.schema.mapping.AbstractObjectType;
+import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.deletion.DBDeleteController;
+import org.citydb.plugins.ade_manager.deletion.DBDeleteException;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.registry.schema.SQLScriptRunner;
+import org.citydb.query.Query;
+import org.citydb.query.builder.QueryBuildException;
+import org.citydb.query.builder.config.ConfigQueryBuilder;
+import org.citydb.query.filter.projection.ProjectionFilter;
+import org.citydb.registry.ObjectRegistry;
 
 public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 	protected final Logger LOG = Logger.getInstance();
@@ -47,32 +59,53 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		} 
 	}
 	
-	protected Map<Integer, String> queryADECityobjectIds(String adeId) throws SQLException {
+	public void cleanupADEData(String adeId) throws SQLException {
+		SchemaMapping schemaMapping = ObjectRegistry.getInstance().getSchemaMapping();
+		AbstractDatabaseAdapter databaseAdapter = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter();
+		ConfigQueryBuilder queryBuilder = new ConfigQueryBuilder(schemaMapping, databaseAdapter);
+		Query query = null;
+		try {			
+			query = queryBuilder.buildQuery(new SimpleQuery(), new ConfigNamespaceFilter());
+		} catch (QueryBuildException e) {
+			throw new SQLException("Failed to build the query expression for cleaning up ADE data.", e);
+		}		
+
 		Statement stmt = null;
-		ResultSet rs = null;
-		Map<Integer, String> objectclassIds = new java.util.HashMap<Integer, String>();	
+		ResultSet rs = null;			
 		try {					
 			stmt = connection.createStatement();
-			rs = stmt.executeQuery("select " + schema + ".cityobject.id, " + schema + ".objectclass.classname "
-					+ "FROM " + schema + ".cityobject, " + schema + ".objectclass, "+ schema + ".ade "
-					+ "WHERE " + schema + ".cityobject.objectclass_id = " + schema + ".objectclass.id "
-					+ "AND " + schema + ".ade.id = " + schema + ".objectclass.ade_id "
-					+ "AND " + schema + ".ade.adeid = '" + adeId + "'");
+			rs = stmt.executeQuery("select o.id from " + schema + ".objectclass o, " + schema + ".ade a" 
+					+ " where o.ade_id = a.id and a.adeid = '" + adeId + "'");
 			
 			while (rs.next()) {
-				int adeid = rs.getInt(1);
-				String className = rs.getString(2);
-				objectclassIds.put(adeid, className);				
+				int objectclassId = rs.getInt(1);	
+				AbstractObjectType<?> objectType = schemaMapping.getAbstractObjectType(objectclassId);
+				if (objectType != null) {
+					ProjectionFilter projectionFilter = new ProjectionFilter(objectType);
+					query.addProjectionFilter(projectionFilter);
+				}			
 			}
+
+						
 		} finally {
 			if (rs != null) 
 				rs.close();
 	
 			if (stmt != null) 
 				stmt.close();
+		}	
+		
+		final ReentrantLock lock = new ReentrantLock();;
+		lock.lock();		
+		try {
+			DBDeleteController deleter = new DBDeleteController(query);
+			deleter.doProcess();
+			deleter.cleanup();
+		} catch (DBDeleteException e) {
+			throw new SQLException("Error occurred: ", e);
+		} finally {
+			lock.unlock();
 		}
-	
-		return objectclassIds;		
 	}
 
 	protected abstract String readCreateADEDBScript() throws IOException;

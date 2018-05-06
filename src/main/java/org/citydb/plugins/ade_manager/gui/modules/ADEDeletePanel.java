@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.gui.tabpanel;
+package org.citydb.plugins.ade_manager.gui.modules;
 
 import java.awt.Component;
 import java.awt.GridBagConstraints;
@@ -6,26 +6,18 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.swing.BorderFactory;
 import javax.swing.Icon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JFormattedTextField;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import javax.swing.border.TitledBorder;
-
+import org.citydb.config.Config;
 import org.citydb.config.i18n.Language;
 import org.citydb.config.project.database.DBOperationType;
 import org.citydb.config.project.database.DatabaseConfigurationException;
 import org.citydb.config.project.exporter.SimpleQuery;
 import org.citydb.config.project.global.LogLevel;
-import org.citydb.config.project.query.filter.selection.SimpleSelectionFilterMode;
-import org.citydb.config.project.query.filter.type.FeatureTypeFilter;
 import org.citydb.database.DatabaseController;
 import org.citydb.database.adapter.AbstractDatabaseAdapter;
 import org.citydb.database.connection.DatabaseConnectionPool;
@@ -33,16 +25,9 @@ import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.database.version.DatabaseVersionException;
 import org.citydb.event.Event;
 import org.citydb.event.EventDispatcher;
-import org.citydb.event.EventHandler;
 import org.citydb.event.global.InterruptEvent;
-import org.citydb.event.global.PropertyChangeEvent;
-import org.citydb.gui.components.checkboxtree.DefaultCheckboxTreeCellRenderer;
-import org.citydb.gui.components.feature.FeatureTypeTree;
-import org.citydb.gui.factory.PopupMenuDecorator;
 import org.citydb.gui.util.GuiUtil;
-import org.citydb.log.Logger;
-import org.citydb.modules.database.gui.operations.DatabaseOperationView;
-import org.citydb.plugin.extension.view.ViewController;
+import org.citydb.modules.citygml.exporter.gui.view.FilterPanel;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.deletion.DBDeleteController;
 import org.citydb.plugins.ade_manager.deletion.DBDeleteException;
@@ -51,70 +36,33 @@ import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
 import org.citydb.query.Query;
 import org.citydb.query.builder.QueryBuildException;
 import org.citydb.query.builder.config.ConfigQueryBuilder;
-import org.citydb.query.filter.FilterException;
-import org.citydb.query.filter.counter.CounterFilter;
 import org.citydb.registry.ObjectRegistry;
-import org.citygml4j.model.module.citygml.CityGMLVersion;
 
-public class ADEDeletePanel extends DatabaseOperationView implements EventHandler {
-	private final ReentrantLock mainLock = new ReentrantLock();
-	private final Logger LOG = Logger.getInstance();
-	private final ADEManagerPanel parentPanel;
-	private final ViewController viewContoller;
-	
-	private JPanel featureClassfilterPanel;
-	private FeatureTypeTree typeTree;	
-	private JLabel objectNumberLabel = new JLabel();
-	private JFormattedTextField objectNumberInputField;
+public class ADEDeletePanel extends OperationModuleView {
+	private FilterPanel filterPanel;
 	private JButton deleteButton = new JButton();
-	private JPanel component;
+	private JPanel component;	
+	private Config impExpConfig;
 	
-	private final ConfigImpl config;
-	
-	public ADEDeletePanel(ADEManagerPanel parentPanel, ConfigImpl config) {		
-		this.parentPanel = parentPanel;
-		this.config = config;
-		this.viewContoller = this.parentPanel.getViewController();
-		
+	public ADEDeletePanel(ADEManagerPanel parentPanel, ConfigImpl config) {
+		super(parentPanel, config);		
 		initGui();
 	}
 	
-	private void initGui() {	
-		int BORDER_THICKNESS = ADEManagerPanel.BORDER_THICKNESS;
-
+	protected void initGui() {	
 		component = new JPanel();
 		component.setLayout(new GridBagLayout());
-		
-		typeTree = new FeatureTypeTree(CityGMLVersion.v2_0_0);
-		typeTree.setRowHeight((int)(new JCheckBox().getPreferredSize().getHeight()) - 4);		
-		typeTree.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(), 
-				BorderFactory.createEmptyBorder(0, 0, 4, 4)));
-		PopupMenuDecorator.getInstance().decorate(typeTree);
-		
-		// get rid of standard icons
-		DefaultCheckboxTreeCellRenderer renderer = (DefaultCheckboxTreeCellRenderer)typeTree.getCellRenderer();
-		renderer.setLeafIcon(null);
-		renderer.setOpenIcon(null);
-		renderer.setClosedIcon(null);
-				
-		featureClassfilterPanel = new JPanel();		
-		featureClassfilterPanel.setLayout(new GridBagLayout());
-		featureClassfilterPanel.setBorder(BorderFactory.createTitledBorder(""));
-		featureClassfilterPanel.add(typeTree, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));	
-	
-		DecimalFormat counterFormat = new DecimalFormat("###################");
-		counterFormat.setMaximumIntegerDigits(19);
-		objectNumberInputField = new JFormattedTextField(counterFormat);
-		objectNumberInputField.setFocusLostBehavior(JFormattedTextField.COMMIT);
+
+		impExpConfig = new Config();
+		impExpConfig.getProject().getExporter().setQuery(config.getDeleteQuery());
+		filterPanel = new FilterPanel(viewContoller, impExpConfig);
 		
 		JPanel deletePanel = new JPanel();
 		deletePanel.setLayout(new GridBagLayout());
-		deletePanel.add(objectNumberLabel, GuiUtil.setConstraints(0,0,0.0,0.0,GridBagConstraints.BOTH,0,0,0,5));
-		deletePanel.add(objectNumberInputField, GuiUtil.setConstraints(1,0,1.0,0.0,GridBagConstraints.HORIZONTAL,0,0,0,5));
 		deletePanel.add(deleteButton, GuiUtil.setConstraints(2,0,0.0,0.0,GridBagConstraints.NONE,0,5,0,0));	
 		
 		int index = 0;
-		component.add(featureClassfilterPanel, GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+		component.add(filterPanel, GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
 		component.add(deletePanel, GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
 	
 		deleteButton.addActionListener(new ActionListener() {
@@ -157,9 +105,8 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 
 	@Override
 	public void doTranslation() {
-		objectNumberLabel.setText("Maximum number of Toplevel-Features to be deleted:");
+		filterPanel.doTranslation();
 		deleteButton.setText("Delete");
-		((TitledBorder) featureClassfilterPanel.getBorder()).setTitle("Feature Classes");
 	}
 
 	@Override
@@ -169,33 +116,14 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 
 	@Override
 	public void loadSettings() {
-		SimpleQuery query = config.getDeleteQuery();;
-		FeatureTypeFilter featureTypeFilter = query.getFeatureTypeFilter();
-		typeTree.getCheckingModel().clearChecking();
-		typeTree.setSelected(featureTypeFilter.getTypeNames());
-		typeTree.repaint();
-		
-		org.citydb.config.project.query.filter.counter.CounterFilter counterFilter = query.getCounterFilter();
-		objectNumberInputField.setValue(counterFilter.getUpperLimit());
+		impExpConfig = new Config();
+		impExpConfig.getProject().getExporter().setQuery(config.getDeleteQuery());
+		filterPanel.loadSettings();
 	}
 
 	@Override
 	public void setSettings() {
-		SimpleQuery query = config.getDeleteQuery();
-		query.setMode(SimpleSelectionFilterMode.COMPLEX);
-		query.setUseTypeNames(true);
-		FeatureTypeFilter featureTypeFilter = query.getFeatureTypeFilter();
-		featureTypeFilter.reset();
-		featureTypeFilter.setTypeNames(typeTree.getSelectedTypeNames());	
-		
-		// counter filter
-		org.citydb.config.project.query.filter.counter.CounterFilter counterFilter = query.getCounterFilter();
-		counterFilter.reset();	
-		if (objectNumberInputField.isEditValid() && objectNumberInputField.getValue() != null) {
-			counterFilter.setUpperLimit(((Number)objectNumberInputField.getValue()).longValue());
-		} else {
-			counterFilter.setUpperLimit(null);
-		}
+		filterPanel.setSettings();
 	}
 	
 	private void doDelete() {
@@ -231,19 +159,14 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 			Query query = null;
 			try {
 				ConfigQueryBuilder queryBuilder = new ConfigQueryBuilder(schemaMapping, databaseAdapter);
-				query = queryBuilder.buildQuery(config.getDeleteQuery(), config.getNamespaceFilter());
-				Long upperLimit = config.getDeleteQuery().getCounterFilter().getUpperLimit();
-				if (upperLimit != null) {
-					CounterFilter counterFilter = new CounterFilter(upperLimit); 
-					query.setCounterFilter(counterFilter); 
-				}				
-			} catch (QueryBuildException | FilterException e) {
-				LOG.error("Failed to build the export query expression.");
+				query = queryBuilder.buildQuery(config.getDeleteQuery(), config.getNamespaceFilter());			
+			} catch (QueryBuildException e) {
+				LOG.error("Failed to build the delete query expression.");
 				return;
 			}
 			
 			final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
-			final StatusDialog exportDialog = new StatusDialog(viewContoller.getTopFrame(), 
+			final StatusDialog deleteDialog = new StatusDialog(viewContoller.getTopFrame(), 
 					"CityGML Delete",
 					null,
 					"Deleting city objects",
@@ -251,12 +174,12 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 
 			SwingUtilities.invokeLater(new Runnable() {
 				public void run() {
-					exportDialog.setLocationRelativeTo(viewContoller.getTopFrame());
-					exportDialog.setVisible(true);
+					deleteDialog.setLocationRelativeTo(viewContoller.getTopFrame());
+					deleteDialog.setVisible(true);
 				}
 			});
 			
-			exportDialog.getCancelButton().addActionListener(new ActionListener() {
+			deleteDialog.getCancelButton().addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					SwingUtilities.invokeLater(new Runnable() {
 						public void run() {
@@ -289,7 +212,7 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 
 			SwingUtilities.invokeLater(new Runnable() {
 				public void run() {
-					exportDialog.dispose();
+					deleteDialog.dispose();
 				}
 			});
 			
@@ -316,10 +239,6 @@ public class ADEDeletePanel extends DatabaseOperationView implements EventHandle
 	}
 
 	@Override
-	public void handleEvent(Event event) throws Exception {
-		PropertyChangeEvent e = (PropertyChangeEvent)event;
-		if (e.getPropertyName().equals("citygml.version"))
-			typeTree.updateCityGMLVersion((CityGMLVersion)e.getNewValue(), true);
-	}
+	public void handleEvent(Event event) throws Exception {}
 	
 }

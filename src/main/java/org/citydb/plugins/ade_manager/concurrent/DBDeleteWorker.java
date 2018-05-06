@@ -16,6 +16,7 @@ import org.citydb.event.global.InterruptEvent;
 import org.citydb.event.global.ObjectCounterEvent;
 import org.citydb.event.global.ProgressBarEventType;
 import org.citydb.event.global.StatusDialogProgressBar;
+import org.citydb.log.Logger;
 
 public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> implements EventHandler {
 	protected final EventDispatcher eventDispatcher;	
@@ -23,6 +24,7 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 	protected String dbSchema;
 	protected int deleteCounter = 0;
 	protected boolean AbortedDueToError = false;
+	protected final Logger LOG = Logger.getInstance();
 	
 	public DBDeleteWorker(EventDispatcher eventDispatcher) throws SQLException {
 		this.eventDispatcher = eventDispatcher;
@@ -36,7 +38,7 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 	public void doWork(DBSplittingResult work) {
 		long objectId = work.getId();
 		int objectclassId = work.getObjectType().getObjectClassId();
-		
+		LOG.debug("ADE Object (" + objectId + ") deleted");
 		try {
 			deleteCityObject(objectId);
 			updateDeleteContext(objectclassId);
