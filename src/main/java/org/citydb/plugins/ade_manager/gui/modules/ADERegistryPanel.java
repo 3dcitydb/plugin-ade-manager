@@ -78,7 +78,7 @@ public class ADERegistryPanel extends OperationModuleView {
 		adeTable.setRowSelectionAllowed(true);
 		adeTable.setRowHeight(20);		
 		adeTableScrollPanel = new JScrollPane(adeTable);
-		adeTableScrollPanel.setPreferredSize(new Dimension(adeTable.getPreferredSize().width, 120));
+		adeTableScrollPanel.setPreferredSize(new Dimension(adeTable.getPreferredSize().width, 150));
 		adeTableScrollPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(), BorderFactory.createEmptyBorder(0, 0, 4, 4)));
 
 		browseRegistryPanel = new JPanel();

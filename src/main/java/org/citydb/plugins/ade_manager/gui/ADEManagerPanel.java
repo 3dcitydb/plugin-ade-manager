@@ -24,7 +24,7 @@ import org.citydb.plugins.ade_manager.gui.modules.OperationModuleView;
 
 @SuppressWarnings("serial")
 public class ADEManagerPanel extends JPanel implements EventHandler {	
-	private final int BORDER_THICKNESS = 4;
+	private final int BORDER_THICKNESS = 5;
 
 	private JTabbedPane subModuleTab;
 	private OperationModuleView[] subModulePanels;
@@ -68,9 +68,9 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		mainScrollView.setLayout(new GridBagLayout());
 		
 		int index = 0;		
-		mainScrollView.add(registryPanel.getViewComponent(), GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,0,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
-		mainScrollView.add(subModuleTab, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,0,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
-		mainScrollView.add(Box.createVerticalGlue(), GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+		mainScrollView.add(registryPanel.getViewComponent(), GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,0,0,0,0));		
+		mainScrollView.add(subModuleTab, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS,0,0,0));		
+		mainScrollView.add(Box.createVerticalGlue(), GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,0,0,0,0));
 
 		JScrollPane mainScrollPanel = new JScrollPane(mainScrollView);
 		mainScrollPanel.setBorder(BorderFactory.createEmptyBorder());
