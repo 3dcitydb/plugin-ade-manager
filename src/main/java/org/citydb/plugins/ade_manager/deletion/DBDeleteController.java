@@ -107,13 +107,13 @@ public class DBDeleteController implements EventHandler {
 		
 		// show exported features
 		if (!objectCounter.isEmpty()) {
-			log.info("Delete city objects:");
+			log.info("Deleted city objects:");
 			Map<String, Long> typeNames = Util.mapObjectCounter(objectCounter, schemaMapping);					
 			typeNames.keySet().stream().sorted().forEach(object -> log.info(object + ": " + typeNames.get(object)));			
 		}
 
 		if (shouldRun)
-			log.info("Total process time: " + Util.formatElapsedTime(System.currentTimeMillis() - start) + ".");
+			log.info("Process time: " + Util.formatElapsedTime(System.currentTimeMillis() - start) + ".");
 
 		objectCounter.clear();
 		

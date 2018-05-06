@@ -131,7 +131,7 @@ public class DBDeleteSplitter {
 					if (query.isSetCounterFilter()) {
 						long maxCount = query.getCounterFilter().getUpperLimit();					
 						if (maxCount < hits) {
-							log.info("Exporting " + maxCount + " top-level feature(s) due to counter settings.");
+							log.info("Deleting " + maxCount + " top-level feature(s) due to counter settings.");
 							hits = maxCount;
 						}
 					}

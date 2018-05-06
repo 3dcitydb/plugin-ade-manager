@@ -210,7 +210,7 @@ public class StatusDialog extends JDialog implements EventHandler {
 				}
 			} else {
 				progressBarCounter += progressBarEvent.getValue();
-				progressBar.setValue(maxFeatureNumber);
+				progressBar.setValue(progressBarCounter);
 				remainingFeatureCounterLabel.setText(String.valueOf(maxFeatureNumber - progressBarCounter));
 			}
 		}
