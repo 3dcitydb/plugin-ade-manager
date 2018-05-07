@@ -32,6 +32,7 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	protected final String brDent6 = brDent5 + dent;
 	protected final int MAX_FUNCNAME_LENGTH = 30;
 	protected final String FUNNAME_PREFIX = "del_";
+	protected final String lineage_delete_funcname = "del_cityobject_by_lineage";
 
 	protected String updateConstraintsSql = "";
 	protected Map<String, String> functionNames;
@@ -60,10 +61,14 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 		} 
 		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
 		this.registerFunction("cityobject", schema);	
+		functionNames.put(lineage_delete_funcname, lineage_delete_funcname);
+		functionCollection.put(lineage_delete_funcname, constructLineageDeleteFunction(schema));
 		
 		return this.printDeleteScript();
 	}
 
+	
+	protected abstract String constructLineageDeleteFunction(String schemaName) throws SQLException;
 	protected abstract String constructDeleteFunction(String tableName, String schemaName) throws SQLException;
 	protected abstract void printDDLForAllDeleteFunctions(PrintStream writer);
 

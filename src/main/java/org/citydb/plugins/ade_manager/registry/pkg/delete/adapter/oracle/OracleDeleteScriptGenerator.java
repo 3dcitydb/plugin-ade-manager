@@ -177,6 +177,11 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		writer.println(script);
 	}
 	
+	@Override
+	protected String constructLineageDeleteFunction(String schemaName) throws SQLException {
+		return "";
+	}
+
 	private String create_local_delete(String tableName, String schemaName) {
 		String code_blcok = "";		
 		code_blcok += brDent2 + "DELETE FROM"

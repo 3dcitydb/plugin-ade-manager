@@ -41,10 +41,10 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		
 		String delete_func_ddl =
 				"CREATE OR REPLACE FUNCTION " + schemaName + "." + createFunctionName(tableName) + 
-				"(int[], caller INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + "$body$";
+				"(int[], caller INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + "$body$" + br;
 		
 		String declare_block = 
-				br +  "DECLARE" + 
+				"DECLARE" + 
 				brDent1 + "deleted_ids int[] := '{}';"+
 				brDent1 + "object_id integer;" +
 				brDent1 + "objectclass_id integer;";
@@ -122,11 +122,52 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 
 	@Override
 	protected void printDDLForAllDeleteFunctions(PrintStream writer) {
+		writer.println("------------------------------------------" + br);
 		for (String tableName: functionCollection.keySet()) {
 			String functionBody = functionCollection.get(tableName);
 			writer.println(functionBody);
 			writer.println("------------------------------------------" + br);
 		};
+	}
+
+	@Override
+	protected String constructLineageDeleteFunction(String schemaName) throws SQLException {	
+		String delete_func_ddl = "";
+		delete_func_ddl += 
+				"CREATE OR REPLACE FUNCTION " + schemaName + "." + lineage_delete_funcname + 
+				"(lineage_value TEXT, objectclass_id INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + 
+				"$body$" + br +
+				addSQLComment("Function for deleting cityobjects by lineage value") + br + 
+				"DECLARE" + 
+				brDent1 + "deleted_ids int[] := '{}';" + br + 
+				"BEGIN" + 
+				brDent1 + "IF $2 = 0 THEN" +	
+					brDent2 + "SELECT array_agg(c.id) FROM" + 
+						brDent3 +  schemaName + ".cityobject c" + 
+					brDent2 + "INTO" + 
+						brDent3 +  "deleted_ids" + 						
+					brDent2 + "WHERE" + 
+						brDent3 + "c.lineage = $1;" +
+				brDent1 + "ELSE" + 
+					brDent2 + "SELECT array_agg(c.id) FROM" + 
+						brDent3 +  schemaName + ".cityobject c" + 
+					brDent2 + "INTO" + 
+						brDent3 +  "deleted_ids" + 						
+					brDent2 + "WHERE" + 
+						brDent3 + "c.lineage = $1 AND c.objectclass_id = $2;" +					
+				brDent1 + "END IF;" + 
+				br +
+				brDent1 + "IF -1 = ALL(deleted_ids) IS NOT NULL THEN" + 
+					brDent2 +  "PERFORM " + schemaName + ".del_cityobject(deleted_ids);" +
+				brDent1 + "END IF;" + 
+				br + 
+				brDent1 + "RETURN QUERY" +
+					brDent2 + "SELECT unnest(deleted_ids);" + br + 
+ 				"END;" + br + 
+				"$body$" + br + 
+				"LANGUAGE plpgsql STRICT;";		
+
+		return delete_func_ddl;
 	}
 
 	private String create_local_delete(String tableName, String schemaName) {
