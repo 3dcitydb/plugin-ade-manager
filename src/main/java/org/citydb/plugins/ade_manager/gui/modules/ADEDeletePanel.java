@@ -12,7 +12,6 @@ import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import org.citydb.config.Config;
 import org.citydb.config.i18n.Language;
 import org.citydb.config.project.database.DBOperationType;
 import org.citydb.config.project.database.DatabaseConfigurationException;
@@ -27,12 +26,13 @@ import org.citydb.event.Event;
 import org.citydb.event.EventDispatcher;
 import org.citydb.event.global.InterruptEvent;
 import org.citydb.gui.util.GuiUtil;
-import org.citydb.modules.citygml.exporter.gui.view.FilterPanel;
+
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.deletion.DBDeleteController;
 import org.citydb.plugins.ade_manager.deletion.DBDeleteException;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
+import org.citydb.plugins.ade_manager.gui.util.FilterPanel;
 import org.citydb.query.Query;
 import org.citydb.query.builder.QueryBuildException;
 import org.citydb.query.builder.config.ConfigQueryBuilder;
@@ -42,8 +42,7 @@ public class ADEDeletePanel extends OperationModuleView {
 	private FilterPanel filterPanel;
 	private JButton deleteButton = new JButton();
 	private JPanel component;	
-	private Config impExpConfig;
-	
+
 	public ADEDeletePanel(ADEManagerPanel parentPanel, ConfigImpl config) {
 		super(parentPanel, config);		
 		initGui();
@@ -53,9 +52,7 @@ public class ADEDeletePanel extends OperationModuleView {
 		component = new JPanel();
 		component.setLayout(new GridBagLayout());
 
-		impExpConfig = new Config();
-		impExpConfig.getProject().getExporter().setQuery(config.getDeleteQuery());
-		filterPanel = new FilterPanel(viewContoller, impExpConfig);
+		filterPanel = new FilterPanel(viewContoller, config);
 		
 		JPanel deletePanel = new JPanel();
 		deletePanel.setLayout(new GridBagLayout());
@@ -116,8 +113,6 @@ public class ADEDeletePanel extends OperationModuleView {
 
 	@Override
 	public void loadSettings() {
-		impExpConfig = new Config();
-		impExpConfig.getProject().getExporter().setQuery(config.getDeleteQuery());
 		filterPanel.loadSettings();
 	}
 
