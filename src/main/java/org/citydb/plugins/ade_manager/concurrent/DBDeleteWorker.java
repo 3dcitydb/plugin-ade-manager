@@ -31,7 +31,7 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 		this.eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
 		connection = DatabaseConnectionPool.getInstance().getConnection();
 		connection.setAutoCommit(false);	
-		dbSchema = connection.getSchema();		
+		dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
 	}
 	
 	@Override
