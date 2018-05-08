@@ -42,6 +42,7 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	protected Map<QName, AggregationInfo> aggregationInfoCollection;
 	protected final Connection connection;
 	protected final ConfigImpl config;
+	protected final String defaultSchema = dbPool.getActiveDatabaseAdapter().getSchemaManager().getDefaultSchema();
 	protected ADEMetadataManager adeMetadataManager;
 	protected Querier querier;
 
@@ -61,13 +62,11 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 		} 
 		this.functionNames = new TreeMap<String, String>();
 		this.functionCollection = new TreeMap<String, String>();
-		
 		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
 		this.registerFunction("cityobject", schema);	
 
 		return this.printDeleteScript();
 	}
-
 	
 	protected abstract String constructLineageDeleteFunction(String schemaName);
 	protected abstract String constructDeleteFunction(String tableName, String schemaName) throws SQLException;
@@ -127,6 +126,12 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 		} 			
 	}	
 
+	protected String wrapSchemaName(String entryName, String schemaName) {
+		if (schemaName.equalsIgnoreCase(defaultSchema))
+			return entryName;
+		else
+			return schemaName + "." + entryName;
+	}
 	protected String sqlComment(String text) {
 		return "-- " + text;
 	}	 

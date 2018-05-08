@@ -374,7 +374,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 				String childTableName = entry.getValue();
 				if (childTableName.equalsIgnoreCase(tableName) 
 						|| querier.getAssociativeTables(schemaName).contains(childTableName)
-						|| !tableExists(childTableName))
+						|| !tableExists(childTableName, schemaName))
 					continue;
 				
 				int caller = 0;
@@ -587,13 +587,15 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		return code_block;
 	}
 	
-	private boolean tableExists(String tableName) throws SQLException {
+	private boolean tableExists(String tableName, String schemaName) throws SQLException {
 		boolean exist = false;
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {					
 			stmt = connection.createStatement();
-			rs = stmt.executeQuery("select 1 from all_tables where table_name = upper('" + tableName + "')");		
+			rs = stmt.executeQuery("select 1 from ALL_TABLES "
+					 + "where TABLE_NAME = upper('" + tableName + "') "
+					 + "and OWNER = upper('" + schemaName + "')");		
 			if (rs.next()) 
 				exist = true;	
 		} finally {

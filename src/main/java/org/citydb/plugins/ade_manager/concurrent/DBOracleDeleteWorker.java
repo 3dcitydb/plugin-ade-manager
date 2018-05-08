@@ -11,12 +11,12 @@ public class DBOracleDeleteWorker extends DBDeleteWorker {
 	
 	public DBOracleDeleteWorker(EventDispatcher eventDispatcher) throws SQLException {
 		super(eventDispatcher);
-		deleteCall = connection.prepareCall("{? = call citydb_delete.del_cityobject(ID_ARRAY(?))}");	
+		deleteCall = connection.prepareCall("{? = call " + dbSchema + ".citydb_delete.del_cityobject(ID_ARRAY(?))}");	
 	}
 
 	@Override
 	protected void deleteCityObject(long objectId) throws SQLException {
-		deleteCall.registerOutParameter(1, OracleTypes.ARRAY, "ID_ARRAY");
+		deleteCall.registerOutParameter(1, OracleTypes.ARRAY, defaultSchema.trim().toUpperCase() + ".ID_ARRAY");
 		deleteCall.setInt(2, (int)objectId);
 		deleteCall.executeUpdate();		
 	}

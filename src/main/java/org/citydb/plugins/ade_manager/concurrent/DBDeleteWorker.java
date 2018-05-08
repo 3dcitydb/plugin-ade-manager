@@ -25,6 +25,7 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 	protected int deleteCounter = 0;
 	protected boolean AbortedDueToError = false;
 	protected final Logger LOG = Logger.getInstance();
+	protected final String defaultSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getSchemaManager().getDefaultSchema();
 	
 	public DBDeleteWorker(EventDispatcher eventDispatcher) throws SQLException {
 		this.eventDispatcher = eventDispatcher;
