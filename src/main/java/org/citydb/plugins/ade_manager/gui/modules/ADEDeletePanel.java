@@ -219,7 +219,8 @@ public class ADEDeletePanel extends OperationModuleView {
 			}
 			
 			deleter.cleanup();
-
+			dbPool.purge();
+			
 			if (success) {
 				LOG.info("Database delete successfully finished.");
 			} else {

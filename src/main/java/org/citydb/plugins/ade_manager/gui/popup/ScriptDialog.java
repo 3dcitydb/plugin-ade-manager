@@ -132,7 +132,6 @@ public class ScriptDialog extends JDialog {
 								e1.printStackTrace();
 							}
 						}	
-						dispose();
 						LOG.info("SQL-script is successfully saved to the file: " + filename);
 					}
 				}

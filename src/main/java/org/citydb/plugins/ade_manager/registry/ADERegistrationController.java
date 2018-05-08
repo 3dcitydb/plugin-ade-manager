@@ -131,7 +131,7 @@ public class ADERegistrationController {
 	}
 	
 	public void createDeleteScripts(boolean autoInstall) throws ADERegistrationException {
-		LOG.info("Start creating delete-script for the current 3DCityDB instance...");
+		LOG.info("Creating delete-script for the current 3DCityDB instance (This process may take a while for Oracle)...");
 		String deleteScript = null;
 		DeleteScriptGenerator deleteScriptGenerator = DeleteScriptGeneratorFactory.getInstance().
 				createDatabaseAdapter(connection, config);
@@ -148,7 +148,7 @@ public class ADERegistrationController {
 	}
 	
 	public void installDeleteScript(String scriptString) throws ADERegistrationException {
-		LOG.info("Start installing delete-script for the current 3DCityDB instance...");
+		LOG.info("Installing delete-script for the current 3DCityDB instance...");
 		DeleteScriptGenerator deleteScriptGenerator = DeleteScriptGeneratorFactory.getInstance().
 				createDatabaseAdapter(connection, config);
 		try {

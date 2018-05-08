@@ -37,8 +37,6 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	
 	@Override
 	protected String constructDeleteFunction(String tableName, String schemaName) throws SQLException  {
-		String func_annotation = addSQLComment("Function for deleting records in the table: " + tableName.toUpperCase());
-		
 		String delete_func_ddl =
 				"CREATE OR REPLACE FUNCTION " + schemaName + "." + createFunctionName(tableName) + 
 				"(int[], caller INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + "$body$" + br;
@@ -104,7 +102,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		post_block += create_ref_to_parent_delete(tableName, schemaName);
 		
 		// Putting all together
-		delete_func_ddl += func_annotation + br + 
+		delete_func_ddl +=  
 				declare_block + br + 
 				"BEGIN" + pre_block +
 				brDent1 + "-- delete " + schemaName + "." + tableName + "s" + 
@@ -131,13 +129,13 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 
 	@Override
-	protected String constructLineageDeleteFunction(String schemaName) throws SQLException {	
+	protected String constructLineageDeleteFunction(String schemaName) {	
 		String delete_func_ddl = "";
 		delete_func_ddl += 
 				"CREATE OR REPLACE FUNCTION " + schemaName + "." + lineage_delete_funcname + 
 				"(lineage_value TEXT, objectclass_id INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + 
 				"$body$" + br +
-				addSQLComment("Function for deleting cityobjects by lineage value") + br + 
+				sqlComment("Function for deleting cityobjects by lineage value") + br + 
 				"DECLARE" + 
 				brDent1 + "deleted_ids int[] := '{}';" + br + 
 				"BEGIN" + 

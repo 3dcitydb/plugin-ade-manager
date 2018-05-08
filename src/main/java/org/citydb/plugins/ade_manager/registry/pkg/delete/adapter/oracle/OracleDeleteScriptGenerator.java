@@ -2,6 +2,7 @@ package org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.oracle;
 
 import java.io.PrintStream;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 
 	@Override
 	public void installDeleteScript(String scriptString) throws SQLException{
-		String[] splitStr = scriptString.split(SCRIPT_DELIMITER);
+		String[] splitStr = scriptString.replaceAll("\\/", "").split(SCRIPT_DELIMITER);
 		String pkgHeader = splitStr[0];
 		String pkgBody = splitStr[1];
 		Statement headerStmt = null;
@@ -126,8 +127,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		
 		String exception_block = 
 					brDent2 + "EXCEPTION" + 
-							brDent3 + "WHEN NO_DATA_FOUND THEN" + 
-								brDent4 + "dbms_output.put_line('No data have been deleted in this table');" +		
+							brDent3 + "WHEN NO_DATA_FOUND THEN" + 	
 								brDent4 + "RETURN deleted_ids;";	
 				
 		// Putting all together
@@ -135,7 +135,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 					declare_block + 
 					brDent1 + "BEGIN" + 
 					pre_block + 
-					brDent2 + "-- delete " + schemaName + "." + tableName + "s" + 
+					brDent2 + "-- delete " + tableName + "s" + 
 					delete_block + 
 					delete_into_block + ";" +
 					br +
@@ -155,11 +155,17 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 				"AS";
 		
 		for (String tableName: functionCollection.keySet()) {
-			script += brDent1 + "FUNCTION " + functionNames.get(tableName) + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY;";
+			if (tableName.equalsIgnoreCase(lineage_delete_funcname))
+				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY;";
+			else {
+				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY;";
+			}	
 		};
 		script += br 
 			   + "END citydb_delete;"
-			   + br + br
+			   + br 
+			   + "/"
+			   + br
 			   + SCRIPT_DELIMITER 
 			   + br + br;
 		
@@ -172,14 +178,56 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 			script += functionBody + 
 					brDent1 + "------------------------------------------" + br + br;
 		};	
-		script += "END citydb_delete;";
-		
+		script += "END citydb_delete;"
+				+ br 
+				+ "/";
 		writer.println(script);
 	}
 	
 	@Override
-	protected String constructLineageDeleteFunction(String schemaName) throws SQLException {
-		return "";
+	protected String constructLineageDeleteFunction(String schemaName) {
+		String delete_func_ddl = "";
+		delete_func_ddl += dent +  
+				"FUNCTION " + lineage_delete_funcname + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY " + 
+				brDent1 + "IS" + 
+					brDent2 + "deleted_ids id_array := id_array();" +
+					brDent2 + "dummy_ids id_array := id_array();" +
+				brDent1 + "BEGIN" + 
+					brDent2 + "IF objectclass_id = 0 THEN" +	
+						brDent3 + "SELECT" + 
+							brDent4 + "c.id" + 
+						brDent3 + "BULK COLLECT INTO" + 
+							brDent4 + "deleted_ids" + 
+						brDent3 + "FROM" + 						
+							brDent4 + "cityobject c" + 
+						brDent3 + "WHERE" +
+							brDent4 + "c.lineage = lineage_value;" + 
+					brDent2 + "ELSE" + 
+						brDent3 + "SELECT" + 
+							brDent4 + "c.id" + 
+						brDent3 + "BULK COLLECT INTO" + 
+							brDent4 + "deleted_ids" + 
+						brDent3 + "FROM" + 						
+							brDent4 + "cityobject c" + 
+						brDent3 + "WHERE" +
+							brDent4 + "c.lineage = lineage_value AND c.objectclass_id = objectclass_id;" + 				
+					brDent2 + "END IF;" + 
+					br +
+					brDent2 + "IF deleted_ids IS NOT EMPTY THEN" + 
+						brDent3 + "FOR i in 1..deleted_ids.count" +
+						brDent3 + "LOOP" +
+							brDent4 + "dummy_ids := del_cityobject(ID_ARRAY(deleted_ids(i)), 1);" + 
+						brDent3 + "END LOOP;" +
+					brDent2 + "END IF;" + 
+					br + 
+					brDent2 + "RETURN deleted_ids;" + 
+					br + 					
+					brDent2 + "EXCEPTION" + 
+							brDent3 + "WHEN NO_DATA_FOUND THEN" + 
+								brDent4 + "RETURN deleted_ids;" + 
+				brDent1 + "END;";
+		
+		return delete_func_ddl;
 	}
 
 	private String create_local_delete(String tableName, String schemaName) {
@@ -324,7 +372,9 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 			for (Entry<Integer, String> entry: subObjectclasses.entrySet()) {
 				int childObjectclassId = entry.getKey();
 				String childTableName = entry.getValue();
-				if (childTableName.equalsIgnoreCase(tableName) || querier.getAssociativeTables(schemaName).contains(childTableName))
+				if (childTableName.equalsIgnoreCase(tableName) 
+						|| querier.getAssociativeTables(schemaName).contains(childTableName)
+						|| !tableExists(childTableName))
 					continue;
 				
 				int caller = 0;
@@ -344,7 +394,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 								 + brDent3 + "FOR i in 1..pids.count"
 								 + brDent3 + "LOOP"
 								 	+ brDent4 + "object_id := pids(i);"
-									+ brDent4 + "EXECUTE IMMEDIATE " +  "'SELECT objectclass_id FROM " + schemaName + "." + tableName + " WHERE id = :1' "  
+									+ brDent4 + "EXECUTE IMMEDIATE " +  "'SELECT objectclass_id FROM " + tableName + " WHERE id = :1' "  
 								    		  + "INTO objectclass_id USING object_id;"
 									+ ref_child_block 
 								 + brDent3 + "END LOOP;"
@@ -439,7 +489,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 			index++; 
 		}
 		
-		code_block += brDent2 + "-- delete " + schemaName + "." + m_table_name + "(s)"
+		code_block += brDent2 + "-- delete " + m_table_name + "(s)"
 					+ brDent2 + "IF " + varName + " IS NOT EMPTY THEN"
 						+ brDent3 + "SELECT DISTINCT"
 							+ brDent4 + "a.COLUMN_VALUE"
@@ -537,4 +587,23 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		return code_block;
 	}
 	
+	private boolean tableExists(String tableName) throws SQLException {
+		boolean exist = false;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {					
+			stmt = connection.createStatement();
+			rs = stmt.executeQuery("select 1 from all_tables where table_name = upper('" + tableName + "')");		
+			if (rs.next()) 
+				exist = true;	
+		} finally {
+			if (rs != null) 
+				rs.close();
+	
+			if (stmt != null) 
+				stmt.close();
+		}
+
+		return exist;
+	}
 }
