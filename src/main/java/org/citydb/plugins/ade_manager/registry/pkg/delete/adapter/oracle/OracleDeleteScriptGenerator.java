@@ -474,23 +474,10 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		String code_block = "";		
 		String join_block = "";
 		String where_block = "";
-		int index = 1;
-		for (ReferencingEntry ref : aggComprefList) {				
-			String refTable = ref.getRefTable();
-			String refColumn = ref.getRefColumn();
-			join_block += "LEFT JOIN"
-							+ brDent4 + refTable + " n" + index
-							+ brDent4 + "ON n" + index + "." + refColumn + "  = a.COLUMN_VALUE";			
-			where_block += "n" + index + "." + refColumn + " IS NULL";
-			if (index < aggComprefList.size()) {
-				join_block += brDent3;
-				where_block += brDent4 + "AND ";
-			}				
-			index++; 
-		}
+		String tmp_block = "";
 		
-		code_block += brDent2 + "-- delete " + m_table_name + "(s)"
-					+ brDent2 + "IF " + varName + " IS NOT EMPTY THEN"
+		code_block += brDent2 + "-- delete " + m_table_name + "(s)";		
+		tmp_block = brDent2 + "IF " + varName + " IS NOT EMPTY THEN"
 						+ brDent3 + "SELECT DISTINCT"
 							+ brDent4 + "a.COLUMN_VALUE"
 						+ brDent3 + "BULK COLLECT INTO"
@@ -502,18 +489,40 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		// without needing to check if they are referenced by another super features
 		// In other cases (aggregation), this check is required.
 		if (tableRelation != RelationType.composition) {
-			code_block += brDent3 + join_block
+			int index = 1;
+			for (ReferencingEntry ref : aggComprefList) {				
+				String refTable = ref.getRefTable();
+				String refColumn = ref.getRefColumn();
+				join_block += "LEFT JOIN"
+								+ brDent4 + refTable + " n" + index
+								+ brDent4 + "ON n" + index + "." + refColumn + "  = a.COLUMN_VALUE";			
+				where_block += "n" + index + "." + refColumn + " IS NULL";
+				if (index < aggComprefList.size()) {
+					join_block += brDent3;
+					where_block += brDent4 + "AND ";
+				}				
+				index++; 
+			}
+			tmp_block += brDent3 + join_block
 						+ brDent3 + "WHERE " + where_block + ";";
 		}
 		else {
-			code_block += ";";
+			tmp_block += ";";
 		}
 		
-		code_block  += br
-				 + brDent3 + "IF object_ids IS NOT EMPTY THEN"
-					+ brDent4 + "dummy_ids := " + createFunctionName(m_table_name) + "(object_ids);"
-				 + brDent3 + "END IF;"
-			  + brDent2 + "END IF;" + br;
+		if (join_block.length() > 0) {
+			code_block += tmp_block + br
+					 + brDent3 + "IF object_ids IS NOT EMPTY THEN"
+						+ brDent4 + "dummy_ids := " + createFunctionName(m_table_name) + "(object_ids);"
+					 + brDent3 + "END IF;"
+				  + brDent2 + "END IF;" + br;
+		}
+		else {
+			code_block += 
+					   brDent2 + "IF " + varName + " IS NOT EMPTY THEN"
+						+ brDent3 + "dummy_ids := " + createFunctionName(m_table_name) + "(" + varName + ");"
+					 + brDent2 + "END IF;" + br;
+		}
 
 		return code_block;
 	}
