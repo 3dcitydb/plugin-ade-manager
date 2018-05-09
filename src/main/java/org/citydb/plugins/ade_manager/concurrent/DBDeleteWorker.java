@@ -3,9 +3,10 @@ package org.citydb.plugins.ade_manager.concurrent;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
-import org.citydb.concurrent.DefaultWorker;
+import org.citydb.concurrent.Worker;
 import org.citydb.config.project.global.LogLevel;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.event.Event;
@@ -18,11 +19,14 @@ import org.citydb.event.global.ProgressBarEventType;
 import org.citydb.event.global.StatusDialogProgressBar;
 import org.citydb.log.Logger;
 
-public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> implements EventHandler {
+public abstract class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHandler {
+	private final ReentrantLock mainLock = new ReentrantLock();
+	private volatile boolean shouldRun = true;
+	
 	protected final EventDispatcher eventDispatcher;	
 	protected Connection connection;
 	protected String dbSchema;
-	protected boolean AbortedDueToError = false;
+	protected boolean stoppedDuetoErrorOrCancel = false;
 	protected final Logger LOG = Logger.getInstance();
 	protected final String defaultSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getSchemaManager().getDefaultSchema();
 	
@@ -34,6 +38,57 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 	}
 	
 	@Override
+	public void interrupt() {
+		shouldRun = false;
+		workerThread.interrupt();
+	}
+
+	@Override
+	public void interruptIfIdle() {
+		final ReentrantLock runLock = this.mainLock;
+		shouldRun = false;
+
+		if (runLock.tryLock()) {
+			try {
+				workerThread.interrupt();
+			} finally {
+				runLock.unlock();
+			}
+		}
+	}
+
+	@Override
+	public void run() {
+		try {
+			if (firstWork != null) {
+				lockAndDoWork(firstWork);
+				firstWork = null;
+			}
+
+			while (shouldRun) {
+				try {
+					DBSplittingResult work = workQueue.take();
+					lockAndDoWork(work);					
+				} catch (InterruptedException ie) {
+					// re-check state
+				}
+			}
+		} finally {
+			shutdown();
+		}
+	}
+	
+	private void lockAndDoWork(DBSplittingResult work) {
+		final ReentrantLock lock = this.mainLock;
+		lock.lock();
+		
+		try {
+			doWork(work);
+		} finally {
+			lock.unlock();
+		}
+	}
+	
 	public void doWork(DBSplittingResult work) {
 		long objectId = work.getId();
 		int objectclassId = work.getObjectType().getObjectClassId();
@@ -42,16 +97,14 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 			deleteCityObject(objectId);
 			updateDeleteContext(objectclassId);
 		} catch (SQLException e) {
-			AbortedDueToError = true;
 			eventDispatcher.triggerEvent(new InterruptEvent("Aborting delete due to errors.", LogLevel.WARN, e, eventChannel, this));			
-			interrupt();
 		}
 	}
 
-	@Override
 	public void shutdown() {
 		try {
-			if (AbortedDueToError) {
+			closeDBStatement();
+			if (stoppedDuetoErrorOrCancel) {
 				if (!connection.getAutoCommit()) {
 					connection.rollback();
 				}				
@@ -64,20 +117,14 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 			e.printStackTrace();
 		} 
 		finally {
-			try {
-				closeDBStatement();
-			} catch (SQLException e2) {
-				e2.printStackTrace();
-			}
 			if (connection != null) {
 				try {
 					connection.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					//
 				}
 			}
-
-			connection = null;			
+			
 			eventDispatcher.removeEventHandler(this);
 		}
 	}
@@ -94,8 +141,10 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 
 	@Override
 	public void handleEvent(Event event) throws Exception {
-		if (event.getChannel() == eventChannel)
-			interrupt();
+		if (event.getChannel() == eventChannel) {
+			shouldRun = false;
+			stoppedDuetoErrorOrCancel= true;
+		} 			
 	}
 
 }
