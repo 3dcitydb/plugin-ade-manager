@@ -128,6 +128,7 @@ public class ADEDeletePanel extends OperationModuleView {
 		try {
 			viewContoller.clearConsole();
 			setSettings();
+			dbPool.purge();
 			
 			final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();
 			if (!databaseController.isConnected()) {
