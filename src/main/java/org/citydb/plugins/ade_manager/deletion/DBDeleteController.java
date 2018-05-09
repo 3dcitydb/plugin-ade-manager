@@ -1,6 +1,9 @@
 package org.citydb.plugins.ade_manager.deletion;
 
+import java.sql.CallableStatement;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -10,6 +13,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
 import org.citydb.concurrent.PoolSizeAdaptationStrategy;
 import org.citydb.concurrent.WorkerPool;
+import org.citydb.config.project.database.DatabaseType;
+import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.event.Event;
 import org.citydb.event.EventDispatcher;
@@ -116,6 +121,34 @@ public class DBDeleteController implements EventHandler {
 			log.info("Process time: " + Util.formatElapsedTime(System.currentTimeMillis() - start) + ".");
 
 		objectCounter.clear();
+		
+		return shouldRun;
+	}
+	
+	public boolean cleanupGlobalAppearances() throws SQLException {
+		String dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
+		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();		
+		String pkg_prefix = "";
+		Connection connection = null;
+		CallableStatement cleanupCall = null;
+		if (databaseType == DatabaseType.ORACLE)
+			pkg_prefix = "citydb_delete.";
+		
+		try {
+			connection = DatabaseConnectionPool.getInstance().getConnection();							
+			cleanupCall = connection
+					.prepareCall("{? = call " + dbSchema + "." + pkg_prefix + "cleanup_global_appearances()}");
+			cleanupCall.registerOutParameter(1, Types.INTEGER);
+			cleanupCall.executeUpdate();
+		} catch (Exception e) {
+			throw new SQLException("Failed to cleanup global appearances.", e);
+		} finally {
+			if (cleanupCall != null)
+				cleanupCall.close();
+			
+			if (connection != null)
+				connection.close();
+		}
 		
 		return shouldRun;
 	}

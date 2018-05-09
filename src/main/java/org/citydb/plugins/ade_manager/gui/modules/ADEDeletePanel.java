@@ -41,6 +41,7 @@ import org.citydb.registry.ObjectRegistry;
 public class ADEDeletePanel extends OperationModuleView {
 	private FilterPanel filterPanel;
 	private JButton deleteButton = new JButton();
+	private JButton cleanupButton = new JButton();
 	private JPanel component;	
 
 	public ADEDeletePanel(ADEManagerPanel parentPanel, ConfigImpl config) {
@@ -56,8 +57,9 @@ public class ADEDeletePanel extends OperationModuleView {
 		
 		JPanel deletePanel = new JPanel();
 		deletePanel.setLayout(new GridBagLayout());
-		deletePanel.add(deleteButton, GuiUtil.setConstraints(2,0,0.0,0.0,GridBagConstraints.NONE,0,0,0,0));	
-		
+		deletePanel.add(deleteButton, GuiUtil.setConstraints(0,0,2,1,1.0,0.0,GridBagConstraints.NONE,0,0,0,0));	
+		deletePanel.add(cleanupButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.EAST,GridBagConstraints.NONE,0,0,0,0));
+
 		int index = 0;
 		component.add(filterPanel, GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,0,0,0,0));
 		component.add(deletePanel, GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,0,0,0,0));
@@ -67,6 +69,18 @@ public class ADEDeletePanel extends OperationModuleView {
 				Thread thread = new Thread() {
 					public void run() {
 						doDelete();						
+					}
+				};
+				thread.setDaemon(true);
+				thread.start();
+			}
+		});
+		
+		cleanupButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Thread thread = new Thread() {
+					public void run() {
+						doGlobalAppearanceCleanup();					
 					}
 				};
 				thread.setDaemon(true);
@@ -104,6 +118,7 @@ public class ADEDeletePanel extends OperationModuleView {
 	public void doTranslation() {
 		filterPanel.doTranslation();
 		deleteButton.setText("Delete");
+		cleanupButton.setText("Cleanup global appearances");
 	}
 
 	@Override
@@ -235,6 +250,46 @@ public class ADEDeletePanel extends OperationModuleView {
 		}
 	}
 
+	private void doGlobalAppearanceCleanup() {
+		viewContoller.setStatusText("Cleanup");
+		LOG.info("Initializing database cleanup...");
+		
+		dbPool.purge();
+		
+		final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();
+		if (!databaseController.isConnected()) {
+			try {
+				databaseController.connect(true);
+				if (!databaseController.isConnected())
+					return;
+			} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
+				//
+			}
+		}
+		
+		DBDeleteController deleter = new DBDeleteController(null);
+		boolean success = false;
+		try {
+			success = deleter.cleanupGlobalAppearances();
+		} catch (SQLException e) {
+			LOG.error(e.getMessage());
+
+			Throwable cause = e.getCause();
+			while (cause != null) {
+				LOG.error("Cause: " + cause.getMessage());
+				cause = cause.getCause();
+			}
+		}
+		
+		if (success) {
+			LOG.info("Appearances cleanup successfully finished.");
+		} else {
+			LOG.warn("Appearances cleanup aborted.");
+		}
+		
+		viewContoller.setStatusText(Language.I18N.getString("main.status.ready.label"));
+	}
+	
 	@Override
 	public void handleEvent(Event event) throws Exception {}
 	

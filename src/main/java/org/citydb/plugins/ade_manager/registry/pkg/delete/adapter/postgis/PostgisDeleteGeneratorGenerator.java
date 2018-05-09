@@ -168,6 +168,39 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		return delete_func_ddl;
 	}
 
+	@Override
+	protected String constructAppearanceCleanupFunction(String schemaName) {
+		String cleanup_func_ddl = "";
+		cleanup_func_ddl += 
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(appearance_cleanup_funcname, schemaName) + 
+				"() RETURNS SETOF int AS" + br + 
+				"$body$" + br +
+				sqlComment("Function for cleaning up global appearance") + br + 
+				"DECLARE" + 
+				brDent1 + "deleted_id int;" + br + 
+				brDent1 + "app_id int;" + br + 
+				"BEGIN" + 
+				brDent1 + "PERFORM " + wrapSchemaName("del_surface_data", schemaName) + "(array_agg(s.id))" +	
+					brDent2 + "FROM " + wrapSchemaName("surface_data", schemaName) + " s " + 
+					brDent2 + "LEFT OUTER JOIN " + wrapSchemaName("textureparam", schemaName) + " t ON s.id = t.surface_data_id" + 
+					brDent2 + "WHERE t.surface_data_id IS NULL;" + 
+					br +
+					brDent2 + "FOR app_id IN" + 						
+						brDent3 + "SELECT a.id FROM " + wrapSchemaName("appearance", schemaName) + " a" +
+							brDent4 + "LEFT OUTER JOIN appear_to_surface_data asd ON a.id=asd.appearance_id" +
+								brDent5 + "WHERE a.cityobject_id IS NULL AND asd.appearance_id IS NULL" + 
+					brDent2 + "LOOP" + 
+						brDent3 +  "DELETE FROM " + wrapSchemaName("appearance", schemaName) + " WHERE id = app_id RETURNING id INTO deleted_id;" +
+						brDent3 +  "RETURN NEXT deleted_id;" + 
+					brDent2 + "END LOOP;" + 			
+				brDent1 + "RETURN;" + 
+ 				"END;" + br + 
+				"$body$" + br + 
+				"LANGUAGE plpgsql STRICT;";		
+
+		return cleanup_func_ddl;
+	}
+
 	private String create_local_delete(String tableName, String schemaName) {
 		String code_blcok = "";		
 		code_blcok += brDent2 + "DELETE FROM"

@@ -230,6 +230,12 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		return delete_func_ddl;
 	}
 
+	@Override
+	protected String constructAppearanceCleanupFunction(String schemaName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	private String create_local_delete(String tableName, String schemaName) {
 		String code_blcok = "";		
 		code_blcok += brDent2 + "DELETE FROM"

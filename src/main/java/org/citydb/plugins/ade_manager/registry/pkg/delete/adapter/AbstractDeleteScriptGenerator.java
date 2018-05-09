@@ -35,7 +35,8 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	protected final int MAX_FUNCNAME_LENGTH = 30;
 	protected final String FUNNAME_PREFIX = "del_";
 	protected final String lineage_delete_funcname = "del_cityobject_by_lineage";
-
+	protected final String appearance_cleanup_funcname = "cleanup_global_appearances";
+	
 	protected String updateConstraintsSql = "";
 	protected Map<String, String> functionNames;
 	protected Map<String, String> functionCollection;
@@ -69,6 +70,7 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	}
 	
 	protected abstract String constructLineageDeleteFunction(String schemaName);
+	protected abstract String constructAppearanceCleanupFunction(String schemaName);
 	protected abstract String constructDeleteFunction(String tableName, String schemaName) throws SQLException;
 	protected abstract void printDDLForAllDeleteFunctions(PrintStream writer);
 
@@ -98,6 +100,13 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 				functionNames.put(lineage_delete_funcname, lineage_delete_funcname);
 				functionCollection.put(lineage_delete_funcname, constructLineageDeleteFunction(schemaName));
 				LOG.info("Function '" + lineage_delete_funcname + "' created." );				
+			}
+			
+			// register and create cleanup-function for global appearances
+			if (tableName.equalsIgnoreCase("appearance")) {
+				functionNames.put(appearance_cleanup_funcname, appearance_cleanup_funcname);
+				functionCollection.put(appearance_cleanup_funcname, constructAppearanceCleanupFunction(schemaName));
+				LOG.info("Function '" + appearance_cleanup_funcname + "' created." );				
 			}
 		}			
 	}
