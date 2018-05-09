@@ -27,9 +27,4 @@ public class DBOracleDeleteWorker extends DBDeleteWorker {
 			deleteCall.close();
 	}
 
-	@Override
-	protected void postCommit() throws SQLException {
-		// nothing to do...
-	}
-
 }

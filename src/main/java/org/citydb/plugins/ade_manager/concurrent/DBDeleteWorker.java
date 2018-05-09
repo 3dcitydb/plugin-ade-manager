@@ -22,7 +22,6 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 	protected final EventDispatcher eventDispatcher;	
 	protected Connection connection;
 	protected String dbSchema;
-	protected int deleteCounter = 0;
 	protected boolean AbortedDueToError = false;
 	protected final Logger LOG = Logger.getInstance();
 	protected final String defaultSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getSchemaManager().getDefaultSchema();
@@ -30,8 +29,7 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 	public DBDeleteWorker(EventDispatcher eventDispatcher) throws SQLException {
 		this.eventDispatcher = eventDispatcher;
 		this.eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
-		connection = DatabaseConnectionPool.getInstance().getConnection();
-		connection.setAutoCommit(false);	
+		connection = DatabaseConnectionPool.getInstance().getConnection();	
 		dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
 	}
 	
@@ -39,19 +37,13 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 	public void doWork(DBSplittingResult work) {
 		long objectId = work.getId();
 		int objectclassId = work.getObjectType().getObjectClassId();
-		LOG.debug("ADE Object (" + objectId + ") deleted");
+		LOG.debug("City object (RowID = " + objectId + ") deleted");
 		try {
 			deleteCityObject(objectId);
 			updateDeleteContext(objectclassId);
 		} catch (SQLException e) {
 			AbortedDueToError = true;
-			eventDispatcher.triggerEvent(new InterruptEvent("Aborting delete due to errors.", LogLevel.WARN, e, eventChannel, this));
-			try {
-				connection.rollback();
-			} catch (SQLException e1) {
-				e1.printStackTrace();
-			}
-			
+			eventDispatcher.triggerEvent(new InterruptEvent("Aborting delete due to errors.", LogLevel.WARN, e, eventChannel, this));			
 			interrupt();
 		}
 	}
@@ -59,9 +51,14 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 	@Override
 	public void shutdown() {
 		try {
-			if (!AbortedDueToError) {
-				postCommit();
-				connection.commit();
+			if (AbortedDueToError) {
+				if (!connection.getAutoCommit()) {
+					connection.rollback();
+				}				
+			} 	
+			else {
+				if (!connection.getAutoCommit())
+					connection.commit();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -87,8 +84,7 @@ public abstract class DBDeleteWorker extends DefaultWorker<DBSplittingResult> im
 	
 	protected abstract void deleteCityObject(long objectId) throws SQLException;
 	protected abstract void closeDBStatement() throws SQLException;
-	protected abstract void postCommit() throws SQLException;
-	
+
 	private void updateDeleteContext(int objectclassId) {
 		HashMap<Integer, Long> objectCounter = new HashMap<>();
 		objectCounter.put(objectclassId, (long) 1);
