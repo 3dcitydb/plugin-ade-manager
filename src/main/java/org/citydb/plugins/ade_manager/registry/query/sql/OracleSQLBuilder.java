@@ -51,7 +51,8 @@ public class OracleSQLBuilder extends AbstractSQLBuilder{
 			  			.append("AND c.table_name <> c2.table_name ")
 			  			.append("AND c.constraint_type = 'R' ")
 			  		.append("ORDER BY ")
-			  			.append("n_table_name");
+			  			.append("n_table_name, ")
+			  			.append("n_fk_column_name");
 		
 		return strBuilder.toString();
 	}

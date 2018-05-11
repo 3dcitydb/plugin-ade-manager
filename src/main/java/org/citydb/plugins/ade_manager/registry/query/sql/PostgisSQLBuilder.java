@@ -37,7 +37,8 @@ public class PostgisSQLBuilder extends AbstractSQLBuilder{
 			  	       .append("AND c.conrelid <> c.confrelid ")
 			  	       .append("AND c.contype = 'f' ")		  	       
 			  	  .append("ORDER BY ")
-			  	  	   .append("n_table_name");
+			  	  	   .append("n_table_name, ")
+			  	  	   .append("n_fk_column_name");
 		
 		return strBuilder.toString();
 	}
