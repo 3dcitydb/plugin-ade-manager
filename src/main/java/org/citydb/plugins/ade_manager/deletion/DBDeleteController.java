@@ -125,7 +125,7 @@ public class DBDeleteController implements EventHandler {
 		return shouldRun;
 	}
 	
-	public boolean cleanupGlobalAppearances() throws SQLException {
+	public boolean cleanupGlobalAppearances() throws DBDeleteException {
 		String dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
 		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();		
 		String pkg_prefix = "";
@@ -144,13 +144,21 @@ public class DBDeleteController implements EventHandler {
 			if (deleteResult != null)
 				log.info("Cleaned up global appearances: " + deleteResult);
 		} catch (Exception e) {
-			throw new SQLException("Failed to cleanup global appearances.", e);
+			throw new DBDeleteException("Failed to cleanup global appearances.", e);
 		} finally {
 			if (cleanupCall != null)
-				cleanupCall.close();
+				try {
+					cleanupCall.close();
+				} catch (SQLException e) {
+					//
+				}
 			
 			if (connection != null)
-				connection.close();
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					//
+				}
 		}
 		
 		return shouldRun;
