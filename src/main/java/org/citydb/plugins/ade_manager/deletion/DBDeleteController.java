@@ -136,10 +136,13 @@ public class DBDeleteController implements EventHandler {
 		
 		try {
 			connection = DatabaseConnectionPool.getInstance().getConnection();							
-			cleanupCall = connection
-					.prepareCall("{? = call " + dbSchema + "." + pkg_prefix + "cleanup_global_appearances()}");
+			cleanupCall = connection.prepareCall("{? = call " + dbSchema + "." + pkg_prefix + "cleanup_global_appearances()}");
 			cleanupCall.registerOutParameter(1, Types.INTEGER);
 			cleanupCall.executeUpdate();
+			
+			Integer deleteResult = cleanupCall.getInt(1);
+			if (deleteResult != null)
+				log.info("Cleaned up global appearances: " + deleteResult);
 		} catch (Exception e) {
 			throw new SQLException("Failed to cleanup global appearances.", e);
 		} finally {
