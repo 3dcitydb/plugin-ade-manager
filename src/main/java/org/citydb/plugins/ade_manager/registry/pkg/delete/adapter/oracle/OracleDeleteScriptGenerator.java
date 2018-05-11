@@ -157,6 +157,9 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		for (String tableName: functionCollection.keySet()) {
 			if (tableName.equalsIgnoreCase(lineage_delete_funcname))
 				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY;";
+			else if (tableName.equalsIgnoreCase(appearance_cleanup_funcname))
+				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + " RETURN number;";
+			
 			else {
 				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY;";
 			}	
@@ -232,8 +235,56 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 
 	@Override
 	protected String constructAppearanceCleanupFunction(String schemaName) {
-		// TODO Auto-generated method stub
-		return null;
+		String cleanup_func_ddl = "";
+		cleanup_func_ddl += dent + 
+				"FUNCTION " + wrapSchemaName(appearance_cleanup_funcname, schemaName) + " RETURN number" + 
+				brDent1 + "IS" +   
+					brDent2 + "deleted_ids ID_ARRAY := ID_ARRAY();" +
+					brDent2 + "surface_data_ids ID_ARRAY;" +
+					brDent2 + "appearance_ids ID_ARRAY;" +
+					brDent2 + "dummy_ids ID_ARRAY := ID_ARRAY();" + 
+				brDent1 + "BEGIN" + 	
+					brDent2 + "SELECT" + 
+						brDent3 + "s.id" + 
+					brDent2 + "BULK COLLECT INTO" + 
+						brDent3 + "surface_data_ids" + 
+					brDent2 + "FROM" + 						
+						brDent3 + "surface_data s" + 
+					brDent2 + "LEFT OUTER JOIN" +
+						brDent3 + "textureparam t " +
+						brDent3	+ "ON s.id=t.surface_data_id" + 
+					brDent2 + "WHERE" +
+						brDent3 + "t.surface_data_id IS NULL;" + 
+					br +
+					brDent2 + "IF surface_data_ids IS NOT EMPTY THEN" + 	
+						brDent3 + "dummy_ids := del_surface_data(surface_data_ids);" + 
+					brDent2 + "END IF;" +
+					br +
+					brDent2 + "SELECT" + 
+						brDent4 + "a.id" + 
+					brDent3 + "BULK COLLECT INTO" + 
+						brDent4 + "appearance_ids" + 
+					brDent3 + "FROM" + 						
+						brDent4 + "appearance a" + 
+					brDent3 + "LEFT OUTER JOIN" +
+						brDent4 + "appear_to_surface_data asd" + 			
+						brDent4 + "ON a.id=asd.appearance_id" +
+					brDent3 + "WHERE" + 						
+						brDent4 + "a.cityobject_id IS NULL" +
+						brDent4 + "AND asd.appearance_id IS NULL;" +
+					br +
+					brDent2 + "IF appearance_ids IS NOT EMPTY THEN" + 
+						brDent3 + "deleted_ids := del_appearance(appearance_ids);" +
+					brDent2 + "END IF;" + 
+					br + 
+					brDent2 + "RETURN deleted_ids.count;" + 
+					br + 					
+					brDent2 + "EXCEPTION" + 
+							brDent3 + "WHEN NO_DATA_FOUND THEN" + 
+								brDent4 + "RETURN deleted_ids.count;" + 
+				brDent1 + "END;";
+
+		return cleanup_func_ddl;
 	}
 
 	private String create_local_delete(String tableName, String schemaName) {
