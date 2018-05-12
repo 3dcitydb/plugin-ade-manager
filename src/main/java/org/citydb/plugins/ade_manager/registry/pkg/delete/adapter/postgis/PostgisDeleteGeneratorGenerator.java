@@ -173,13 +173,12 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		String cleanup_func_ddl = "";
 		cleanup_func_ddl += 
 				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(appearance_cleanup_funcname, schemaName) + 
-				"() RETURNS integer AS" + br + 
+				"() RETURNS SETOF int AS" + br + 
 				"$body$" + br +
 				sqlComment("Function for cleaning up global appearance") + br + 
 				"DECLARE" + 
 				brDent1 + "deleted_id int;" + 
-				brDent1 + "app_id int;" + 
-				brDent1 + "deleted_count integer := 0;" + br +
+				brDent1 + "app_id int;" + br +
 				"BEGIN" + 
 				brDent1 + "PERFORM " + wrapSchemaName("del_surface_data", schemaName) + "(array_agg(s.id))" +	
 					brDent2 + "FROM " + wrapSchemaName("surface_data", schemaName) + " s " + 
@@ -192,10 +191,10 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 								brDent5 + "WHERE a.cityobject_id IS NULL AND asd.appearance_id IS NULL" + 
 					brDent2 + "LOOP" + 
 						brDent3 +  "DELETE FROM " + wrapSchemaName("appearance", schemaName) + " WHERE id = app_id RETURNING id INTO deleted_id;" +
-						brDent3 +  "deleted_count := deleted_count + 1;" + 
+						brDent3 +  "RETURN NEXT deleted_id;" + 
 					brDent2 + "END LOOP;" + 	
 					br +
-				brDent1 + "RETURN deleted_count;" + br +
+				brDent1 + "RETURN;" + br +
  				"END;" + br + 
 				"$body$" + br + 
 				"LANGUAGE plpgsql STRICT;";		

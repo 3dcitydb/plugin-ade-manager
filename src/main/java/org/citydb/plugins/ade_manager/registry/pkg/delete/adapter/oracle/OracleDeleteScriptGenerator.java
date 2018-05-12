@@ -158,7 +158,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 			if (tableName.equalsIgnoreCase(lineage_delete_funcname))
 				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY;";
 			else if (tableName.equalsIgnoreCase(appearance_cleanup_funcname))
-				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + " RETURN number;";
+				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + " RETURN ID_ARRAY;";
 			
 			else {
 				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY;";
@@ -237,7 +237,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	protected String constructAppearanceCleanupFunction(String schemaName) {
 		String cleanup_func_ddl = "";
 		cleanup_func_ddl += dent + 
-				"FUNCTION " + wrapSchemaName(appearance_cleanup_funcname, schemaName) + " RETURN number" + 
+				"FUNCTION " + wrapSchemaName(appearance_cleanup_funcname, schemaName) + " RETURN ID_ARRAY" + 
 				brDent1 + "IS" +   
 					brDent2 + "deleted_ids ID_ARRAY := ID_ARRAY();" +
 					brDent2 + "surface_data_ids ID_ARRAY;" +
@@ -277,11 +277,11 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 						brDent3 + "deleted_ids := del_appearance(appearance_ids);" +
 					brDent2 + "END IF;" + 
 					br + 
-					brDent2 + "RETURN deleted_ids.count;" + 
+					brDent2 + "RETURN deleted_ids;" + 
 					br + 					
 					brDent2 + "EXCEPTION" + 
 							brDent3 + "WHEN NO_DATA_FOUND THEN" + 
-								brDent4 + "RETURN deleted_ids.count;" + 
+								brDent4 + "RETURN deleted_ids;" + 
 				brDent1 + "END;";
 
 		return cleanup_func_ddl;

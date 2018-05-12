@@ -1,9 +1,12 @@
 package org.citydb.plugins.ade_manager.deletion;
 
+import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -28,6 +31,8 @@ import org.citydb.query.Query;
 import org.citydb.query.builder.QueryBuildException;
 import org.citydb.registry.ObjectRegistry;
 import org.citydb.util.Util;
+
+import oracle.jdbc.OracleTypes;
 
 public class DBDeleteController implements EventHandler {
 	private final Logger log = Logger.getInstance();
@@ -127,43 +132,52 @@ public class DBDeleteController implements EventHandler {
 	
 	public boolean cleanupGlobalAppearances() throws DBDeleteException {
 		String dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
-		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();		
-		String pkg_prefix = "";
+		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();	
 		Connection connection = null;
-		CallableStatement cleanupCall = null;
-		if (databaseType == DatabaseType.ORACLE)
-			pkg_prefix = "citydb_delete.";
+		Statement cleanupStmt = null;
+		int sum = 0;
 		
 		try {
-			connection = DatabaseConnectionPool.getInstance().getConnection();							
-			cleanupCall = connection.prepareCall("{? = call " + dbSchema + "." + pkg_prefix + "cleanup_global_appearances()}");
-			cleanupCall.registerOutParameter(1, Types.INTEGER);
-			cleanupCall.executeUpdate();
-			
-			Integer deleteResult = cleanupCall.getInt(1);
-			if (deleteResult != null)
-				log.info("Cleaned up global appearances: " + deleteResult);
-		} catch (Exception e) {
+			connection = DatabaseConnectionPool.getInstance().getConnection();	
+			if (databaseType == DatabaseType.ORACLE) {		
+				cleanupStmt = connection.prepareCall("{? = call " + dbSchema + ".citydb_delete.cleanup_global_appearances()}");
+				((CallableStatement)cleanupStmt).registerOutParameter(1, OracleTypes.ARRAY, dbSchema.trim().toUpperCase() + ".ID_ARRAY");
+				((CallableStatement)cleanupStmt).execute();			
+				BigDecimal[] results = (BigDecimal[]) ((CallableStatement)cleanupStmt).getArray(1).getArray();           
+				sum = results.length;
+			}
+			else if (databaseType == DatabaseType.POSTGIS) {						
+				cleanupStmt = connection.prepareStatement("select " + dbSchema + ".cleanup_global_appearances()");
+				ResultSet rs = ((PreparedStatement)cleanupStmt).executeQuery();	
+				while (rs.next()) 
+					sum++;
+			}
+			else
+				throw new DBDeleteException("Unsupported database type for running appearance cleanup.");
+		} catch (SQLException e) {
 			throw new DBDeleteException("Failed to cleanup global appearances.", e);
 		} finally {
-			if (cleanupCall != null)
+			if (cleanupStmt != null) {
 				try {
-					cleanupCall.close();
+					cleanupStmt.close();
 				} catch (SQLException e) {
 					//
 				}
-			
-			if (connection != null)
+			}							
+			if (connection != null) {
 				try {
 					connection.close();
 				} catch (SQLException e) {
 					//
 				}
+			}
 		}
+		
+		log.info("Cleaned up global appearances: " + sum);
 		
 		return shouldRun;
 	}
-
+	
 	@Override
 	public void handleEvent(Event e) throws Exception {
 		if (e.getEventType() == EventType.OBJECT_COUNTER) {
