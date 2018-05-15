@@ -68,7 +68,7 @@ public class PostgisSQLBuilder extends AbstractSQLBuilder{
 		StringBuilder strBuilder = new StringBuilder();
 		strBuilder.append("SELECT ")
 				      .append("c.confrelid::regclass::text AS ref_table_name, ")
-				      .append("string_agg(a.attname::text,',') AS fk_columns ")
+				      .append("string_agg(a.attname::text,',' order by a.attnum) AS fk_columns ")
 				  .append("FROM ")
 				      .append("pg_constraint c ")
 				  .append("JOIN ")
@@ -85,8 +85,7 @@ public class PostgisSQLBuilder extends AbstractSQLBuilder{
 				      .append("AND upper(a.attnum::text) <> upper('id') ")
 				      .append("AND c.contype = 'f' ")
 				  .append("GROUP BY ")
-				      .append("c.confrelid, ")
-				      .append("a_ref.attname");
+				      .append("c.confrelid");
 				
 		return strBuilder.toString();
 	}

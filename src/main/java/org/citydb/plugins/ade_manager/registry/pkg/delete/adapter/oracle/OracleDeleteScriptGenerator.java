@@ -237,7 +237,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	protected String constructAppearanceCleanupFunction(String schemaName) {
 		String cleanup_func_ddl = "";
 		cleanup_func_ddl += dent + 
-				"FUNCTION " + wrapSchemaName(appearance_cleanup_funcname, schemaName) + " RETURN ID_ARRAY" + 
+				"FUNCTION " + appearance_cleanup_funcname + " RETURN ID_ARRAY" + 
 				brDent1 + "IS" +   
 					brDent2 + "deleted_ids ID_ARRAY := ID_ARRAY();" +
 					brDent2 + "surface_data_ids ID_ARRAY;" +

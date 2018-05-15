@@ -136,10 +136,7 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	}	
 
 	protected String wrapSchemaName(String entryName, String schemaName) {
-		if (schemaName.equalsIgnoreCase(defaultSchema))
-			return entryName;
-		else
-			return schemaName + "." + entryName;
+		return schemaName + "." + entryName;
 	}
 	protected String sqlComment(String text) {
 		return "-- " + text;
