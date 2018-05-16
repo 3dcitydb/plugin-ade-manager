@@ -38,7 +38,8 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	protected final String FUNNAME_PREFIX = "del_";
 	protected final String lineage_delete_funcname = "del_cityobject_by_lineage";
 	protected final String appearance_cleanup_funcname = "cleanup_global_appearances";
-
+	protected final String schema_cleanup_funcname = "cleanup_schema";
+	
 	protected Map<String, DBStoredFunction> functionCollection;
 	protected Map<QName, AggregationInfo> aggregationInfoCollection;
 	protected final Connection connection;
@@ -65,15 +66,17 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 		
 		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
 		functionCollection.clear();
+			
 		registerDeleteFunction("cityobject", schema);	
 		registerExtraFunctions(schema);
 		
 		return this.printDeleteScript();
 	}
 	
-	protected abstract void constructLineageDeleteFunction(DBDeleteFunction deleteFunction);
-	protected abstract void constructAppearanceCleanupFunction(DBDeleteFunction deleteFunction);
 	protected abstract void constructDeleteFunction(DBDeleteFunction deleteFunction) throws SQLException;
+	protected abstract void constructLineageDeleteFunction(DBDeleteFunction deleteFunction);
+	protected abstract void constructAppearanceCleanupFunction(DBDeleteFunction cleanupFunction);
+	protected abstract void constructSchemaCleanupFunction(DBDeleteFunction cleanupFunction);
 	protected abstract void printDDLForAllDeleteFunctions(PrintStream writer);
 
 	protected String printDeleteScript() {
@@ -103,7 +106,13 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 		DBDeleteFunction cleanupAppearancesFunction = new DBDeleteFunction(appearance_cleanup_funcname, schemaName);
 		constructAppearanceCleanupFunction(cleanupAppearancesFunction);
 		functionCollection.put(appearance_cleanup_funcname, cleanupAppearancesFunction);
-		LOG.info("Delete-function '" + appearance_cleanup_funcname + "' created." );
+		LOG.info("Cleanup-function '" + appearance_cleanup_funcname + "' created." );
+		
+		// Appearance cleanup function
+		DBDeleteFunction cleanupSchemaFunction = new DBDeleteFunction(schema_cleanup_funcname, schemaName);
+		constructSchemaCleanupFunction(cleanupSchemaFunction);
+		functionCollection.put(schema_cleanup_funcname, cleanupSchemaFunction);
+		LOG.info("Cleanup-function '" + schema_cleanup_funcname + "' created." );
 	}
 	
 	protected void registerDeleteFunction(String tableName, String schemaName) throws SQLException {

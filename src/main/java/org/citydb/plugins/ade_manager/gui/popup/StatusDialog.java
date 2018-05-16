@@ -85,7 +85,8 @@ public class StatusDialog extends JDialog implements EventHandler {
 			String windowTitle, 
 			String statusTitle,
 			String statusMessage,
-			boolean setButton) {
+			boolean setButton,
+			boolean showDetails) {
 		super(frame, windowTitle, true);
 		
 		eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
@@ -94,13 +95,14 @@ public class StatusDialog extends JDialog implements EventHandler {
 		eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
 		eventDispatcher.addEventHandler(EventType.STATUS_DIALOG_PROGRESS_BAR, this);
 		
-		initGUI(windowTitle, statusTitle, statusMessage, setButton);
+		initGUI(windowTitle, statusTitle, statusMessage, setButton, showDetails);
 	}
 
 	private void initGUI(String windowTitle, 
 			String statusTitle, 
 			String statusMessage, 
-			boolean setButton) {
+			boolean setButton,
+			boolean showDetails) {
 		
 		if (statusTitle == null)
 			statusTitle = "";
@@ -130,22 +132,21 @@ public class StatusDialog extends JDialog implements EventHandler {
 				main.add(titleLabel, GuiUtil.setConstraints(0,0,0.0,0.5,GridBagConstraints.HORIZONTAL,5,5,5,5));
 				main.add(messageLabel, GuiUtil.setConstraints(0,1,0.0,0.5,GridBagConstraints.HORIZONTAL,5,5,0,5));
 				main.add(progressBar, GuiUtil.setConstraints(0,2,1.0,0.0,GridBagConstraints.HORIZONTAL,0,5,5,5));
-
-				detailsLabel = new JLabel("Details");
-				main.add(detailsLabel, GuiUtil.setConstraints(0,3,1.0,0.0,GridBagConstraints.HORIZONTAL,5,5,0,5));
-
-				row = new JPanel();
-				row.setBackground(new Color(255, 255, 255));
-				row.setBorder(BorderFactory.createEtchedBorder());
-				main.add(row, GuiUtil.setConstraints(0,4,1.0,0.0,GridBagConstraints.BOTH,0,5,5,5));
-				row.setLayout(new GridBagLayout());
-				{				
-					row.add(featureLabel, GuiUtil.setConstraints(0,0,0.0,0.0,GridBagConstraints.HORIZONTAL,5,5,1,5));
-					row.add(featureCounterLabel, GuiUtil.setConstraints(1,0,1.0,0.0,GridBagConstraints.HORIZONTAL,5,5,1,5));
-					row.add(remainingFeatureLabel, GuiUtil.setConstraints(0,1,0.0,0.0,GridBagConstraints.HORIZONTAL,1,5,5,5));
-					row.add(remainingFeatureCounterLabel, GuiUtil.setConstraints(1,1,1.0,0.0,GridBagConstraints.HORIZONTAL,1,5,5,5));
-				}
-			
+				if (showDetails) {
+					detailsLabel = new JLabel("Details");
+					main.add(detailsLabel, GuiUtil.setConstraints(0,3,1.0,0.0,GridBagConstraints.HORIZONTAL,5,5,0,5));
+					row = new JPanel();
+					row.setBackground(new Color(255, 255, 255));
+					row.setBorder(BorderFactory.createEtchedBorder());
+					main.add(row, GuiUtil.setConstraints(0,4,1.0,0.0,GridBagConstraints.BOTH,0,5,5,5));
+					row.setLayout(new GridBagLayout());
+					{				
+						row.add(featureLabel, GuiUtil.setConstraints(0,0,0.0,0.0,GridBagConstraints.HORIZONTAL,5,5,1,5));
+						row.add(featureCounterLabel, GuiUtil.setConstraints(1,0,1.0,0.0,GridBagConstraints.HORIZONTAL,5,5,1,5));
+						row.add(remainingFeatureLabel, GuiUtil.setConstraints(0,1,0.0,0.0,GridBagConstraints.HORIZONTAL,1,5,5,5));
+						row.add(remainingFeatureCounterLabel, GuiUtil.setConstraints(1,1,1.0,0.0,GridBagConstraints.HORIZONTAL,1,5,5,5));
+					}
+				}			
 			}
 
 			if (setButton)

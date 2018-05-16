@@ -190,7 +190,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	
 	@Override
 	protected void constructLineageDeleteFunction(DBDeleteFunction deleteFunction) {
-		String declareField = "FUNCTION " + lineage_delete_funcname + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY";
+		String declareField = "FUNCTION " + deleteFunction.getName() + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY";
 		deleteFunction.setDeclareField(declareField);
 		
 		String delete_func_ddl = "";
@@ -238,9 +238,9 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	}
 
 	@Override
-	protected void constructAppearanceCleanupFunction(DBDeleteFunction deleteFunction) {
-		String declareField = "FUNCTION " + appearance_cleanup_funcname + " RETURN ID_ARRAY";
-		deleteFunction.setDeclareField(declareField);
+	protected void constructAppearanceCleanupFunction(DBDeleteFunction cleanupFunction) {
+		String declareField = "FUNCTION " + cleanupFunction.getName() + " RETURN ID_ARRAY";
+		cleanupFunction.setDeclareField(declareField);
 		
 		String cleanup_func_ddl = "";
 		cleanup_func_ddl += dent + 
@@ -291,7 +291,89 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 								brDent4 + "RETURN deleted_ids;" + 
 				brDent1 + "END;";
 
-		deleteFunction.setDefinition(cleanup_func_ddl);
+		cleanupFunction.setDefinition(cleanup_func_ddl);
+	}
+
+	@Override
+	protected void constructSchemaCleanupFunction(DBDeleteFunction cleanupFunction) {
+		String declareField = "PROCEDURE " + cleanupFunction.getName();
+		cleanupFunction.setDeclareField(declareField);
+		
+		String cleanup_func_ddl = "";
+		cleanup_func_ddl += dent + 
+				declareField + 
+				brDent1 + "IS" + 
+					brDent2 + "dummy_str strarray;" +
+					brDent2 + "seq_value number;" +				
+				brDent1 + "BEGIN" + 
+					br +
+					brDent2 + "dummy_str := citydb_idx.drop_spatial_indexes();" + 
+					br +
+					brDent2 + "for uc in (" + 
+						brDent3 + "select constraint_name, table_name from user_constraints" + 
+					brDent2 + ")" + 
+					brDent2 + "LOOP" + 
+						brDent3 + "execute immediate 'alter table '||uc.table_name||' disable constraint '||uc.constraint_name||'';" + 						
+					brDent2 + "END loop;" + 
+					br +
+					brDent2 + "for ut in (" +
+						brDent3 + "select table_name FROM user_tables" +
+						brDent3	+ "WHERE table_name NOT IN ("
+									+ "'DATABASE_SRS', "
+									+ "'OBJECTCLASS', "
+									+ "'INDEX_TABLE', "
+									+ "'ADE', "
+									+ "'SCHEMA', "
+									+ "'SCHEMA_TO_OBJECTCLASS', "
+									+ "'SCHEMA_REFERENCING', "
+									+ "'AGGREGATION_INFO')" + 
+						brDent3 + "AND table_name NOT LIKE '%\\_AUX' ESCAPE '\\'" +
+						brDent3 + "AND table_name NOT LIKE '%TMP\\_%' ESCAPE '\\'" + 
+						brDent3 + "AND table_name NOT LIKE '%MDRT%'" + 	
+						brDent3 + "AND table_name NOT LIKE '%MDXT%'" + 
+						brDent3 + "AND table_name NOT LIKE '%MDNT%'" +
+					brDent2 + ")" + 
+					brDent2 + "LOOP" + 
+						brDent3 + "execute immediate 'truncate table '||ut.table_name||'';" + 
+					brDent2 + "END loop;" +
+					br +
+					brDent2 + "for uc in (" + 						
+						brDent3 + "select constraint_name, table_name from user_constraints" + 
+					brDent2 + ")" +
+					brDent2 + "LOOP" + 			
+						brDent3 + "execute immediate 'alter table '||uc.table_name||' enable constraint '||uc.constraint_name||'';" +
+					brDent2 + "END loop;" + 
+					br +
+					brDent2 + "for us in (" +
+						brDent3 + "select sequence_name from user_sequences" +
+						brDent3	+ "WHERE sequence_name NOT IN ("
+									+ "'INDEX_TABLE_SEQ', "						
+									+ "'ADE_SEQ', "		
+									+ "'SCHEMA_SEQ')" + 					
+						brDent3 + "AND sequence_name NOT LIKE '%\\_AUX' ESCAPE '\\'" + 
+						brDent3 + "AND sequence_name NOT LIKE '%TMP\\_%' ESCAPE '\\'" +
+						brDent3 + "AND sequence_name NOT LIKE '%MDRS%'" + 
+						brDent3 + "AND sequence_name NOT LIKE '%MDXS%'" +  					
+						brDent3 + "AND sequence_name NOT LIKE '%MDNS%'" + 
+					brDent2 + ")" + 
+					brDent2 + "LOOP" + 
+						brDent3 + "execute immediate 'select ' || us.sequence_name || '.nextval from dual' into seq_value;" +
+						brDent3 + "if (seq_value = 1) then" +
+							brDent4 + "execute immediate 'select ' || us.sequence_name || '.nextval from dual' into seq_value;" +
+						brDent3 + "end if;" +
+						brDent3 + "execute immediate 'alter sequence ' || us.sequence_name || ' increment by ' || (seq_value-1)*-1;" +
+						brDent3 + "execute immediate 'select ' || us.sequence_name || '.nextval from dual' into seq_value;" +
+						brDent3 + "execute immediate 'alter sequence ' || us.sequence_name || ' increment by 1';" +
+					brDent2 + "END LOOP;" + 						
+					br +
+					brDent2 + "dummy_str := citydb_idx.create_spatial_indexes();" + 
+					br +				
+					brDent2 + "EXCEPTION" + 
+							brDent3 + "WHEN others THEN" + 
+								brDent4 + "dbms_output.put_line('cleanup_schema: ' || SQLERRM);" + 					
+				brDent1 + "END;";
+
+		cleanupFunction.setDefinition(cleanup_func_ddl);
 	}
 
 	private String create_local_delete(String tableName, String schemaName) {

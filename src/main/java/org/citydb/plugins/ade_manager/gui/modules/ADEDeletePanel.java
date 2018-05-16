@@ -42,6 +42,7 @@ import org.citydb.registry.ObjectRegistry;
 public class ADEDeletePanel extends OperationModuleView {
 	private FilterPanel filterPanel;
 	private JButton deleteButton = new JButton();
+	private JButton cleanupButton = new JButton();
 	private JPanel component;	
 
 	public ADEDeletePanel(ADEManagerPanel parentPanel, ConfigImpl config) {
@@ -58,6 +59,7 @@ public class ADEDeletePanel extends OperationModuleView {
 		JPanel deletePanel = new JPanel();
 		deletePanel.setLayout(new GridBagLayout());
 		deletePanel.add(deleteButton, GuiUtil.setConstraints(0,0,2,1,1.0,0.0,GridBagConstraints.NONE,0,0,0,0));	
+		deletePanel.add(cleanupButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.EAST,GridBagConstraints.NONE,0,0,0,0));
 		
 		int index = 0;
 		component.add(filterPanel, GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,0,0,0,0));
@@ -68,6 +70,18 @@ public class ADEDeletePanel extends OperationModuleView {
 				Thread thread = new Thread() {
 					public void run() {
 						doDelete();						
+					}
+				};
+				thread.setDaemon(true);
+				thread.start();
+			}
+		});
+		
+		cleanupButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Thread thread = new Thread() {
+					public void run() {
+						doCleanup();						
 					}
 				};
 				thread.setDaemon(true);
@@ -105,6 +119,7 @@ public class ADEDeletePanel extends OperationModuleView {
 	public void doTranslation() {
 		filterPanel.doTranslation();
 		deleteButton.setText("Delete");
+		cleanupButton.setText("Cleanup Schema");
 	}
 
 	@Override
@@ -167,6 +182,7 @@ public class ADEDeletePanel extends OperationModuleView {
 					"CityGML Delete",
 					null,
 					"Deleting city objects",
+					true,
 					true);
 
 			SwingUtilities.invokeLater(new Runnable() {
@@ -239,6 +255,66 @@ public class ADEDeletePanel extends OperationModuleView {
 		finally {
 			lock.unlock();
 		}
+	}
+	
+	private void doCleanup() {
+		viewContoller.setStatusText("Cleanup");
+		LOG.info("Cleaning up database schema...");
+		
+		dbPool.purge();
+		
+		final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();
+		if (!databaseController.isConnected()) {
+			try {
+				databaseController.connect(true);
+				if (!databaseController.isConnected())
+					return;
+			} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
+				//
+			}
+		}
+		
+		final StatusDialog deleteDialog = new StatusDialog(viewContoller.getTopFrame(), 
+				"CityGML Cleanup",
+				null,
+				"Cleaning up schema",
+				false,
+				false);
+
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				deleteDialog.setLocationRelativeTo(viewContoller.getTopFrame());
+				deleteDialog.setVisible(true);
+			}
+		});
+		
+		DBDeleteController deleter = new DBDeleteController(null);
+		boolean success = false;
+		try {
+			success = deleter.cleanupSchema();
+		} catch (DBDeleteException e) {
+			LOG.error(e.getMessage());
+
+			Throwable cause = e.getCause();
+			while (cause != null) {
+				LOG.error("Cause: " + cause.getMessage());
+				cause = cause.getCause();
+			}
+		}
+		
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				deleteDialog.dispose();
+			}
+		});
+		
+		if (success) {
+			LOG.info("Schema cleanup successfully finished.");
+		} else {
+			LOG.warn("Schema cleanup aborted.");
+		}
+		
+		viewContoller.setStatusText(Language.I18N.getString("main.status.ready.label"));
 	}
 	
 	@Override

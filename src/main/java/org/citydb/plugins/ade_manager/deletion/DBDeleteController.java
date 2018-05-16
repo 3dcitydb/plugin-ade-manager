@@ -178,6 +178,39 @@ public class DBDeleteController implements EventHandler {
 		return shouldRun;
 	}
 	
+	public boolean cleanupSchema() throws DBDeleteException {
+		String dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();
+		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();	
+		Connection connection = null;
+		CallableStatement cleanupStmt = null;;
+		
+		try {
+			connection = DatabaseConnectionPool.getInstance().getConnection();	
+			cleanupStmt = connection.prepareCall("{call " + dbSchema + "."
+					+ (databaseType == DatabaseType.ORACLE ? "citydb_delete." : "") + "cleanup_schema()}");
+			cleanupStmt.execute();	
+		} catch (SQLException e) {
+			throw new DBDeleteException("Failed to cleanup data schema.", e);
+		} finally {
+			if (cleanupStmt != null) {
+				try {
+					cleanupStmt.close();
+				} catch (SQLException e) {
+					//
+				}
+			}							
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					//
+				}
+			}
+		}
+
+		return shouldRun;
+	}
+	
 	@Override
 	public void handleEvent(Event e) throws Exception {
 		if (e.getEventType() == EventType.OBJECT_COUNTER) {

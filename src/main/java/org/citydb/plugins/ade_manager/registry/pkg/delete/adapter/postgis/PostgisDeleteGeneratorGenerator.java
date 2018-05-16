@@ -140,7 +140,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 		
 		String delete_func_ddl = "";
 		delete_func_ddl += 
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(lineage_delete_funcname, schemaName) + 
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(deleteFunction.getName(), schemaName) + 
 				"(lineage_value TEXT, objectclass_id INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + 
 				"$body$" + br +
 				sqlComment("Function for deleting cityobjects by lineage value") + br + 
@@ -177,12 +177,12 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 
 	@Override
-	protected void constructAppearanceCleanupFunction(DBDeleteFunction deleteFunction) {
-		String schemaName = deleteFunction.getOwnerSchema();
+	protected void constructAppearanceCleanupFunction(DBDeleteFunction cleanupFunction) {
+		String schemaName = cleanupFunction.getOwnerSchema();
 			
 		String cleanup_func_ddl = "";
 		cleanup_func_ddl += 
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(appearance_cleanup_funcname, schemaName) + 
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
 				"() RETURNS SETOF int AS" + br + 
 				"$body$" + br +
 				sqlComment("Function for cleaning up global appearance") + br + 
@@ -209,7 +209,50 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				"$body$" + br + 
 				"LANGUAGE plpgsql STRICT;";		
 
-		deleteFunction.setDefinition(cleanup_func_ddl);
+		cleanupFunction.setDefinition(cleanup_func_ddl);
+	}
+
+	@Override
+	protected void constructSchemaCleanupFunction(DBDeleteFunction cleanupFunction) {
+		String schemaName = cleanupFunction.getOwnerSchema();
+		
+		String cleanup_func_ddl = "";
+		cleanup_func_ddl += 
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
+				"() RETURNS SETOF void AS" + br + 
+				"$body$" + br +
+				sqlComment("Function for cleaning up global appearance") + br + 
+				"DECLARE" + 
+				brDent1 + "rec RECORD;" + 
+				br +
+				"BEGIN" + 
+				brDent1 + "FOR rec IN"+	
+					brDent2 + "SELECT table_name FROM information_schema.tables where table_schema = '" + schemaName + "'" + 
+					brDent2 + "AND table_name != 'database_srs'" + 
+					brDent2 + "AND table_name != 'objectclass'" + 
+					brDent2 + "AND table_name != 'ade'" + 
+					brDent2 + "AND table_name != 'schema'" + 
+					brDent2 + "AND table_name != 'schema_to_objectclass'" + 
+					brDent2 + "AND table_name != 'schema_referencing'" + 
+					brDent2 + "AND table_name != 'aggregation_info'" + 
+					brDent2 + "AND table_name NOT LIKE 'tmp_%'" + 
+				brDent1 + "LOOP" + 						
+					brDent2 + "EXECUTE format('TRUNCATE TABLE " + schemaName + ".%I CASCADE', rec.table_name);" + 
+				brDent1 + "END LOOP;" + 
+				br +				
+				brDent1 + "FOR rec IN " +
+					brDent2 + "SELECT sequence_name FROM information_schema.sequences where sequence_schema = '" + schemaName + "'" +  
+					brDent2 + "AND sequence_name != 'ade_seq'" + 	
+					brDent2 + "AND sequence_name != 'schema_seq'" + 	
+				brDent1 + "LOOP" + 						
+					brDent2 + "EXECUTE format('ALTER SEQUENCE " + schemaName + ".%I RESTART', rec.sequence_name);	" + 
+				brDent1 + "END LOOP;" + 					
+				br +
+ 				"END;" + br + 
+				"$body$" + br + 
+				"LANGUAGE plpgsql;";		
+
+		cleanupFunction.setDefinition(cleanup_func_ddl);
 	}
 
 	private String create_local_delete(String tableName, String schemaName) {
