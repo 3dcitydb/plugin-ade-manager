@@ -37,7 +37,6 @@ public abstract class AbstractDeleteScriptGenerator implements DeleteScriptGener
 	protected final String lineage_delete_funcname = "del_cityobject_by_lineage";
 	protected final String appearance_cleanup_funcname = "cleanup_global_appearances";
 	
-	protected String updateConstraintsSql = "";
 	protected Map<String, String> functionNames;
 	protected Map<String, String> functionCollection;
 	protected Map<QName, AggregationInfo> aggregationInfoCollection;
