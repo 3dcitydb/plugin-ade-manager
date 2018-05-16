@@ -10,7 +10,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.pkg.delete.DBDeleteFunction;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.AbstractDeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.pkg.model.DBStoredFunction;
 import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencedEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencingEntry;
@@ -36,9 +38,13 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 	
 	@Override
-	protected String constructDeleteFunction(String tableName, String schemaName) throws SQLException  {
+	protected void constructDeleteFunction(DBDeleteFunction deleteFunction) throws SQLException  {
+		String tableName = deleteFunction.getTargetTable();
+		String funcName = deleteFunction.getName();
+		String schemaName = deleteFunction.getOwnerSchema();
+		
 		String delete_func_ddl =
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(createFunctionName(tableName), schemaName) + 
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(funcName, schemaName) + 
 				"(int[], caller INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + "$body$" + br;
 		
 		String declare_block = 
@@ -115,21 +121,23 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				"$body$" + br + 
 				"LANGUAGE plpgsql STRICT;";	
 
-		return delete_func_ddl;
+		deleteFunction.setDefinition(delete_func_ddl);
 	}
 
 	@Override
 	protected void printDDLForAllDeleteFunctions(PrintStream writer) {
 		writer.println("------------------------------------------" + br);
-		for (String tableName: functionCollection.keySet()) {
-			String functionBody = functionCollection.get(tableName);
-			writer.println(functionBody);
+		for (DBStoredFunction func: functionCollection.values()) {
+			String funcDefinition = func.getDefinition();
+			writer.println(funcDefinition);
 			writer.println("------------------------------------------" + br);
 		};
 	}
 
 	@Override
-	protected String constructLineageDeleteFunction(String schemaName) {	
+	protected void constructLineageDeleteFunction(DBDeleteFunction deleteFunction) {
+		String schemaName = deleteFunction.getOwnerSchema();
+		
 		String delete_func_ddl = "";
 		delete_func_ddl += 
 				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(lineage_delete_funcname, schemaName) + 
@@ -164,12 +172,14 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
  				"END;" + br + 
 				"$body$" + br + 
 				"LANGUAGE plpgsql STRICT;";		
-
-		return delete_func_ddl;
+		
+		deleteFunction.setDefinition(delete_func_ddl);
 	}
 
 	@Override
-	protected String constructAppearanceCleanupFunction(String schemaName) {
+	protected void constructAppearanceCleanupFunction(DBDeleteFunction deleteFunction) {
+		String schemaName = deleteFunction.getOwnerSchema();
+			
 		String cleanup_func_ddl = "";
 		cleanup_func_ddl += 
 				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(appearance_cleanup_funcname, schemaName) + 
@@ -199,7 +209,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				"$body$" + br + 
 				"LANGUAGE plpgsql STRICT;";		
 
-		return cleanup_func_ddl;
+		deleteFunction.setDefinition(cleanup_func_ddl);
 	}
 
 	private String create_local_delete(String tableName, String schemaName) {
@@ -251,7 +261,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			RelationType nRootRelation = checkTableRelationType(n_table_name, rootTableName);
 
 			if (!functionCollection.containsKey(n_table_name) && m_table_name == null)
-				registerFunction(n_table_name, schemaName);
+				registerDeleteFunction(n_table_name, schemaName);
 			
 			if (n_fk_column_name.equalsIgnoreCase("id")) { 
 				directChildTables.add(n_table_name);
@@ -288,7 +298,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			// between the root table and table m
 			if (m_table_name != null) {												
 				if (!functionCollection.containsKey(m_table_name))
-					registerFunction(m_table_name, schemaName);
+					registerDeleteFunction(m_table_name, schemaName);
 
 				RelationType mRootRelation = checkTableRelationType(m_table_name, rootTableName);
 				
@@ -491,7 +501,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 						    + brDent2 + ref_table_name + "_ids";
 				
 				if (!functionCollection.containsKey(ref_table_name))
-					registerFunction(ref_table_name, schemaName);
+					registerDeleteFunction(ref_table_name, schemaName);
 				
 				// Check if we need add additional code-block for cleaning up the sub-features
 				// for the case of aggregation relationship. 
@@ -517,7 +527,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 			List<String> adeHookTables = adeMetadataManager.getADEHookTables(parent_table);
 			if (!adeHookTables.contains(tableName)) {
 				if (!functionCollection.containsKey(parent_table))
-					registerFunction(parent_table, schemaName);
+					registerDeleteFunction(parent_table, schemaName);
 				
 				code_block += brDent1 + "IF $2 <> 1 THEN"
 						    	+ brDent2 + "-- delete " + parent_table

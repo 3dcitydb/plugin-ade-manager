@@ -12,7 +12,9 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.pkg.delete.DBDeleteFunction;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.AbstractDeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.pkg.model.DBStoredFunction;
 import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencedEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencingEntry;
@@ -68,11 +70,17 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	}
 	
 	@Override
-	protected String constructDeleteFunction(String tableName, String schemaName) throws SQLException {
+	protected void constructDeleteFunction(DBDeleteFunction deleteFunction) throws SQLException {
+		String tableName = deleteFunction.getTargetTable();
+		String funcName = deleteFunction.getName();
+		String schemaName = deleteFunction.getOwnerSchema();		
 		AtomicInteger var_index = new AtomicInteger(0);
 		
+		String declareField = "FUNCTION " + funcName + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY";		
+		deleteFunction.setDeclareField(declareField);
+		
 		String delete_func_ddl =
-				dent + "FUNCTION " + createFunctionName(tableName) + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY " + 
+				dent + declareField + 
 				brDent1 + "IS";
 		
 		String declare_block = 
@@ -144,7 +152,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 					exception_block +
 					brDent1 + "END;";	
 
-		return delete_func_ddl;
+		deleteFunction.setDefinition(delete_func_ddl);
 	}
 
 	@Override
@@ -152,18 +160,11 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		// package header
 		String script = 					
 				"CREATE OR REPLACE PACKAGE citydb_delete" + br +
-				"AS";
-		
-		for (String tableName: functionCollection.keySet()) {
-			if (tableName.equalsIgnoreCase(lineage_delete_funcname))
-				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY;";
-			else if (tableName.equalsIgnoreCase(appearance_cleanup_funcname))
-				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + " RETURN ID_ARRAY;";
-			
-			else {
-				script += brDent1 + "FUNCTION " + functionNames.get(tableName) + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY;";
-			}	
+				"AS";		
+		for (DBStoredFunction deleteFunction: functionCollection.values()) {
+			script += brDent1 + deleteFunction.getDeclareField() + ";";
 		};
+		
 		script += br 
 			   + "END citydb_delete;"
 			   + br 
@@ -176,9 +177,9 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 		script += "CREATE OR REPLACE PACKAGE BODY citydb_delete" + br +
 				  "AS " + br;
 		
-		for (String tableName: functionCollection.keySet()) {
-			String functionBody = functionCollection.get(tableName);
-			script += functionBody + 
+		for (DBStoredFunction deleteFunction: functionCollection.values()) {
+			String functionDefinition = deleteFunction.getDefinition();
+			script += functionDefinition + 
 					brDent1 + "------------------------------------------" + br + br;
 		};	
 		script += "END citydb_delete;"
@@ -188,10 +189,13 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	}
 	
 	@Override
-	protected String constructLineageDeleteFunction(String schemaName) {
+	protected void constructLineageDeleteFunction(DBDeleteFunction deleteFunction) {
+		String declareField = "FUNCTION " + lineage_delete_funcname + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY";
+		deleteFunction.setDeclareField(declareField);
+		
 		String delete_func_ddl = "";
 		delete_func_ddl += dent +  
-				"FUNCTION " + lineage_delete_funcname + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY " + 
+				declareField + 
 				brDent1 + "IS" + 
 					brDent2 + "deleted_ids id_array := id_array();" +
 					brDent2 + "dummy_ids id_array := id_array();" +
@@ -230,14 +234,17 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 								brDent4 + "RETURN deleted_ids;" + 
 				brDent1 + "END;";
 		
-		return delete_func_ddl;
+		deleteFunction.setDefinition(delete_func_ddl);
 	}
 
 	@Override
-	protected String constructAppearanceCleanupFunction(String schemaName) {
+	protected void constructAppearanceCleanupFunction(DBDeleteFunction deleteFunction) {
+		String declareField = "FUNCTION " + appearance_cleanup_funcname + " RETURN ID_ARRAY";
+		deleteFunction.setDeclareField(declareField);
+		
 		String cleanup_func_ddl = "";
 		cleanup_func_ddl += dent + 
-				"FUNCTION " + appearance_cleanup_funcname + " RETURN ID_ARRAY" + 
+				declareField + 
 				brDent1 + "IS" +   
 					brDent2 + "deleted_ids ID_ARRAY := ID_ARRAY();" +
 					brDent2 + "surface_data_ids ID_ARRAY;" +
@@ -284,7 +291,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 								brDent4 + "RETURN deleted_ids;" + 
 				brDent1 + "END;";
 
-		return cleanup_func_ddl;
+		deleteFunction.setDefinition(cleanup_func_ddl);
 	}
 
 	private String create_local_delete(String tableName, String schemaName) {
@@ -348,7 +355,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 			RelationType nRootRelation = checkTableRelationType(n_table_name, rootTableName);
 
 			if (!functionCollection.containsKey(n_table_name) && m_table_name == null) {
-				registerFunction(n_table_name, schemaName);
+				registerDeleteFunction(n_table_name, schemaName);
 			}				
 			
 			if (n_fk_column_name.equalsIgnoreCase("id")) { 
@@ -388,7 +395,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 			// between the root table and table m
 			if (m_table_name != null) {		
 				if (!functionCollection.containsKey(m_table_name)) {
-					registerFunction(m_table_name, schemaName);
+					registerDeleteFunction(m_table_name, schemaName);
 				}					
 
 				RelationType mRootRelation = checkTableRelationType(m_table_name, rootTableName);
@@ -614,7 +621,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 				collect_block += br;
 
 				if (!functionCollection.containsKey(ref_table_name))
-					registerFunction(ref_table_name, schemaName);
+					registerDeleteFunction(ref_table_name, schemaName);
 				
 				// Check if we need add additional code-block for cleaning up the sub-features
 				// for the case of aggregation relationship. 
@@ -640,7 +647,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 			List<String> adeHookTables = adeMetadataManager.getADEHookTables(parent_table);
 			if (!adeHookTables.contains(tableName)) {
 				if (!functionCollection.containsKey(parent_table))
-					registerFunction(parent_table, schemaName);
+					registerDeleteFunction(parent_table, schemaName);
 				
 				code_block += brDent2 + "IF caller <> 1 THEN"
 						    	+ brDent3 + "-- delete " + parent_table
