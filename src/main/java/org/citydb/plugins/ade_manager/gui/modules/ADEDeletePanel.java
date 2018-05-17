@@ -308,6 +308,8 @@ public class ADEDeletePanel extends OperationModuleView {
 			}
 		});
 		
+		dbPool.purge();
+		
 		if (success) {
 			LOG.info("Schema cleanup successfully finished.");
 		} else {
