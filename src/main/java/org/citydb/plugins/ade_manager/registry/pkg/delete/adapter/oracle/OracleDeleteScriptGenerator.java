@@ -408,7 +408,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 							+ brDent3 + "TABLE(pids) a"
 						+ brDent2 + "WHERE"
 							+ brDent3 + "t." + fkColumn + " = a.COLUMN_VALUE"
-							+ brDent3 + "AND t.id != a.COLUMN_VALUE;" 
+							+ brDent3 + "AND t.id <> a.COLUMN_VALUE;" 
 						+ br  // space line
 						+ brDent2 + "IF object_ids IS NOT EMPTY THEN"
 							+ brDent3 + "dummy_ids := " + createFunctionName(tableName) + "(object_ids);"

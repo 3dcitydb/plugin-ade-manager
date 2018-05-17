@@ -221,20 +221,20 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
 				"() RETURNS SETOF void AS" + br + 
 				"$body$" + br +
-				sqlComment("Function for cleaning up global appearance") + br + 
+				sqlComment("Function for cleaning up data schema") + br + 
 				"DECLARE" + 
 				brDent1 + "rec RECORD;" + 
 				br +
 				"BEGIN" + 
 				brDent1 + "FOR rec IN"+	
 					brDent2 + "SELECT table_name FROM information_schema.tables where table_schema = '" + schemaName + "'" + 
-					brDent2 + "AND table_name != 'database_srs'" + 
-					brDent2 + "AND table_name != 'objectclass'" + 
-					brDent2 + "AND table_name != 'ade'" + 
-					brDent2 + "AND table_name != 'schema'" + 
-					brDent2 + "AND table_name != 'schema_to_objectclass'" + 
-					brDent2 + "AND table_name != 'schema_referencing'" + 
-					brDent2 + "AND table_name != 'aggregation_info'" + 
+					brDent2 + "AND table_name <> 'database_srs'" + 
+					brDent2 + "AND table_name <> 'objectclass'" + 
+					brDent2 + "AND table_name <> 'ade'" + 
+					brDent2 + "AND table_name <> 'schema'" + 
+					brDent2 + "AND table_name <> 'schema_to_objectclass'" + 
+					brDent2 + "AND table_name <> 'schema_referencing'" + 
+					brDent2 + "AND table_name <> 'aggregation_info'" + 
 					brDent2 + "AND table_name NOT LIKE 'tmp_%'" + 
 				brDent1 + "LOOP" + 						
 					brDent2 + "EXECUTE format('TRUNCATE TABLE " + schemaName + ".%I CASCADE', rec.table_name);" + 
@@ -242,8 +242,8 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 				br +				
 				brDent1 + "FOR rec IN " +
 					brDent2 + "SELECT sequence_name FROM information_schema.sequences where sequence_schema = '" + schemaName + "'" +  
-					brDent2 + "AND sequence_name != 'ade_seq'" + 	
-					brDent2 + "AND sequence_name != 'schema_seq'" + 	
+					brDent2 + "AND sequence_name <> 'ade_seq'" + 	
+					brDent2 + "AND sequence_name <> 'schema_seq'" + 	
 				brDent1 + "LOOP" + 						
 					brDent2 + "EXECUTE format('ALTER SEQUENCE " + schemaName + ".%I RESTART', rec.sequence_name);	" + 
 				brDent1 + "END LOOP;" + 					
@@ -280,7 +280,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 							+ brDent2 + "unnest($1) a(a_id)"
 						+ brDent1 + "WHERE"
 							+ brDent2 + "t." + fkColumn + " = a.a_id"
-							+ brDent2 + "AND t.id != a.a_id;" + br;
+							+ brDent2 + "AND t.id <> a.a_id;" + br;
 		}
 		return code_block;
 	}
