@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.registry.pkg.model;
+package org.citydb.plugins.ade_manager.registry.pkg;
 
 public class DBStoredFunction {
 	private String name;

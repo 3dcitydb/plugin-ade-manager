@@ -1,15 +1,15 @@
 package org.citydb.plugins.ade_manager.registry.pkg.delete;
 
-import org.citydb.plugins.ade_manager.registry.pkg.model.DBStoredFunction;
+import org.citydb.plugins.ade_manager.registry.pkg.DBStoredFunction;
 
-public class DBDeleteFunction extends DBStoredFunction {
+public class DeleteFunction extends DBStoredFunction {
 	private String targetTable;
 
-	public DBDeleteFunction(String name, String schema) {
+	public DeleteFunction(String name, String schema) {
 		super(name, schema);
 	}
 	
-	public DBDeleteFunction(String targetTable, String name, String schema) {
+	public DeleteFunction(String targetTable, String name, String schema) {
 		super(name, schema);
 		this.targetTable = targetTable;
 	}

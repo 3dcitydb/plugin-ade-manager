@@ -12,8 +12,8 @@ import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
-import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
-import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGeneratorFactory;
+import org.citydb.plugins.ade_manager.registry.pkg.DBScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.pkg.DBScriptGeneratorFactory;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManagerFactory;
 import org.citydb.registry.ObjectRegistry;
@@ -133,10 +133,10 @@ public class ADERegistrationController {
 	public void createDeleteScripts(boolean autoInstall) throws ADERegistrationException {
 		LOG.info("Creating delete-script for the current 3DCityDB instance (This process may take a while for Oracle)...");
 		String deleteScript = null;
-		DeleteScriptGenerator deleteScriptGenerator = DeleteScriptGeneratorFactory.getInstance().
-				createDatabaseAdapter(connection, config);
+		DBScriptGenerator deleteScriptGenerator = DBScriptGeneratorFactory.getInstance().
+				createDeleteScriptGenerator(connection, config);
 		try {
-			deleteScript = deleteScriptGenerator.generateDeleteScript();			
+			deleteScript = deleteScriptGenerator.generateScript();			
 			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, autoInstall, this));
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to create delete-script for the current 3DCityDB instance", e);
@@ -149,10 +149,10 @@ public class ADERegistrationController {
 	
 	public void installDeleteScript(String scriptString) throws ADERegistrationException {
 		LOG.info("Installing delete-script for the current 3DCityDB instance...");
-		DeleteScriptGenerator deleteScriptGenerator = DeleteScriptGeneratorFactory.getInstance().
-				createDatabaseAdapter(connection, config);
+		DBScriptGenerator deleteScriptGenerator = DBScriptGeneratorFactory.getInstance().
+				createDeleteScriptGenerator(connection, config);
 		try {
-			deleteScriptGenerator.installDeleteScript(scriptString);;
+			deleteScriptGenerator.installScript(scriptString);;
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Error occurred while installing the generated delete-script", e);
 		}

@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.oracle;
+package org.citydb.plugins.ade_manager.registry.pkg.delete.oracle;
 
 import java.io.PrintStream;
 import java.sql.Connection;
@@ -12,15 +12,15 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.pkg.delete.DBDeleteFunction;
-import org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.AbstractDeleteScriptGenerator;
-import org.citydb.plugins.ade_manager.registry.pkg.model.DBStoredFunction;
+import org.citydb.plugins.ade_manager.registry.pkg.DBStoredFunction;
+import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteFunction;
 import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencedEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencingEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
-public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
+public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 	private final String SCRIPT_DELIMITER = "---DELIMITER---";
 	/** -- SQL-Script for Tests
 	 * declare
@@ -48,7 +48,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	}
 
 	@Override
-	public void installDeleteScript(String scriptString) throws SQLException{
+	public void installScript(String scriptString) throws SQLException{
 		String[] splitStr = scriptString.replaceAll("\\/", "").split(SCRIPT_DELIMITER);
 		String pkgHeader = splitStr[0];
 		String pkgBody = splitStr[1];
@@ -70,7 +70,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	}
 	
 	@Override
-	protected void constructDeleteFunction(DBDeleteFunction deleteFunction) throws SQLException {
+	protected void constructDeleteFunction(DeleteFunction deleteFunction) throws SQLException {
 		String tableName = deleteFunction.getTargetTable();
 		String funcName = deleteFunction.getName();
 		String schemaName = deleteFunction.getOwnerSchema();		
@@ -156,7 +156,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	}
 
 	@Override
-	protected void printDDLForAllDeleteFunctions(PrintStream writer) {
+	protected void printFunctionsDDL(PrintStream writer) {
 		// package header
 		String script = 					
 				"CREATE OR REPLACE PACKAGE citydb_delete" + br +
@@ -189,7 +189,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	}
 	
 	@Override
-	protected void constructLineageDeleteFunction(DBDeleteFunction deleteFunction) {
+	protected void constructLineageDeleteFunction(DeleteFunction deleteFunction) {
 		String declareField = "FUNCTION " + deleteFunction.getName() + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY";
 		deleteFunction.setDeclareField(declareField);
 		
@@ -238,7 +238,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	}
 
 	@Override
-	protected void constructAppearanceCleanupFunction(DBDeleteFunction cleanupFunction) {
+	protected void constructAppearanceCleanupFunction(DeleteFunction cleanupFunction) {
 		String declareField = "FUNCTION " + cleanupFunction.getName() + " RETURN ID_ARRAY";
 		cleanupFunction.setDeclareField(declareField);
 		
@@ -295,7 +295,7 @@ public class OracleDeleteScriptGenerator extends AbstractDeleteScriptGenerator {
 	}
 
 	@Override
-	protected void constructSchemaCleanupFunction(DBDeleteFunction cleanupFunction) {
+	protected void constructSchemaCleanupFunction(DeleteFunction cleanupFunction) {
 		String declareField = "PROCEDURE " + cleanupFunction.getName();
 		cleanupFunction.setDeclareField(declareField);
 		

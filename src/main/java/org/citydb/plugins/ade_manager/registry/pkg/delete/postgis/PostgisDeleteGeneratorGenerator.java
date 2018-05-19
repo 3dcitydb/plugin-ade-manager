@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.postgis;
+package org.citydb.plugins.ade_manager.registry.pkg.delete.postgis;
 
 import java.io.PrintStream;
 import java.sql.CallableStatement;
@@ -10,22 +10,22 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.pkg.delete.DBDeleteFunction;
-import org.citydb.plugins.ade_manager.registry.pkg.delete.adapter.AbstractDeleteScriptGenerator;
-import org.citydb.plugins.ade_manager.registry.pkg.model.DBStoredFunction;
+import org.citydb.plugins.ade_manager.registry.pkg.DBStoredFunction;
+import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteFunction;
 import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencedEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencingEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
-public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerator {
+public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 
 	public PostgisDeleteGeneratorGenerator(Connection connection, ConfigImpl config) {
 		super(connection, config);
 	}
 	
 	@Override
-	public void installDeleteScript(String scriptString) throws SQLException {	
+	public void installScript(String scriptString) throws SQLException {	
 		CallableStatement cs = null;
 		try {
 			cs = connection.prepareCall(scriptString);
@@ -38,7 +38,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 	
 	@Override
-	protected void constructDeleteFunction(DBDeleteFunction deleteFunction) throws SQLException  {
+	protected void constructDeleteFunction(DeleteFunction deleteFunction) throws SQLException  {
 		String tableName = deleteFunction.getTargetTable();
 		String funcName = deleteFunction.getName();
 		String schemaName = deleteFunction.getOwnerSchema();
@@ -125,7 +125,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 
 	@Override
-	protected void printDDLForAllDeleteFunctions(PrintStream writer) {
+	protected void printFunctionsDDL(PrintStream writer) {
 		writer.println("------------------------------------------" + br);
 		for (DBStoredFunction func: functionCollection.values()) {
 			String funcDefinition = func.getDefinition();
@@ -135,7 +135,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 
 	@Override
-	protected void constructLineageDeleteFunction(DBDeleteFunction deleteFunction) {
+	protected void constructLineageDeleteFunction(DeleteFunction deleteFunction) {
 		String schemaName = deleteFunction.getOwnerSchema();
 		
 		String delete_func_ddl = "";
@@ -177,7 +177,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 
 	@Override
-	protected void constructAppearanceCleanupFunction(DBDeleteFunction cleanupFunction) {
+	protected void constructAppearanceCleanupFunction(DeleteFunction cleanupFunction) {
 		String schemaName = cleanupFunction.getOwnerSchema();
 			
 		String cleanup_func_ddl = "";
@@ -213,7 +213,7 @@ public class PostgisDeleteGeneratorGenerator extends AbstractDeleteScriptGenerat
 	}
 
 	@Override
-	protected void constructSchemaCleanupFunction(DBDeleteFunction cleanupFunction) {
+	protected void constructSchemaCleanupFunction(DeleteFunction cleanupFunction) {
 		String schemaName = cleanupFunction.getOwnerSchema();
 		
 		String cleanup_func_ddl = "";
