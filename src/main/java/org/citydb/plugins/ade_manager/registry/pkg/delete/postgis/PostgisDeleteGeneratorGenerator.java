@@ -1,7 +1,5 @@
 package org.citydb.plugins.ade_manager.registry.pkg.delete.postgis;
 
-import java.io.PrintStream;
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -10,8 +8,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.pkg.DBStoredFunction;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteFunction;
 import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencedEntry;
@@ -25,18 +23,12 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	}
 	
 	@Override
-	public void installScript(String scriptString) throws SQLException {	
-		CallableStatement cs = null;
-		try {
-			cs = connection.prepareCall(scriptString);
-			cs.execute();
-		}
-		finally {
-			if (cs != null)
-				cs.close();
-		}		
+	protected DBSQLScript buildDeleteScript() throws SQLException {
+		DBSQLScript dbScript = new DBSQLScript();
+		dbScript.addSQLBlock(functionCollection.printFunctionDefinitions(separatorLine));		
+		return dbScript;
 	}
-	
+
 	@Override
 	protected void constructDeleteFunction(DeleteFunction deleteFunction) throws SQLException  {
 		String tableName = deleteFunction.getTargetTable();
@@ -125,16 +117,6 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	}
 
 	@Override
-	protected void printFunctionsDDL(PrintStream writer) {
-		writer.println("------------------------------------------" + br);
-		for (DBStoredFunction func: functionCollection.values()) {
-			String funcDefinition = func.getDefinition();
-			writer.println(funcDefinition);
-			writer.println("------------------------------------------" + br);
-		};
-	}
-
-	@Override
 	protected void constructLineageDeleteFunction(DeleteFunction deleteFunction) {
 		String schemaName = deleteFunction.getOwnerSchema();
 		
@@ -143,7 +125,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(deleteFunction.getName(), schemaName) + 
 				"(lineage_value TEXT, objectclass_id INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + 
 				"$body$" + br +
-				sqlComment("Function for deleting cityobjects by lineage value") + br + 
+				commentPrefix + "Function for deleting cityobjects by lineage value" + br + 
 				"DECLARE" + 
 				brDent1 + "deleted_ids int[] := '{}';" + br + 
 				"BEGIN" + 
@@ -185,7 +167,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
 				"() RETURNS SETOF int AS" + br + 
 				"$body$" + br +
-				sqlComment("Function for cleaning up global appearance") + br + 
+				commentPrefix + "Function for cleaning up global appearance" + br + 
 				"DECLARE" + 
 				brDent1 + "deleted_id int;" + 
 				brDent1 + "app_id int;" + br +
@@ -221,7 +203,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
 				"() RETURNS SETOF void AS" + br + 
 				"$body$" + br +
-				sqlComment("Function for cleaning up data schema") + br + 
+				commentPrefix + "Function for cleaning up data schema" + br + 
 				"DECLARE" + 
 				brDent1 + "rec RECORD;" + 
 				br +
@@ -388,18 +370,18 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				ref_child_block += br
 						 + brDent3 + "-- delete " + childTableName						 
 						 + brDent3 + "IF objectclass_id = " + childObjectclassId + " THEN"
-					 	 + brDent4 + "PERFORM " + wrapSchemaName(createFunctionName(childTableName), schemaName) + "(array_agg(object_id), " + caller + ");"
+					 	 	+ brDent4 + "PERFORM " + wrapSchemaName(createFunctionName(childTableName), schemaName) + "(array_agg(object_id), " + caller + ");"
 						 + brDent3 + "END IF;";
 			}			
 		}
 		
 		if (ref_child_block.length() > 0) {
 			ref_child_block  = brDent1 + "IF $2 <> 2 THEN"							 
-							 + brDent2 + "FOREACH object_id IN ARRAY $1"
-							 + brDent2 + "LOOP"
-								+ brDent3 + "EXECUTE format('SELECT objectclass_id FROM " + wrapSchemaName(tableName, schemaName) + " WHERE id = %L', object_id) INTO objectclass_id;"
-								+ ref_child_block 
-							 + brDent2 + "END LOOP;"
+								 + brDent2 + "FOREACH object_id IN ARRAY $1"
+								 + brDent2 + "LOOP"
+									+ brDent3 + "EXECUTE format('SELECT objectclass_id FROM " + wrapSchemaName(tableName, schemaName) + " WHERE id = %L', object_id) INTO objectclass_id;"
+									+ ref_child_block 
+								 + brDent2 + "END LOOP;"
 							 + brDent1 + "END IF;"
 							 + br;
 		}

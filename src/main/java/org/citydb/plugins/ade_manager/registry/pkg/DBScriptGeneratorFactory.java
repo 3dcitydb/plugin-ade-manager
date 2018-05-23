@@ -6,6 +6,8 @@ import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.oracle.OracleDeleteScriptGenerator;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.postgis.PostgisDeleteGeneratorGenerator;
+import org.citydb.plugins.ade_manager.registry.pkg.envelope.oracle.OracleEnvelopeScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.pkg.envelope.postgis.PostgisEnvelopeGeneratorGenerator;
 
 public class DBScriptGeneratorFactory {
 	private static DBScriptGeneratorFactory instance;
@@ -35,9 +37,9 @@ public class DBScriptGeneratorFactory {
 		DatabaseType databaseType = dbPool.getActiveDatabaseAdapter().getDatabaseType();
 		switch (databaseType) {
 		case ORACLE:
-			return new OracleDeleteScriptGenerator(connection, config);
+			return new OracleEnvelopeScriptGenerator(connection, config);
 		case POSTGIS:
-			return new PostgisDeleteGeneratorGenerator(connection, config);
+			return new PostgisEnvelopeGeneratorGenerator(connection, config);
 		}		
 		return null;
 	}

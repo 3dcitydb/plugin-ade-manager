@@ -3,6 +3,7 @@ package org.citydb.plugins.ade_manager.registry.pkg.delete;
 import java.sql.Connection;
 import java.sql.SQLException;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.DefaultDBScriptGenerator;
 
 public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
@@ -15,16 +16,18 @@ public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 	}
 	
 	@Override
-	public void registerFunctions(String schemaName) throws SQLException {					
+	protected DBSQLScript generateScript(String schemaName) throws SQLException {
 		registerDeleteFunction("cityobject", schemaName);	
 		registerExtraFunctions(schemaName);
+		
+		return buildDeleteScript();		
 	}
 	
-	@Override
 	protected String createFunctionName(String tableName) {
 		return "del_" + tableName;
 	}
-
+	
+	protected abstract DBSQLScript buildDeleteScript() throws SQLException; 	
 	protected abstract void constructDeleteFunction(DeleteFunction deleteFunction) throws SQLException;
 	protected abstract void constructLineageDeleteFunction(DeleteFunction deleteFunction);
 	protected abstract void constructAppearanceCleanupFunction(DeleteFunction cleanupFunction);

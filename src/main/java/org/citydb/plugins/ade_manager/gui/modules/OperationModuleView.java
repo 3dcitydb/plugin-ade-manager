@@ -25,7 +25,7 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 	protected static final int BORDER_THICKNESS = 3;
 	protected static final int MAX_TEXTFIELD_HEIGHT = 20;
 	protected static final int MAX_LABEL_WIDTH = 60;
-	protected static final int BUTTON_WIDTH = 180;
+	protected static final int BUTTON_WIDTH = 155;
 	
 	protected final Logger LOG = Logger.getInstance();	
 	protected final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();

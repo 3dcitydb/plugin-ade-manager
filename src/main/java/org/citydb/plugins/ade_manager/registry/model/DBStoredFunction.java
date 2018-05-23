@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.registry.pkg;
+package org.citydb.plugins.ade_manager.registry.model;
 
 public class DBStoredFunction {
 	private String name;
@@ -51,4 +51,5 @@ public class DBStoredFunction {
 	public void setOwnerSchema(String ownerSchema) {
 		this.ownerSchema = ownerSchema;
 	}
+	
 }

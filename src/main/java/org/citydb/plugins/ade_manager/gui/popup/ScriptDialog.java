@@ -28,17 +28,18 @@ import org.citydb.config.i18n.Language;
 import org.citydb.gui.factory.PopupMenuDecorator;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.log.Logger;
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 
 @SuppressWarnings("serial")
 public class ScriptDialog extends JDialog {
-	private final String scriptString;
+	private final DBSQLScript script;
 	private JButton installbutton;
 	private boolean autoInstall;
 	private final Logger LOG = Logger.getInstance();
 	
-	public ScriptDialog(JFrame frame, String scriptString, boolean autoInstall) {
+	public ScriptDialog(JFrame frame, DBSQLScript script, boolean autoInstall) {
 		super(frame, true);
-		this.scriptString = scriptString;
+		this.script = script;
 		this.autoInstall = autoInstall;
 		initGUI();
 	}
@@ -62,7 +63,7 @@ public class ScriptDialog extends JDialog {
 				scriptArea.setEditable(false);
 				scriptArea.setBackground(Color.WHITE);
 				scriptArea.setFont(new Font(Font.MONOSPACED, 0, 11));
-				scriptArea.setText(scriptString);	
+				scriptArea.setText(script.toString());	
 				scriptArea.setCaretPosition(0);					
 				PopupMenuDecorator.getInstance().decorate(scriptArea);
 				
@@ -147,8 +148,8 @@ public class ScriptDialog extends JDialog {
 		return this.installbutton;
 	}
 	
-	public String getScript() {
-		return this.scriptString;
+	public DBSQLScript getScript() {
+		return this.script;
 	}
 	
 }

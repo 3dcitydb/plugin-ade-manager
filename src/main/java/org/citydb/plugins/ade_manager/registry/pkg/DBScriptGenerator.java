@@ -2,7 +2,8 @@ package org.citydb.plugins.ade_manager.registry.pkg;
 
 import java.sql.SQLException;
 
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
+
 public interface DBScriptGenerator {
-	public String generateScript() throws SQLException;
-	public void installScript(String scriptString) throws SQLException;
+	public DBSQLScript generateDBScript() throws SQLException;
 }

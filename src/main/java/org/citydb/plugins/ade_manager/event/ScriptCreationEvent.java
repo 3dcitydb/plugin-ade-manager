@@ -28,18 +28,19 @@
 package org.citydb.plugins.ade_manager.event;
 
 import org.citydb.event.Event;
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 
 public final class ScriptCreationEvent extends Event {
-	private final String script;
+	private final DBSQLScript script;
 	private final boolean autoInstall;
 	
-	public ScriptCreationEvent(String script, boolean autoInstall, Object source) {
+	public ScriptCreationEvent(DBSQLScript script, boolean autoInstall, Object source) {
 		super(EventType.SCRIPT_CREATION_EVENT, GLOBAL_CHANNEL, source);
 		this.script =  script;
 		this.autoInstall = autoInstall;
 	}
 
-	public String getScript() {
+	public DBSQLScript getScript() {
 		return script;
 	}
 	

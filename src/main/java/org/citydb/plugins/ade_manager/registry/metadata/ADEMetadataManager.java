@@ -323,6 +323,32 @@ public class ADEMetadataManager {
 		}
 		return result;
 	}
+	
+	public SchemaMapping getADESchemaMappings() throws SQLException {
+		SchemaMapping schemaMapping = null;
+		try {
+			schemaMapping = SchemaMappingUtil.getInstance().unmarshal(CoreConstants.CITYDB_SCHEMA_MAPPING_FILE);
+		} catch (SchemaMappingException | SchemaMappingValidationException | JAXBException e) {
+			throw new SQLException("Failed to read the default 3DCityDB schema mapping file.", e);
+		};
+		
+		List<ADEMetadataInfo> ades = queryADEMetadata();
+		for (ADEMetadataInfo ade: ades) {
+			String dbPrefix = ade.getDbPrefix();
+			String schemaMappingStr = this.getSchemaMappingbyDbPrefix(dbPrefix);
+			if (schemaMappingStr != null) {
+				InputStream stream = new ByteArrayInputStream(schemaMappingStr.getBytes());
+				try {			
+					SchemaMapping adeSchemaMapping = SchemaMappingUtil.getInstance().unmarshal(schemaMapping, stream);	
+					schemaMapping.merge(adeSchemaMapping);
+				} catch (SchemaMappingException | SchemaMappingValidationException | JAXBException e) {
+					throw new SQLException("Faild to read the schema mapping file of the ADE "+ ade.getName() + "from 3DCityDB.", e);
+				}
+			}
+		}
+		
+		return schemaMapping;
+	}
 
 	public void deleteADEMetadata(String adeId) throws SQLException {
 		Statement stmt = null;	

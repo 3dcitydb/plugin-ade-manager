@@ -10,8 +10,11 @@ import org.citydb.event.EventDispatcher;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
+import org.citydb.plugins.ade_manager.registry.install.DBScriptInstaller;
+import org.citydb.plugins.ade_manager.registry.install.DBScriptInstallerFactory;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.DBScriptGenerator;
 import org.citydb.plugins.ade_manager.registry.pkg.DBScriptGeneratorFactory;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
@@ -132,32 +135,49 @@ public class ADERegistrationController {
 	
 	public void createDeleteScripts(boolean autoInstall) throws ADERegistrationException {
 		LOG.info("Creating delete-script for the current 3DCityDB instance (This process may take a while for Oracle)...");
-		String deleteScript = null;
+		DBSQLScript deleteScript = null;
 		DBScriptGenerator deleteScriptGenerator = DBScriptGeneratorFactory.getInstance().
 				createDeleteScriptGenerator(connection, config);
 		try {
-			deleteScript = deleteScriptGenerator.generateScript();			
+			deleteScript = deleteScriptGenerator.generateDBScript();			
 			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, autoInstall, this));
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to create delete-script for the current 3DCityDB instance", e);
 		}		
 		LOG.info("Delete-script is successfully created for the current 3DCityDB database.");
 		
+		LOG.info("Installing delete-script for the current 3DCityDB instance...");
 		if (autoInstall)
-			installDeleteScript(deleteScript);
+			installDBScript(deleteScript);
+		LOG.info("Delete-script is successfully installed into the connected database.");
+	}
+
+	public void createEnvelopeScripts(boolean autoInstall) throws ADERegistrationException {
+		LOG.info("Creating envelope-script for the current 3DCityDB instance...");
+		
+		DBSQLScript envelopeScript = null;
+		DBScriptGenerator envelopeScriptGenerator = DBScriptGeneratorFactory.getInstance().createEnvelopeScriptGenerator(connection, config);		
+		try {
+			envelopeScript = envelopeScriptGenerator.generateDBScript();			
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, autoInstall, this));
+		} catch (SQLException e) {
+			throw new ADERegistrationException("Failed to create envelope-script for the current 3DCityDB instance", e);
+		}		
+		LOG.info("Envelope-script is successfully created for the current 3DCityDB database.");
+		
+		LOG.info("Installing envelope-script for the current 3DCityDB instance...");
+		if (autoInstall)
+			installDBScript(envelopeScript);
+		LOG.info("envelope-script is successfully installed into the connected database.");
 	}
 	
-	public void installDeleteScript(String scriptString) throws ADERegistrationException {
-		LOG.info("Installing delete-script for the current 3DCityDB instance...");
-		DBScriptGenerator deleteScriptGenerator = DBScriptGeneratorFactory.getInstance().
-				createDeleteScriptGenerator(connection, config);
+	public void installDBScript(DBSQLScript dbScript) throws ADERegistrationException {		
+		DBScriptInstaller deleteScriptInstaller = DBScriptInstallerFactory.getInstance().createScriptInstaller(connection);
 		try {
-			deleteScriptGenerator.installScript(scriptString);;
+			deleteScriptInstaller.installScript(dbScript);
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Error occurred while installing the generated delete-script", e);
-		}
-		
-		LOG.info("Delete-script is successfully installed into the connected database.");
+		}				
 	}
 
 	public void closeDBConnection() {

@@ -1,6 +1,5 @@
 package org.citydb.plugins.ade_manager.registry.pkg.delete.oracle;
 
-import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,8 +11,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.pkg.DBStoredFunction;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteFunction;
 import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencedEntry;
@@ -21,54 +20,36 @@ import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencingEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
 public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
-	private final String SCRIPT_DELIMITER = "---DELIMITER---";
-	/** -- SQL-Script for Tests
-	 * declare
-		   dummy_ids ID_ARRAY;
-		   object_id number;
-		   cur sys_refcursor;
-		begin
-		  open cur for 'select id from cityobject where objectclass_id = 26';
-		  loop
-		    fetch cur into object_id;
-		    exit when cur%notfound;
-		    begin
-		       -- Call the function
-		       dummy_ids := citydb_delete.del_cityobject (ID_ARRAY(object_id));
-		       dbms_output.put_line('cityobject with ID ' || object_id || ' deleted!');
-		    exception
-		      when others then
-		        dbms_output.put_line('Error occurred while deleting cityobject with ID ' || object_id || ' threw: ' || SQLERRM);
-		    end;
-		  end loop;
-		end; 
-	 * **/
+
 	public OracleDeleteScriptGenerator(Connection connection, ConfigImpl config) {
 		super(connection, config);
 	}
-
-	@Override
-	public void installScript(String scriptString) throws SQLException{
-		String[] splitStr = scriptString.replaceAll("\\/", "").split(SCRIPT_DELIMITER);
-		String pkgHeader = splitStr[0];
-		String pkgBody = splitStr[1];
-		Statement headerStmt = null;
-		Statement bodyStmt = null;
-		try {
-			headerStmt = connection.createStatement();
-			headerStmt.execute(pkgHeader);
-			bodyStmt = connection.createStatement();
-			bodyStmt.execute(pkgBody);
-		} catch (SQLException e) {
-			throw new SQLException(e);
-		} finally {
-			if (headerStmt != null)
-				headerStmt.close();
-			if (bodyStmt != null)
-				bodyStmt.close();
-		}
-	}
 	
+	@Override
+	protected DBSQLScript buildDeleteScript() throws SQLException {
+		DBSQLScript dbScript = new DBSQLScript();
+		
+		// package header
+		String packageHeader = 
+					"CREATE OR REPLACE PACKAGE citydb_delete" + br +
+					"AS" + br +
+					functionCollection.printFunctionDeclareFields(dent) +
+					"END citydb_delete;" + br +
+					"/";		
+		dbScript.addSQLBlock(packageHeader);
+		
+		// package body	
+		String packageBody =
+					"CREATE OR REPLACE PACKAGE BODY citydb_delete" + br +
+					"AS " + br +		
+					functionCollection.printFunctionDefinitions(dent + separatorLine) + 
+					"END citydb_delete;" + br + 
+					"/";		
+		dbScript.addSQLBlock(packageBody);
+		
+		return dbScript;
+	}
+
 	@Override
 	protected void constructDeleteFunction(DeleteFunction deleteFunction) throws SQLException {
 		String tableName = deleteFunction.getTargetTable();
@@ -155,39 +136,6 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		deleteFunction.setDefinition(delete_func_ddl);
 	}
 
-	@Override
-	protected void printFunctionsDDL(PrintStream writer) {
-		// package header
-		String script = 					
-				"CREATE OR REPLACE PACKAGE citydb_delete" + br +
-				"AS";		
-		for (DBStoredFunction deleteFunction: functionCollection.values()) {
-			script += brDent1 + deleteFunction.getDeclareField() + ";";
-		};
-		
-		script += br 
-			   + "END citydb_delete;"
-			   + br 
-			   + "/"
-			   + br
-			   + SCRIPT_DELIMITER 
-			   + br + br;
-		
-		// package body	
-		script += "CREATE OR REPLACE PACKAGE BODY citydb_delete" + br +
-				  "AS " + br;
-		
-		for (DBStoredFunction deleteFunction: functionCollection.values()) {
-			String functionDefinition = deleteFunction.getDefinition();
-			script += functionDefinition + 
-					brDent1 + "------------------------------------------" + br + br;
-		};	
-		script += "END citydb_delete;"
-				+ br 
-				+ "/";
-		writer.println(script);
-	}
-	
 	@Override
 	protected void constructLineageDeleteFunction(DeleteFunction deleteFunction) {
 		String declareField = "FUNCTION " + deleteFunction.getName() + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY";
