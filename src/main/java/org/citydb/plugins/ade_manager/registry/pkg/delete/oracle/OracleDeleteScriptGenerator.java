@@ -152,7 +152,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "dummy_ids := " + arrayDeleteFuncname +  "(ID_ARRAY(pid));" +
 					br + 
 					brDent2 + "IF dummy_ids IS NOT EMPTY THEN" +
-						brDent3 + "deleted_id := dummy_ids(0);" + 
+						brDent3 + "deleted_id := dummy_ids(1);" + 
 					brDent2 + "END IF;" + 
 					br + 
 					brDent2 + "RETURN deleted_id;" + 
