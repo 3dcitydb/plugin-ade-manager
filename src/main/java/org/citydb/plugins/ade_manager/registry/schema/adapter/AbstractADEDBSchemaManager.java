@@ -75,8 +75,7 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		try {					
 			stmt = connection.createStatement();
 			rs = stmt.executeQuery("select o.id from " + schema + ".objectclass o, " + schema + ".ade a" 
-					+ " where o.ade_id = a.id and a.adeid = '" + adeId + "'");
-			
+					+ " where o.ade_id = a.id and a.adeid = '" + adeId + "'");			
 			while (rs.next()) {
 				int objectclassId = rs.getInt(1);	
 				AbstractObjectType<?> objectType = schemaMapping.getAbstractObjectType(objectclassId);
@@ -84,9 +83,7 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 					ProjectionFilter projectionFilter = new ProjectionFilter(objectType);
 					query.addProjectionFilter(projectionFilter);
 				}			
-			}
-
-						
+			}						
 		} finally {
 			if (rs != null) 
 				rs.close();
