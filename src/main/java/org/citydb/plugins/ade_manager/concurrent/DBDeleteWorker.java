@@ -1,12 +1,15 @@
 package org.citydb.plugins.ade_manager.concurrent;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
 import org.citydb.concurrent.Worker;
+import org.citydb.config.project.database.DatabaseType;
 import org.citydb.config.project.global.LogLevel;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.event.Event;
@@ -19,22 +22,24 @@ import org.citydb.event.global.ProgressBarEventType;
 import org.citydb.event.global.StatusDialogProgressBar;
 import org.citydb.log.Logger;
 
-public abstract class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHandler {
+public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHandler {
 	private final ReentrantLock mainLock = new ReentrantLock();
+	private final Logger LOG = Logger.getInstance();
+	private final EventDispatcher eventDispatcher;	
 	private volatile boolean shouldRun = true;
-	
-	protected final EventDispatcher eventDispatcher;	
-	protected Connection connection;
-	protected String dbSchema;
-	protected boolean stoppedDuetoErrorOrCancel = false;
-	protected final Logger LOG = Logger.getInstance();
-	protected final String defaultSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getSchemaManager().getDefaultSchema();
+	private CallableStatement deleteCall;	
+	private Connection connection;
+	private String dbSchema;
+	private boolean stoppedDuetoErrorOrCancel = false;
 	
 	public DBDeleteWorker(EventDispatcher eventDispatcher) throws SQLException {
 		this.eventDispatcher = eventDispatcher;
 		this.eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
 		connection = DatabaseConnectionPool.getInstance().getConnection();	
 		dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
+		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();	
+		deleteCall = connection.prepareCall("{? = call " + dbSchema + "."
+				+ (databaseType == DatabaseType.ORACLE ? "citydb_delete." : "") + "del_cityobject(?)}");
 	}
 	
 	@Override
@@ -94,7 +99,9 @@ public abstract class DBDeleteWorker extends Worker<DBSplittingResult> implement
 		int objectclassId = work.getObjectType().getObjectClassId();
 		LOG.debug("City object (RowID = " + objectId + ") deleted");
 		try {
-			deleteCityObject(objectId);
+			deleteCall.registerOutParameter(1, Types.INTEGER);
+			deleteCall.setInt(2, (int)objectId);
+			deleteCall.executeUpdate();	
 			updateDeleteContext(objectclassId);
 		} catch (SQLException e) {
 			eventDispatcher.triggerEvent(new InterruptEvent("Aborting delete due to errors.", LogLevel.WARN, e, eventChannel, this));			
@@ -103,7 +110,9 @@ public abstract class DBDeleteWorker extends Worker<DBSplittingResult> implement
 
 	public void shutdown() {
 		try {
-			closeDBStatement();
+			if (deleteCall != null)
+				deleteCall.close();
+			
 			if (stoppedDuetoErrorOrCancel) {
 				if (!connection.getAutoCommit()) {
 					connection.rollback();
@@ -128,9 +137,6 @@ public abstract class DBDeleteWorker extends Worker<DBSplittingResult> implement
 			eventDispatcher.removeEventHandler(this);
 		}
 	}
-	
-	protected abstract void deleteCityObject(long objectId) throws SQLException;
-	protected abstract void closeDBStatement() throws SQLException;
 
 	private void updateDeleteContext(int objectclassId) {
 		HashMap<Integer, Long> objectCounter = new HashMap<>();
