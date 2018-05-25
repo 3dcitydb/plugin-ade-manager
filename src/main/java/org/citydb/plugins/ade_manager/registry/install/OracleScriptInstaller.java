@@ -15,11 +15,15 @@ public class OracleScriptInstaller extends DefaultDBScriptInstaller {
 		Statement stmt = null;
 		try {
 			stmt = connection.createStatement();
-			stmt.execute(scriptString);
+			stmt.execute(processScriptString(scriptString));
 		} finally {
 			if (stmt != null)
 				stmt.close();
 		}
+	}
+	
+	private String processScriptString(String scriptString) {
+		return scriptString.replaceAll("/$", "");
 	}
 
 }
