@@ -7,7 +7,7 @@ import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.DefaultDBScriptGenerator;
 
 public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
-	protected final String lineage_delete_funcname = "del_cityobject_by_lineage";
+	protected final String lineage_delete_funcname = "del_cityobjects_by_lineage";
 	protected final String appearance_cleanup_funcname = "cleanup_global_appearances";
 	protected final String schema_cleanup_funcname = "cleanup_schema";
 	
@@ -23,24 +23,43 @@ public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 		return buildDeleteScript();		
 	}
 	
-	protected String createFunctionName(String tableName) {
+	protected String getArrayDeleteFunctionName(String tableName) {
+		return convertSingleToArrayDeleteFunctionName(getSingleDeleteFunctionName(tableName));
+	}
+	
+	protected String getSingleDeleteFunctionName(String tableName) {
 		return "del_" + tableName;
 	}
 	
+	protected String convertSingleToArrayDeleteFunctionName(String singleDeleteFuncname) {
+		return singleDeleteFuncname + "s";
+	}
+	
 	protected abstract DBSQLScript buildDeleteScript() throws SQLException; 	
-	protected abstract void constructDeleteFunction(DeleteFunction deleteFunction) throws SQLException;
-	protected abstract void constructLineageDeleteFunction(DeleteFunction deleteFunction);
+	protected abstract void constructArrayDeleteFunction(DeleteFunction arrayDeleteFunction) throws SQLException;
+	protected abstract void constructSingleDeleteFunction(DeleteFunction singleDeleteFunction, String arrayDeleteFuncname);
+	protected abstract void constructLineageDeleteFunction(DeleteFunction singleDeleteFunction);
 	protected abstract void constructAppearanceCleanupFunction(DeleteFunction cleanupFunction);
 	protected abstract void constructSchemaCleanupFunction(DeleteFunction cleanupFunction);
 
 	protected void registerDeleteFunction(String tableName, String schemaName) throws SQLException {
-		String funcName = createFunctionName(tableName);
-		if (!functionCollection.containsKey(funcName)) {	
-			DeleteFunction deleteFunction = new DeleteFunction(tableName, funcName, schemaName);
-			functionCollection.put(funcName, deleteFunction); 
-			constructDeleteFunction(deleteFunction);
-			LOG.info("Delete-function '" + funcName + "' created." );
-		}			
+		// create array-delete function
+		String arrayDeleteFuncName = getArrayDeleteFunctionName(tableName);
+		if (!functionCollection.containsKey(arrayDeleteFuncName)) {	
+			DeleteFunction deleteFunction = new DeleteFunction(tableName, arrayDeleteFuncName, schemaName);
+			functionCollection.put(arrayDeleteFuncName, deleteFunction); 
+			constructArrayDeleteFunction(deleteFunction);
+			LOG.info("Delete-function '" + arrayDeleteFuncName + "' created." );
+		}	
+		
+		// create single-delete function
+		String singleDeleteFuncName = getSingleDeleteFunctionName(tableName);
+		if (!functionCollection.containsKey(singleDeleteFuncName)) {	
+			DeleteFunction singleDeleteFunction = new DeleteFunction(tableName, singleDeleteFuncName, schemaName);
+			functionCollection.put(singleDeleteFuncName, singleDeleteFunction); 
+			constructSingleDeleteFunction(singleDeleteFunction, arrayDeleteFuncName);
+			LOG.info("Delete-function '" + singleDeleteFuncName + "' created." );
+		}	
 	}
 	
 	private void registerExtraFunctions(String schemaName) {
@@ -49,7 +68,7 @@ public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 		constructLineageDeleteFunction(lineageDeleteFunction);
 		functionCollection.put(lineage_delete_funcname, lineageDeleteFunction);
 		LOG.info("Delete-function '" + lineage_delete_funcname + "' created." );
-		
+
 		// Appearance cleanup function
 		DeleteFunction cleanupAppearancesFunction = new DeleteFunction(appearance_cleanup_funcname, schemaName);
 		constructAppearanceCleanupFunction(cleanupAppearancesFunction);

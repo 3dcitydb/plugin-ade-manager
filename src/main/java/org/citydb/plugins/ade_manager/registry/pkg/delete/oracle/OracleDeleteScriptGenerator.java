@@ -51,7 +51,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 	}
 
 	@Override
-	protected void constructDeleteFunction(DeleteFunction deleteFunction) throws SQLException {
+	protected void constructArrayDeleteFunction(DeleteFunction deleteFunction) throws SQLException {
 		String tableName = deleteFunction.getTargetTable();
 		String funcName = deleteFunction.getName();
 		String schemaName = deleteFunction.getOwnerSchema();		
@@ -137,6 +137,35 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 	}
 
 	@Override
+	protected void constructSingleDeleteFunction(DeleteFunction singleDeleteFunction, String arrayDeleteFuncname) {
+		String funcName = singleDeleteFunction.getName();
+		
+		String declareField = "FUNCTION " + funcName + "(pid NUMBER) RETURN NUMBER";		
+		singleDeleteFunction.setDeclareField(declareField);
+		
+		String delete_func_ddl =
+				dent + declareField + 
+				brDent1 + "IS" +
+					brDent2 + "deleted_id NUMBER;" + 
+					brDent2 + "dummy_ids ID_ARRAY;" + 
+				brDent1 + "BEGIN" + 
+					brDent2 + "dummy_ids := " + arrayDeleteFuncname +  "(ID_ARRAY(pid));" +
+					br + 
+					brDent2 + "IF dummy_ids IS NOT EMPTY THEN" +
+						brDent3 + "deleted_id := dummy_ids(0);" + 
+					brDent2 + "END IF;" + 
+					br + 
+					brDent2 + "RETURN deleted_id;" + 
+					br + 
+					brDent2 + "EXCEPTION" + 
+						brDent3 + "WHEN OTHERS THEN" + 	
+							brDent4 + "RETURN deleted_id;" +
+				brDent1 + "END;";
+		
+		singleDeleteFunction.setDefinition(delete_func_ddl);
+	}
+
+	@Override
 	protected void constructLineageDeleteFunction(DeleteFunction deleteFunction) {
 		String declareField = "FUNCTION " + deleteFunction.getName() + "(lineage_value varchar2, objectclass_id int := 0) RETURN ID_ARRAY";
 		deleteFunction.setDeclareField(declareField);
@@ -171,7 +200,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "IF deleted_ids IS NOT EMPTY THEN" + 
 						brDent3 + "FOR i in 1..deleted_ids.count" +
 						brDent3 + "LOOP" +
-							brDent4 + "dummy_ids := del_cityobject(ID_ARRAY(deleted_ids(i)), 1);" + 
+							brDent4 + "dummy_ids := " + getArrayDeleteFunctionName("cityobject") + "(ID_ARRAY(deleted_ids(i)), 1);" + 
 						brDent3 + "END LOOP;" +
 					brDent2 + "END IF;" + 
 					br + 
@@ -212,7 +241,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 						brDent3 + "t.surface_data_id IS NULL;" + 
 					br +
 					brDent2 + "IF surface_data_ids IS NOT EMPTY THEN" + 	
-						brDent3 + "dummy_ids := del_surface_data(surface_data_ids);" + 
+						brDent3 + "dummy_ids := " + getArrayDeleteFunctionName("surface_data") + "(surface_data_ids);" + 
 					brDent2 + "END IF;" +
 					br +
 					brDent2 + "SELECT" + 
@@ -229,7 +258,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 						brDent4 + "AND asd.appearance_id IS NULL;" +
 					br +
 					brDent2 + "IF appearance_ids IS NOT EMPTY THEN" + 
-						brDent3 + "deleted_ids := del_appearance(appearance_ids);" +
+						brDent3 + "deleted_ids := " + getArrayDeleteFunctionName("appearance") + "(appearance_ids);" +
 					brDent2 + "END IF;" + 
 					br + 
 					brDent2 + "RETURN deleted_ids;" + 
@@ -359,7 +388,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 							+ brDent3 + "AND t.id <> a.COLUMN_VALUE;" 
 						+ br  // space line
 						+ brDent2 + "IF object_ids IS NOT EMPTY THEN"
-							+ brDent3 + "dummy_ids := " + createFunctionName(tableName) + "(object_ids);"
+							+ brDent3 + "dummy_ids := " + getArrayDeleteFunctionName(tableName) + "(object_ids);"
 						+ brDent2 + "END IF;" + br;	
 		}
 		
@@ -394,7 +423,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					// code-block for deleting ADE hook data 
 					ref_hook_block += brDent2 + "-- delete " + n_table_name + "s"
 									+ brDent2 + "IF pids IS NOT EMPTY THEN"
-								 		+ brDent3 + "dummy_ids := " + createFunctionName(n_table_name) + "(pids, 1);"
+								 		+ brDent3 + "dummy_ids := " + getArrayDeleteFunctionName(n_table_name) + "(pids, 1);"
 								 	+ brDent2 + "END IF;"
 								 	+ br;
 				}			 	 
@@ -478,7 +507,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				ref_child_block += br
 						 + brDent5 + "-- delete " + childTableName						 	
 						 + brDent5 + "IF objectclass_id = " + childObjectclassId + " THEN"	
-					 	 	+ brDent6 + "dummy_ids := " + createFunctionName(childTableName) + "(ID_ARRAY(object_id), " + caller + ");"
+					 	 	+ brDent6 + "dummy_ids := " + getArrayDeleteFunctionName(childTableName) + "(ID_ARRAY(object_id), " + caller + ");"
 						 + brDent5 + "END IF;";
 			}			
 		}
@@ -516,7 +545,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 						+ brDent3 + "t." + fk_column_name + " = a.COLUMN_VALUE;"
 					+ br  // space line
 					+ brDent2 + "IF object_ids IS NOT EMPTY THEN"
-						+ brDent3 + "dummy_ids := " + createFunctionName(tableName) + "(object_ids);"
+						+ brDent3 + "dummy_ids := " + getArrayDeleteFunctionName(tableName) + "(object_ids);"
 					+ brDent2 + "END IF;" + br;	
 		
 		return code_block;
@@ -607,14 +636,14 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		if (join_block.length() > 0) {
 			code_block += tmp_block + br
 					 + brDent3 + "IF object_ids IS NOT EMPTY THEN"
-						+ brDent4 + "dummy_ids := " + createFunctionName(m_table_name) + "(object_ids);"
+						+ brDent4 + "dummy_ids := " + getArrayDeleteFunctionName(m_table_name) + "(object_ids);"
 					 + brDent3 + "END IF;"
 				  + brDent2 + "END IF;" + br;
 		}
 		else {
 			code_block += 
 					   brDent2 + "IF " + varName + " IS NOT EMPTY THEN"
-						+ brDent3 + "dummy_ids := " + createFunctionName(m_table_name) + "(" + varName + ");"
+						+ brDent3 + "dummy_ids := " + getArrayDeleteFunctionName(m_table_name) + "(" + varName + ");"
 					 + brDent2 + "END IF;" + br;
 		}
 
@@ -682,7 +711,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				code_block += brDent2 + "IF caller <> 1 THEN"
 						    	+ brDent3 + "-- delete " + parent_table
 						    	+ brDent3 + "IF deleted_ids IS NOT EMPTY THEN"
-						    		+ brDent4 + "dummy_ids := " + createFunctionName(parent_table) + "(deleted_ids, 2);"
+						    		+ brDent4 + "dummy_ids := " + getArrayDeleteFunctionName(parent_table) + "(deleted_ids, 2);"
 						    	+ brDent3 + "END IF;"
 						    + brDent2 + "END IF;" + br;
 			}			

@@ -30,7 +30,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	}
 
 	@Override
-	protected void constructDeleteFunction(DeleteFunction deleteFunction) throws SQLException  {
+	protected void constructArrayDeleteFunction(DeleteFunction deleteFunction) throws SQLException  {
 		String tableName = deleteFunction.getTargetTable();
 		String funcName = deleteFunction.getName();
 		String schemaName = deleteFunction.getOwnerSchema();
@@ -117,6 +117,27 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	}
 
 	@Override
+	protected void constructSingleDeleteFunction(DeleteFunction singleDeleteFunction, String arrayDeleteFuncname) {
+		String funcName = singleDeleteFunction.getName();
+		String schemaName = singleDeleteFunction.getOwnerSchema();
+		
+		String delete_func_ddl =
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(funcName, schemaName) + 
+				"(pid int) RETURNS integer AS" + br + 
+				"$body$" + br +
+				"DECLARE" +
+				brDent1 + "deleted_id integer;" + br +
+				"BEGIN" + 
+				brDent1 + "deleted_id := " + wrapSchemaName(arrayDeleteFuncname, schemaName) + "(ARRAY[pid]);" +
+				brDent1 + "RETURN deleted_id;" + br +
+				"END;" + br + 
+				"$body$" + br + 
+				"LANGUAGE plpgsql STRICT;";	
+				
+		singleDeleteFunction.setDefinition(delete_func_ddl);
+	}
+
+	@Override
 	protected void constructLineageDeleteFunction(DeleteFunction deleteFunction) {
 		String schemaName = deleteFunction.getOwnerSchema();
 		
@@ -145,8 +166,8 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 						brDent3 + "c.lineage = $1 AND c.objectclass_id = $2;" +					
 				brDent1 + "END IF;" + 
 				br +
-				brDent1 + "IF -1 = ALL(deleted_ids) IS NOT NULL THEN" + 
-					brDent2 +  "PERFORM " + wrapSchemaName("del_cityobject(deleted_ids)", schemaName) + ";" +
+				brDent1 + "IF -1 = ALL(deleted_ids) IS NOT NULL THEN" + 				
+					brDent2 +  "PERFORM " + wrapSchemaName(getArrayDeleteFunctionName("cityobject") + "(deleted_ids)", schemaName) + ";" +
 				brDent1 + "END IF;" + 
 				br + 
 				brDent1 + "RETURN QUERY" +
@@ -172,7 +193,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				brDent1 + "deleted_id int;" + 
 				brDent1 + "app_id int;" + br +
 				"BEGIN" + 
-				brDent1 + "PERFORM " + wrapSchemaName("del_surface_data", schemaName) + "(array_agg(s.id))" +	
+				brDent1 + "PERFORM " + wrapSchemaName(getArrayDeleteFunctionName("surface_data"), schemaName) + "(array_agg(s.id))" +	
 					brDent2 + "FROM " + wrapSchemaName("surface_data", schemaName) + " s " + 
 					brDent2 + "LEFT OUTER JOIN " + wrapSchemaName("textureparam", schemaName) + " t ON s.id = t.surface_data_id" + 
 					brDent2 + "WHERE t.surface_data_id IS NULL;" + 
@@ -256,7 +277,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		for (String fkColumn : selfFkColumns) {			
 			code_block += brDent1 + "-- delete referenced parts"
 						+ brDent1 + "PERFORM"
-							+ brDent2 + wrapSchemaName(createFunctionName(tableName), schemaName) + "(array_agg(t.id))"
+							+ brDent2 + wrapSchemaName(getArrayDeleteFunctionName(tableName), schemaName) + "(array_agg(t.id))"
 						+ brDent1 + "FROM"
 							+ brDent2 + wrapSchemaName(tableName, schemaName) + " t,"
 							+ brDent2 + "unnest($1) a(a_id)"
@@ -293,7 +314,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				if (!subObjectclasses.containsValue(n_table_name)) {
 					// code-block for deleting ADE hook data 
 					ref_hook_block += brDent1 + "-- delete " + n_table_name + "s"
-								 	+ brDent1 + "PERFORM " + wrapSchemaName(createFunctionName(n_table_name), schemaName) + "($1, 1);"
+								 	+ brDent1 + "PERFORM " + wrapSchemaName(getArrayDeleteFunctionName(n_table_name), schemaName) + "($1, 1);"
 								 	+ br;
 				}			 	 
 			}
@@ -370,7 +391,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				ref_child_block += br
 						 + brDent3 + "-- delete " + childTableName						 
 						 + brDent3 + "IF objectclass_id = " + childObjectclassId + " THEN"
-					 	 	+ brDent4 + "PERFORM " + wrapSchemaName(createFunctionName(childTableName), schemaName) + "(array_agg(object_id), " + caller + ");"
+					 	 	+ brDent4 + "PERFORM " + wrapSchemaName(getArrayDeleteFunctionName(childTableName), schemaName) + "(array_agg(object_id), " + caller + ");"
 						 + brDent3 + "END IF;";
 			}			
 		}
@@ -396,7 +417,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		String code_block = "";
 		code_block += brDent1 + "--delete " + tableName + "s"		
 					+ brDent1 + "PERFORM"
-						+ brDent2 + wrapSchemaName(createFunctionName(tableName), schemaName) + "(array_agg(t.id))"
+						+ brDent2 + wrapSchemaName(getArrayDeleteFunctionName(tableName), schemaName) + "(array_agg(t.id))"
 					+ brDent1 + "FROM"
 						+ brDent2 + wrapSchemaName(tableName, schemaName) + " t,"		
 						+ brDent2 + "unnest($1) a(a_id)"
@@ -410,7 +431,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			String m_fk_column_name, String schemaName, RelationType tableRelation) throws SQLException {
 		String code_block = "";
 		code_block += brDent1 + "-- delete references to " + m_table_name + "s"
-					+ brDent1 + "WITH " + createFunctionName(m_table_name) + "_refs AS ("
+					+ brDent1 + "WITH " + getArrayDeleteFunctionName(m_table_name) + "_refs AS ("
 						+ brDent2 + "DELETE FROM"
 							+ brDent3 + wrapSchemaName(n_m_table_name, schemaName) + " t"
 						+ brDent2 + "USING"
@@ -425,7 +446,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 					+ brDent1 + "INTO"
 						+ brDent2 + m_table_name + "_ids"
 					+ brDent1 + "FROM"
-						+ brDent2 + createFunctionName(m_table_name) + "_refs;" + br
+						+ brDent2 + getArrayDeleteFunctionName(m_table_name) + "_refs;" + br
 				+ create_m_ref_delete(m_table_name, schemaName, tableRelation);		
 		
 		return code_block;
@@ -472,7 +493,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		code_block += brDent1 + "-- delete " + wrapSchemaName(m_table_name, schemaName) + "(s)"
 					+ brDent1 + "IF -1 = ALL(" + m_table_name + "_ids) IS NOT NULL THEN"
 						+ brDent2 + "PERFORM"
-							+ brDent3 + wrapSchemaName(createFunctionName(m_table_name), schemaName) + "(array_agg(a.a_id))"
+							+ brDent3 + wrapSchemaName(getArrayDeleteFunctionName(m_table_name), schemaName) + "(array_agg(a.a_id))"
 						+ brDent2 + "FROM"
 							+ brDent3 + "(SELECT DISTINCT unnest(" + m_table_name + "_ids) AS a_id) a";
 		
@@ -556,7 +577,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				
 				code_block += brDent1 + "IF $2 <> 1 THEN"
 						    	+ brDent2 + "-- delete " + parent_table
-						    	+ brDent2 + "PERFORM " + wrapSchemaName(createFunctionName(parent_table), schemaName) + "(deleted_ids, 2);"
+						    	+ brDent2 + "PERFORM " + wrapSchemaName(getArrayDeleteFunctionName(parent_table), schemaName) + "(deleted_ids, 2);"
 						    + brDent1 + "END IF;" + br;
 			}			
 		}
