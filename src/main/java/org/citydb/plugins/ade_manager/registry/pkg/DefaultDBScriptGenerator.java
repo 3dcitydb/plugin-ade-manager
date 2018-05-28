@@ -4,19 +4,15 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Map;
-import javax.xml.namespace.QName;
-
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
-import org.citydb.plugins.ade_manager.registry.metadata.AggregationInfo;
+import org.citydb.plugins.ade_manager.registry.metadata.AggregationInfoCollection;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.model.DBStoredFunctionCollection;
 import org.citydb.plugins.ade_manager.registry.pkg.DBScriptGenerator;
 import org.citydb.plugins.ade_manager.registry.query.Querier;
-import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
 public abstract class DefaultDBScriptGenerator implements DBScriptGenerator {
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();	
@@ -34,24 +30,20 @@ public abstract class DefaultDBScriptGenerator implements DBScriptGenerator {
 	protected final int MAX_FUNCNAME_LENGTH = 30;
 
 	protected DBStoredFunctionCollection functionCollection;
-	protected Map<QName, AggregationInfo> aggregationInfoCollection;
+	protected AggregationInfoCollection aggregationInfoCollection;
 	protected final Connection connection;
 	protected final ConfigImpl config;
 	protected final String defaultSchema = dbPool.getActiveDatabaseAdapter().getSchemaManager().getDefaultSchema();
 	protected ADEMetadataManager adeMetadataManager;
 	protected Querier querier;
 
-	public DefaultDBScriptGenerator(Connection connection, ConfigImpl config) {
+	public DefaultDBScriptGenerator(Connection connection, ConfigImpl config, ADEMetadataManager adeMetadataManager) {
 		this.connection = connection;
 		this.config = config;
-		this.functionCollection = new DBStoredFunctionCollection();
-		this.adeMetadataManager = new ADEMetadataManager(connection, config);
+		this.functionCollection = new DBStoredFunctionCollection();		
 		this.querier = new Querier(connection);
-		try {		
-			this.aggregationInfoCollection = adeMetadataManager.queryAggregationInfo();
-		} catch (SQLException e) {
-			LOG.error("Failed to fetch the table aggregation information from 3dcitydb");
-		} 	
+		this.adeMetadataManager = adeMetadataManager;
+		this.aggregationInfoCollection = adeMetadataManager.getAggregationInfoCollection();	
 	}
 	
 	public DBSQLScript generateDBScript() throws SQLException {
@@ -74,20 +66,6 @@ public abstract class DefaultDBScriptGenerator implements DBScriptGenerator {
 	
 	protected abstract DBSQLScript generateScript(String schemaName) throws SQLException;
 	
-	protected RelationType checkTableRelationType(String childTable, String parentTable) {
-		QName key = new QName(childTable, parentTable);
-		if (aggregationInfoCollection.containsKey(key)) {
-			boolean isComposite = aggregationInfoCollection.get(key).isComposite();
-			if (isComposite)
-				return RelationType.composition;
-			else
-				return RelationType.aggregation;
-		} 			
-		else {
-			return RelationType.no_agg_comp;
-		} 			
-	}	
-
 	protected String wrapSchemaName(String entryName, String schemaName) {
 		return schemaName + "." + entryName;
 	}

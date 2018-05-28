@@ -3,6 +3,7 @@ package org.citydb.plugins.ade_manager.registry.pkg.delete;
 import java.sql.Connection;
 import java.sql.SQLException;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.DefaultDBScriptGenerator;
 
@@ -11,8 +12,8 @@ public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 	protected final String appearance_cleanup_funcname = "cleanup_global_appearances";
 	protected final String schema_cleanup_funcname = "cleanup_schema";
 	
-	public DeleteScriptGenerator(Connection connection, ConfigImpl config) {
-		super(connection, config);
+	public DeleteScriptGenerator(Connection connection, ConfigImpl config, ADEMetadataManager adeMetadataManager) {
+		super(connection, config, adeMetadataManager);
 	}
 	
 	@Override

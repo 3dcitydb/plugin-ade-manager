@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteFunction;
 import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
@@ -21,8 +22,8 @@ import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
 public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 
-	public OracleDeleteScriptGenerator(Connection connection, ConfigImpl config) {
-		super(connection, config);
+	public OracleDeleteScriptGenerator(Connection connection, ConfigImpl config, ADEMetadataManager adeMetadataManager) {
+		super(connection, config, adeMetadataManager);
 	}
 	
 	@Override
@@ -83,9 +84,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "RETURN deleted_ids;" + br;
 		
 		// Code-block for deleting self-references in case of e.g. building/buildingParts
-		if (checkTableRelationType(tableName, tableName) == RelationType.composition) {
-			pre_block += this.create_selfref_delete(tableName, schemaName);
-		}
+		pre_block += this.create_selfref_delete(tableName, schemaName);
 				
 		// Code-block for deleting referenced sub-features with aggregation/composition or inheritance relationship
 		String[] result = create_ref_delete(tableName, schemaName, var_index);
@@ -372,10 +371,10 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 
 	private String create_selfref_delete(String tableName, String schemaName) throws SQLException {
 		String self_block = "";		
-		List<String> selfFkColumns = querier.query_selfref_fk(tableName, schemaName);
-		
+		List<String> selfFkColumns = querier.query_selfref_fk(tableName, schemaName);		
 		for (String fkColumn : selfFkColumns) {	
-			self_block += brDent2 + "-- delete referenced parts"
+			if (aggregationInfoCollection.getTableRelationType(tableName, tableName, fkColumn) == RelationType.composition) {
+				self_block += brDent2 + "-- delete referenced parts"
 						+ brDent2 + "SELECT"
 							+ brDent3 + "t.id"
 						+ brDent2 + "BULK COLLECT INTO"
@@ -390,6 +389,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 						+ brDent2 + "IF object_ids IS NOT EMPTY THEN"
 							+ brDent3 + "dummy_ids := " + getArrayDeleteFunctionName(tableName) + "(object_ids);"
 						+ brDent2 + "END IF;" + br;	
+			}		
 		}
 		
 		return self_block; 
@@ -401,7 +401,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		String ref_hook_block = "";
 		String ref_child_block = "";
 		
-		Map<Integer, String> subObjectclasses = adeMetadataManager.querySubObjectclassesFromSuperTable(tableName);
+		Map<Integer, String> subObjectclasses = adeMetadataManager.getSubObjectclassesFromSuperTable(tableName);
 		List<String> directChildTables = new ArrayList<String>();
 		List<MnRefEntry> refEntries = querier.query_ref_fk(tableName, schemaName);		
 		for (MnRefEntry ref : refEntries) {
@@ -411,7 +411,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 			String m_table_name = ref.getmTableName();
 			String m_fk_column_name = ref.getmFkColumnName();
 			
-			RelationType nRootRelation = checkTableRelationType(n_table_name, rootTableName);
+			RelationType nRootRelation = aggregationInfoCollection.getTableRelationType(n_table_name, rootTableName, n_fk_column_name);
 
 			if (!functionCollection.containsKey(n_table_name) && m_table_name == null) {
 				registerDeleteFunction(n_table_name, schemaName);
@@ -457,11 +457,10 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					registerDeleteFunction(m_table_name, schemaName);
 				}					
 
-				RelationType mRootRelation = checkTableRelationType(m_table_name, rootTableName);
-				
+				RelationType mRootRelation = aggregationInfoCollection.getTableRelationType(m_table_name, rootTableName, n_table_name);					
 				// In case of composition or aggregation between the root table and table m, the corresponding 
 				// records in the tables n and m should be deleted using an explicit code-block created below 
-				if (mRootRelation != RelationType.no_agg_comp) {
+				if (mRootRelation != RelationType.association) {
 					String varName = m_table_name + "_ids" + var_index.getAndIncrement();
 					vars += brDent2 + varName +" ID_ARRAY := ID_ARRAY();";					
 					ref_block += create_n_m_ref_delete(n_table_name, 
@@ -584,11 +583,11 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 			String _nTable = ref.getnTableName();
 			if (!_nFkColumn.equalsIgnoreCase("id")) {
 				if (_mTable != null) {
-					if (checkTableRelationType(m_table_name, _mTable) != RelationType.no_agg_comp) {
+					if (aggregationInfoCollection.getTableRelationType(m_table_name, _mTable, _nTable) != RelationType.association) {
 						aggComprefList.add(new ReferencingEntry(_nTable, _nFkColumn));
 					}	
 				}			
-				if (checkTableRelationType(m_table_name, _nTable) != RelationType.no_agg_comp) {
+				if (aggregationInfoCollection.getTableRelationType(m_table_name, _nTable, _nFkColumn) != RelationType.association) {
 					aggComprefList.add(new ReferencingEntry(_nTable, _nFkColumn));
 				}
 			}			
@@ -662,11 +661,21 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		for (ReferencedEntry entry : refEntries) {
 			String ref_table_name = entry.getRefTable();
 			String[] fk_columns = entry.getFkColumns();
-
-			RelationType tableRelation = checkTableRelationType(ref_table_name, tableName);
 			
 			// Exclude the case of normal associations for which the referenced features should be not be deleted. 
-			if (tableRelation != RelationType.no_agg_comp) {
+			// Exclude the case of normal associations for which the referenced features should be not be deleted. 
+			RelationType defaultTableRelation = RelationType.composition;
+			List<String> tmpList = new ArrayList<String>();
+			for (String fk_column: fk_columns) {
+				RelationType tableRelation = aggregationInfoCollection.getTableRelationType(ref_table_name, tableName, fk_column);
+				if (tableRelation != RelationType.association) {
+					tmpList.add(fk_column);
+					if (tableRelation == RelationType.aggregation)
+						defaultTableRelation = tableRelation;
+				}
+			}
+			fk_columns = tmpList.toArray(new String[0]);						
+			if (fk_columns.length > 0) {
 				String mainVarName = ref_table_name + "_ids" + var_index.getAndIncrement();
 				vars += brDent2 +  mainVarName + " ID_ARRAY := ID_ARRAY();";
 				collect_block += brDent2 + "-- collect all " + ref_table_name + "ids into one nested table";
@@ -684,7 +693,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				
 				// Check if we need add additional code-block for cleaning up the sub-features
 				// for the case of aggregation relationship. 
-				fk_block += this.create_m_ref_delete(ref_table_name, schemaName, tableRelation, mainVarName);
+				fk_block += this.create_m_ref_delete(ref_table_name, schemaName, defaultTableRelation, mainVarName);
 			}
 		}
 		

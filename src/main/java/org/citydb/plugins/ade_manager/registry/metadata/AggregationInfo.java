@@ -2,40 +2,43 @@
 package org.citydb.plugins.ade_manager.registry.metadata;
 
 public class AggregationInfo {	
-	private String childTable;
-	private String parentTable;
+	private int childClassId;
+	private int parentClassId;
 	private int minOccurs;
-	private int maxOccurs;
+	private Integer maxOccurs;
 	private boolean isComposite;
-
+	private String joinTableOrColumnName;
+	
 	public AggregationInfo(
-			String childTable, 
-			String parentTable, 
+			int childClassId, 
+			int parentClassId, 
 			int minOccurs, 
-			int maxOccurs, 
-			boolean isComposite) {
+			Integer maxOccurs, 
+			boolean isComposite,
+			String joinTableOrColumnName) {
 		
-		this.childTable = childTable;
-		this.parentTable = parentTable;
+		this.setChildClassId(childClassId);
+		this.setParentClassId(parentClassId);
 		this.minOccurs = minOccurs;
 		this.maxOccurs = maxOccurs;
 		this.isComposite = isComposite;
+		this.joinTableOrColumnName = joinTableOrColumnName;
 	}
 
-	public String getChildTable() {
-		return childTable;
+	public int getChildClassId() {
+		return childClassId;
 	}
 
-	public void setChildTable(String childTable) {
-		this.childTable = childTable;
+	public void setChildClassId(int childClassId) {
+		this.childClassId = childClassId;
 	}
 
-	public String getParentTable() {
-		return parentTable;
+	public int getParentClassId() {
+		return parentClassId;
 	}
 
-	public void setParentTable(String parentTable) {
-		this.parentTable = parentTable;
+	public void setParentClassId(int parentClassId) {
+		this.parentClassId = parentClassId;
 	}
 
 	public int getMinOccurs() {
@@ -46,11 +49,11 @@ public class AggregationInfo {
 		this.minOccurs = minOccurs;
 	}
 
-	public int getMaxOccurs() {
+	public Integer getMaxOccurs() {
 		return maxOccurs;
 	}
 
-	public void setMaxOccurs(int maxOccurs) {
+	public void setMaxOccurs(Integer maxOccurs) {
 		this.maxOccurs = maxOccurs;
 	}
 
@@ -61,7 +64,13 @@ public class AggregationInfo {
 	public void setComposite(boolean isComposite) {
 		this.isComposite = isComposite;
 	}
-	
 
+	public String getJoinTableOrColumnName() {
+		return joinTableOrColumnName;
+	}
+
+	public void setJoinTableOrColumnName(String joinTableOrColumnName) {
+		this.joinTableOrColumnName = joinTableOrColumnName;
+	}
 
 }

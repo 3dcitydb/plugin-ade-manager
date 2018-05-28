@@ -5,35 +5,26 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import org.citydb.database.schema.mapping.AbstractExtension;
-import org.citydb.database.schema.mapping.AbstractJoin;
 import org.citydb.database.schema.mapping.AbstractProperty;
+import org.citydb.database.schema.mapping.AbstractRefTypeProperty;
 import org.citydb.database.schema.mapping.AbstractType;
 import org.citydb.database.schema.mapping.ComplexProperty;
-import org.citydb.database.schema.mapping.ComplexType;
 import org.citydb.database.schema.mapping.FeatureProperty;
-import org.citydb.database.schema.mapping.FeatureType;
 import org.citydb.database.schema.mapping.GeometryProperty;
 import org.citydb.database.schema.mapping.ImplicitGeometryProperty;
-import org.citydb.database.schema.mapping.Join;
-import org.citydb.database.schema.mapping.JoinTable;
 import org.citydb.database.schema.mapping.ObjectProperty;
-import org.citydb.database.schema.mapping.ObjectType;
 import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.DefaultDBScriptGenerator;
-import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
 public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 	protected SchemaMapping schemaMapping; 
 
-	public EnvelopeScriptGenerator(Connection connection, ConfigImpl config) {
-		super(connection, config);
-		try {
-			this.schemaMapping = adeMetadataManager.getADESchemaMappings();
-		} catch (SQLException e) {
-			LOG.error("Failed to initialize schema mapping: " + e.getMessage());
-		}
+	public EnvelopeScriptGenerator(Connection connection, ConfigImpl config, ADEMetadataManager adeMetadataManager) {
+		super(connection, config, adeMetadataManager);
+		this.schemaMapping = adeMetadataManager.getMergedSchemaMapping();
 	}
 
 	protected DBSQLScript generateScript(String schemaName) throws SQLException {
@@ -94,32 +85,15 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 				spatialCollection.addSpatialProperty(property);
 			}
 			else if (property instanceof ComplexProperty) {
-				ComplexType complexType = ((ComplexProperty) property).getType();
-				if (!getSpatialCollection(complexType).isEmpty()) 
-					spatialCollection.addSpatialObjectProperties(property);
+				spatialCollection.addSpatialObjectProperties(property);
 			}
 			else if (property instanceof ObjectProperty || property instanceof FeatureProperty) {
-				AbstractJoin join = property.getJoin();
-				String childTable = null;
-				if (join instanceof Join) {
-					childTable = ((Join)join).getTable();
-				}
-				else if (join instanceof JoinTable) {
-					childTable = ((JoinTable)join).getInverseJoin().getTable();
-				}
-				RelationType tableRelation = checkTableRelationType(childTable, obj.getTable());
+				AbstractType<?> childObj = ((AbstractRefTypeProperty<?>) property).getType();
+				String childTable = childObj.getTable();
+/*				RelationType tableRelation = checkTableRelationType(childTable, obj.getTable());
 				if (tableRelation == RelationType.composition || tableRelation == RelationType.aggregation) {
-					if (property instanceof ObjectProperty) {
-						ObjectType objectType = ((ObjectProperty) property).getType();
-						if (!getSpatialCollection(objectType).isEmpty()) 
-							spatialCollection.addSpatialObjectProperties(property);
-					}
-					if (property instanceof FeatureProperty) {
-						FeatureType featureType = ((FeatureProperty) property).getType();
-						if (!getSpatialCollection(featureType).isEmpty()) 
-							spatialCollection.addSpatialObjectProperties(property);
-					}
-				}
+					spatialCollection.addSpatialObjectProperties(property);
+				}*/ 					
 			}
 		}
 		

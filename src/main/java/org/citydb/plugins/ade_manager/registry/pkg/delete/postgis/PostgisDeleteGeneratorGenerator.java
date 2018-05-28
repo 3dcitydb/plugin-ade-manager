@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteFunction;
 import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
@@ -18,8 +19,8 @@ import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
 public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 
-	public PostgisDeleteGeneratorGenerator(Connection connection, ConfigImpl config) {
-		super(connection, config);
+	public PostgisDeleteGeneratorGenerator(Connection connection, ConfigImpl config, ADEMetadataManager adeMetadataManager) {
+		super(connection, config, adeMetadataManager);
 	}
 	
 	@Override
@@ -64,9 +65,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		
 		// Code-block for deleting self-references in case of e.g. building/buildingParts
 		// and Composite(Multi)Surface/SurfaceGeometry which have composition relations
-		if (checkTableRelationType(tableName, tableName) == RelationType.composition) {
-			pre_block = this.create_selfref_delete(tableName, schemaName);
-		}
+		pre_block = this.create_selfref_delete(tableName, schemaName);
 				
 		// Code-block for deleting referenced sub-features with aggregation/composition or inheritance relationship
 		String[] result = create_ref_delete(tableName, schemaName);
@@ -274,8 +273,9 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	private String create_selfref_delete(String tableName, String schemaName) throws SQLException {
 		List<String> selfFkColumns = querier.query_selfref_fk(tableName, schemaName);
 		String code_block = "";
-		for (String fkColumn : selfFkColumns) {			
-			code_block += brDent1 + "-- delete referenced parts"
+		for (String fkColumn : selfFkColumns) {	
+			if (aggregationInfoCollection.getTableRelationType(tableName, tableName, fkColumn) == RelationType.composition) {
+				code_block += brDent1 + "-- delete referenced parts"
 						+ brDent1 + "PERFORM"
 							+ brDent2 + wrapSchemaName(getArrayDeleteFunctionName(tableName), schemaName) + "(array_agg(t.id))"
 						+ brDent1 + "FROM"
@@ -284,6 +284,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 						+ brDent1 + "WHERE"
 							+ brDent2 + "t." + fkColumn + " = a.a_id"
 							+ brDent2 + "AND t.id <> a.a_id;" + br;
+			}			
 		}
 		return code_block;
 	}
@@ -294,7 +295,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		String ref_hook_block = "";
 		String ref_child_block = "";
 		
-		Map<Integer, String> subObjectclasses = adeMetadataManager.querySubObjectclassesFromSuperTable(tableName);
+		Map<Integer, String> subObjectclasses = adeMetadataManager.getSubObjectclassesFromSuperTable(tableName);
 		List<String> directChildTables = new ArrayList<String>();
 		List<MnRefEntry> refEntries = querier.query_ref_fk(tableName, schemaName);		
 		for (MnRefEntry ref : refEntries) {
@@ -304,7 +305,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			String m_table_name = ref.getmTableName();
 			String m_fk_column_name = ref.getmFkColumnName();
 			
-			RelationType nRootRelation = checkTableRelationType(n_table_name, rootTableName);
+			RelationType nRootRelation = aggregationInfoCollection.getTableRelationType(n_table_name, rootTableName, n_fk_column_name);
 
 			if (!functionCollection.containsKey(n_table_name) && m_table_name == null)
 				registerDeleteFunction(n_table_name, schemaName);
@@ -346,11 +347,10 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				if (!functionCollection.containsKey(m_table_name))
 					registerDeleteFunction(m_table_name, schemaName);
 
-				RelationType mRootRelation = checkTableRelationType(m_table_name, rootTableName);
-				
+				RelationType mRootRelation = aggregationInfoCollection.getTableRelationType(m_table_name, rootTableName, n_table_name);				
 				// In case of composition or aggregation between the root table and table m, the corresponding 
 				// records in the tables n and m should be deleted using an explicit code-block created below 
-				if (mRootRelation != RelationType.no_agg_comp) {
+				if (mRootRelation != RelationType.association) {
 					vars += brDent1 + m_table_name + "_ids int[] := '{}';";
 					ref_block += create_n_m_ref_delete(n_table_name, 
 														n_fk_column_name, 
@@ -462,11 +462,11 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			String _nTable = ref.getnTableName();
 			if (!_nFkColumn.equalsIgnoreCase("id")) {
 				if (_mTable != null) {
-					if (checkTableRelationType(m_table_name, _mTable) != RelationType.no_agg_comp) {
+					if (aggregationInfoCollection.getTableRelationType(m_table_name, _mTable, _nTable) != RelationType.association) {
 						aggComprefList.add(new ReferencingEntry(_nTable, _nFkColumn));
 					}	
 				}			
-				if (checkTableRelationType(m_table_name, _nTable) != RelationType.no_agg_comp) {
+				if (aggregationInfoCollection.getTableRelationType(m_table_name, _nTable, _nFkColumn) != RelationType.association) {
 					aggComprefList.add(new ReferencingEntry(_nTable, _nFkColumn));
 				}
 			}			
@@ -525,11 +525,20 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		for (ReferencedEntry entry : refEntries) {
 			String ref_table_name = entry.getRefTable();
 			String[] fk_columns = entry.getFkColumns();
-	
-			RelationType tableRelation = checkTableRelationType(ref_table_name, tableName);
 			
 			// Exclude the case of normal associations for which the referenced features should be not be deleted. 
-			if (tableRelation != RelationType.no_agg_comp) {				
+			RelationType defaultTableRelation = RelationType.composition;
+			List<String> tmpList = new ArrayList<String>();
+			for (String fk_column: fk_columns) {
+				RelationType tableRelation = aggregationInfoCollection.getTableRelationType(ref_table_name, tableName, fk_column);
+				if (tableRelation != RelationType.association) {
+					tmpList.add(fk_column);
+					if (tableRelation == RelationType.aggregation)
+						defaultTableRelation = tableRelation;
+				}
+			}
+			fk_columns = tmpList.toArray(new String[0]);
+			if (fk_columns.length > 0) {
 				vars += brDent1 + ref_table_name + "_ids int[] := '{}';";
 				collect_block += "," 
 							  + brDent2;
@@ -551,7 +560,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				
 				// Check if we need add additional code-block for cleaning up the sub-features
 				// for the case of aggregation relationship. 
-				fk_block += this.create_m_ref_delete(ref_table_name, schemaName, tableRelation);
+				fk_block += this.create_m_ref_delete(ref_table_name, schemaName, defaultTableRelation);
 			}
 		}
 		
