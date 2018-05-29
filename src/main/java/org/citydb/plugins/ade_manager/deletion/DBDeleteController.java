@@ -38,7 +38,6 @@ public class DBDeleteController implements EventHandler {
 	private final Logger log = Logger.getInstance();
 	private final SchemaMapping schemaMapping;
 	private final EventDispatcher eventDispatcher;
-	
 	private DBDeleteSplitter dbSplitter;
 	private volatile boolean shouldRun = true;
 	private AtomicBoolean isInterrupted = new AtomicBoolean(false);
@@ -50,7 +49,7 @@ public class DBDeleteController implements EventHandler {
 		this.schemaMapping = ObjectRegistry.getInstance().getSchemaMapping();
 		this.eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
 		this.objectCounter = new HashMap<>();
-		this.query = query;
+		this.query = query;	
 	}
 
 	public void cleanup() {
@@ -65,14 +64,22 @@ public class DBDeleteController implements EventHandler {
 		// adding listeners
 		eventDispatcher.addEventHandler(EventType.OBJECT_COUNTER, this);
 		eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
-
-		try {
+		
+		Connection connection = null;
+		try {		
+			try {
+				connection = DatabaseConnectionPool.getInstance().getConnection();
+				connection.setAutoCommit(false);
+			} catch (SQLException e1) {
+				throw new DBDeleteException("Failed to initilize a database connection.");
+			}	
+			
 			dbWorkerPool = new WorkerPool<DBSplittingResult>(
 					"db_deleter_pool",
 					minThreads,
 					maxThreads,
 					PoolSizeAdaptationStrategy.AGGRESSIVE,
-					new DBDeleteWorkerFactory(eventDispatcher),
+					new DBDeleteWorkerFactory(eventDispatcher, connection),
 					300,
 					false);
 
@@ -104,6 +111,22 @@ public class DBDeleteController implements EventHandler {
 				throw new DBDeleteException("Failed to shutdown worker pools.", e);
 			}
 		} finally {
+			if (shouldRun) {			
+				try {
+					connection.commit();
+					connection.close();
+				} catch (SQLException e) {
+					//
+				}
+			}
+			else {
+				try {
+					connection.rollback();
+				} catch (SQLException e) {
+					//
+				}
+			}
+
 			// clean up
 			if (dbWorkerPool != null && !dbWorkerPool.isTerminated())
 				dbWorkerPool.shutdownNow();

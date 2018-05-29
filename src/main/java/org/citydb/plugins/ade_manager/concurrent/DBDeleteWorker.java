@@ -28,14 +28,11 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 	private final EventDispatcher eventDispatcher;	
 	private volatile boolean shouldRun = true;
 	private CallableStatement deleteCall;	
-	private Connection connection;
 	private String dbSchema;
-	private boolean stoppedDuetoErrorOrCancel = false;
 	
-	public DBDeleteWorker(EventDispatcher eventDispatcher) throws SQLException {
+	public DBDeleteWorker(EventDispatcher eventDispatcher, Connection connection) throws SQLException {
 		this.eventDispatcher = eventDispatcher;
 		this.eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
-		connection = DatabaseConnectionPool.getInstance().getConnection();	
 		dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
 		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();	
 		deleteCall = connection.prepareCall("{? = call " + dbSchema + "."
@@ -96,13 +93,19 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 	
 	public void doWork(DBSplittingResult work) {
 		long objectId = work.getId();
-		int objectclassId = work.getObjectType().getObjectClassId();
-		LOG.debug("City object (RowID = " + objectId + ") deleted");
+		int objectclassId = work.getObjectType().getObjectClassId();		
 		try {
 			deleteCall.registerOutParameter(1, Types.INTEGER);
 			deleteCall.setInt(2, (int)objectId);
-			deleteCall.executeUpdate();	
-			updateDeleteContext(objectclassId);
+			deleteCall.executeUpdate();			
+			int deletedObjectId = deleteCall.getInt(1);
+			if (deletedObjectId == objectId) {
+				LOG.debug("City object (RowID = " + objectId + ") deleted");
+				updateDeleteContext(objectclassId);
+			}
+			else {
+				LOG.error("Failed to delete city object (RowID = " + objectId + ") deleted");
+			}
 		} catch (SQLException e) {
 			eventDispatcher.triggerEvent(new InterruptEvent("Aborting delete due to errors.", LogLevel.WARN, e, eventChannel, this));			
 		}
@@ -112,28 +115,10 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 		try {
 			if (deleteCall != null)
 				deleteCall.close();
-			
-			if (stoppedDuetoErrorOrCancel) {
-				if (!connection.getAutoCommit()) {
-					connection.rollback();
-				}				
-			} 	
-			else {
-				if (!connection.getAutoCommit())
-					connection.commit();
-			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} 
 		finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException e) {
-					//
-				}
-			}
-			
 			eventDispatcher.removeEventHandler(this);
 		}
 	}
@@ -149,7 +134,6 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 	public void handleEvent(Event event) throws Exception {
 		if (event.getChannel() == eventChannel) {
 			shouldRun = false;
-			stoppedDuetoErrorOrCancel= true;
 		} 			
 	}
 
