@@ -34,7 +34,7 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 		this.eventDispatcher = eventDispatcher;
 		this.eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
 		dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
-		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();	
+		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();
 		deleteCall = connection.prepareCall("{? = call " + dbSchema + "."
 				+ (databaseType == DatabaseType.ORACLE ? "citydb_delete." : "") + "del_cityobject(?)}");
 	}
@@ -93,19 +93,20 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 	
 	public void doWork(DBSplittingResult work) {
 		long objectId = work.getId();
-		int objectclassId = work.getObjectType().getObjectClassId();		
+		int objectclassId = work.getObjectType().getObjectClassId();
+		String objectclassName = work.getObjectType().getPath(); 
 		try {
 			deleteCall.registerOutParameter(1, Types.INTEGER);
 			deleteCall.setInt(2, (int)objectId);
-			deleteCall.executeUpdate();			
+			deleteCall.executeUpdate();	
 			int deletedObjectId = deleteCall.getInt(1);
 			if (deletedObjectId == objectId) {
-				LOG.debug("City object (RowID = " + objectId + ") deleted");
-				updateDeleteContext(objectclassId);
+				LOG.debug(objectclassName + " (RowID = " + objectId + ") deleted");			
 			}
 			else {
-				LOG.error("Failed to delete city object (RowID = " + objectId + ") deleted");
+				LOG.warn("Failed to delete " + objectclassName + " (RowID = " + objectId + ")");
 			}
+			updateDeleteContext(objectclassId);
 		} catch (SQLException e) {
 			eventDispatcher.triggerEvent(new InterruptEvent("Aborting delete due to errors.", LogLevel.WARN, e, eventChannel, this));			
 		}
