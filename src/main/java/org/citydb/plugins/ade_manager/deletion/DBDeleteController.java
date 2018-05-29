@@ -113,7 +113,8 @@ public class DBDeleteController implements EventHandler {
 		} finally {
 			if (shouldRun) {			
 				try {
-					connection.commit();
+					if (!connection.getAutoCommit())
+						connection.commit();					
 					connection.close();
 				} catch (SQLException e) {
 					//
@@ -121,7 +122,8 @@ public class DBDeleteController implements EventHandler {
 			}
 			else {
 				try {
-					connection.rollback();
+					if (!connection.getAutoCommit())
+						connection.rollback();				
 				} catch (SQLException e) {
 					//
 				}
@@ -136,6 +138,8 @@ public class DBDeleteController implements EventHandler {
 			} catch (InterruptedException e) {
 				//
 			}
+			
+			DatabaseConnectionPool.getInstance().purge();	
 		}		
 		
 		// show exported features
@@ -172,8 +176,9 @@ public class DBDeleteController implements EventHandler {
 			else if (databaseType == DatabaseType.POSTGIS) {						
 				cleanupStmt = connection.prepareStatement("select " + dbSchema + ".cleanup_global_appearances()");
 				ResultSet rs = ((PreparedStatement)cleanupStmt).executeQuery();	
-				while (rs.next()) 
+				while (rs.next()) {
 					sum++;
+				} 					
 			}
 			else
 				throw new DBDeleteException("Unsupported database type for running appearance cleanup.");
@@ -189,11 +194,14 @@ public class DBDeleteController implements EventHandler {
 			}							
 			if (connection != null) {
 				try {
+					if (!connection.getAutoCommit())
+						connection.commit();
 					connection.close();
 				} catch (SQLException e) {
 					//
 				}
 			}
+			DatabaseConnectionPool.getInstance().purge();	
 		}
 		
 		log.info("Cleaned up global appearances: " + sum);
@@ -224,11 +232,14 @@ public class DBDeleteController implements EventHandler {
 			}							
 			if (connection != null) {
 				try {
+					if (!connection.getAutoCommit())
+						connection.commit();
 					connection.close();
 				} catch (SQLException e) {
 					//
 				}
-			}
+			}			
+			DatabaseConnectionPool.getInstance().purge();			
 		}
 
 		return shouldRun;

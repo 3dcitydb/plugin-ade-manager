@@ -144,8 +144,7 @@ public class ADEDeletePanel extends OperationModuleView {
 		try {
 			viewContoller.clearConsole();
 			setSettings();
-			dbPool.purge();
-			
+
 			final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();
 			if (!databaseController.isConnected()) {
 				try {
@@ -242,8 +241,7 @@ public class ADEDeletePanel extends OperationModuleView {
 			}
 			
 			deleter.cleanup();
-			dbPool.purge();
-
+			
 			if (success) {
 				LOG.info("Database delete successfully finished.");
 			} else {
@@ -260,9 +258,7 @@ public class ADEDeletePanel extends OperationModuleView {
 	private void doCleanup() {
 		viewContoller.setStatusText("Cleanup");
 		LOG.info("Cleaning up database schema...");
-		
-		dbPool.purge();
-		
+
 		final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();
 		if (!databaseController.isConnected()) {
 			try {
@@ -307,9 +303,7 @@ public class ADEDeletePanel extends OperationModuleView {
 				deleteDialog.dispose();
 			}
 		});
-		
-		dbPool.purge();
-		
+
 		if (success) {
 			LOG.info("Schema cleanup successfully finished.");
 		} else {
