@@ -93,7 +93,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		
 		// Main Delete for the current table
 		delete_block += create_local_delete(tableName , schemaName);
-				
+		
 		// Code-block for deleting referenced tables with 1:0..1 composition or N: 0..1 aggregation 
 		// e.g. the composition relationship between building and surface geometry,
 		// the aggregation relationship between features and their shared implicit geometry	
@@ -126,6 +126,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "-- delete " + tableName + "s" + 
 					delete_block + 
 					delete_into_block + ";" +
+					brDent2 + "COMMIT;" +
 					br +
 					post_block +  					
 					return_block +	
@@ -469,7 +470,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 														m_fk_column_name,
 														schemaName, 
 														mRootRelation,
-														varName);
+														varName);					
 				}	
 				// Otherwise, the reverse relation between the root table and table m could be a composition 
 				// or aggregation relationship or the two tables have a normal association relationship. In these 
@@ -507,7 +508,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 						 + brDent5 + "-- delete " + childTableName						 	
 						 + brDent5 + "IF objectclass_id = " + childObjectclassId + " THEN"	
 					 	 	+ brDent6 + "dummy_ids := " + getArrayDeleteFunctionName(childTableName) + "(ID_ARRAY(object_id), " + caller + ");"
-						 + brDent5 + "END IF;";
+					 	 + brDent5 + "END IF;";
 			}			
 		}
 		
@@ -525,7 +526,8 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		}
 		
 		ref_block += ref_hook_block	+ ref_child_block;
-
+		ref_block += brDent2 + "COMMIT;";
+		
 		String[] result = {vars, ref_block};
 		return result; 
 	}
