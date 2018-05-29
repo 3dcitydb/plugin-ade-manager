@@ -7,7 +7,6 @@ import java.util.List;
 import org.citydb.database.schema.mapping.AbstractExtension;
 import org.citydb.database.schema.mapping.AbstractJoin;
 import org.citydb.database.schema.mapping.AbstractProperty;
-import org.citydb.database.schema.mapping.AbstractRefTypeProperty;
 import org.citydb.database.schema.mapping.AbstractType;
 import org.citydb.database.schema.mapping.AbstractTypeProperty;
 import org.citydb.database.schema.mapping.ComplexProperty;
