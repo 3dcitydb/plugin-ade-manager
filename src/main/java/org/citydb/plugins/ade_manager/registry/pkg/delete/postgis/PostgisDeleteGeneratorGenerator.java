@@ -232,6 +232,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 					brDent2 + "SELECT table_name FROM information_schema.tables where table_schema = '" + schemaName + "'" + 
 					brDent2 + "AND table_name <> 'database_srs'" + 
 					brDent2 + "AND table_name <> 'objectclass'" + 
+					brDent2 + "AND table_name <> 'index_table'" + 
 					brDent2 + "AND table_name <> 'ade'" + 
 					brDent2 + "AND table_name <> 'schema'" + 
 					brDent2 + "AND table_name <> 'schema_to_objectclass'" + 
