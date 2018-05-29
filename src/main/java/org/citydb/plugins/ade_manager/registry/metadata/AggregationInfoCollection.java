@@ -3,7 +3,8 @@ package org.citydb.plugins.ade_manager.registry.metadata;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
+
+import org.citydb.database.schema.mapping.RelationType;
 
 public class AggregationInfoCollection {
 	private List<AggregationInfo> aggrInfos; 
@@ -32,13 +33,13 @@ public class AggregationInfoCollection {
 				AggregationInfo aggrInfo = get(childClassId, parentClassId, joinTableOrColumn);
 				if (aggrInfo != null) {
 					if (aggrInfo.isComposite())
-						return RelationType.composition;
+						return RelationType.COMPOSITION;
 					else
-						return RelationType.aggregation;			
+						return RelationType.AGGREGATION;			
 				}			
 			}
 		}
-		return RelationType.association;
+		return RelationType.ASSOCIATION;
 	}
 
 	

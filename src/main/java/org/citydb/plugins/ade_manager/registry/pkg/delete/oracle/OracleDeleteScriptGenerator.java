@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.citydb.database.schema.mapping.RelationType;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
@@ -18,7 +19,6 @@ import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteFunction;
 import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencedEntry;
 import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencingEntry;
-import org.citydb.plugins.ade_manager.registry.query.datatype.RelationType;
 
 public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 
@@ -373,7 +373,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		String self_block = "";		
 		List<String> selfFkColumns = querier.query_selfref_fk(tableName, schemaName);		
 		for (String fkColumn : selfFkColumns) {	
-			if (aggregationInfoCollection.getTableRelationType(tableName, tableName, fkColumn) == RelationType.composition) {
+			if (aggregationInfoCollection.getTableRelationType(tableName, tableName, fkColumn) == RelationType.COMPOSITION) {
 				self_block += brDent2 + "-- delete referenced parts"
 						+ brDent2 + "SELECT"
 							+ brDent3 + "t.id"
@@ -429,7 +429,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				}			 	 
 			}
 			else {											
-				if (nRootRelation == RelationType.composition) {		
+				if (nRootRelation == RelationType.COMPOSITION) {		
 					ref_block += create_n_ref_delete(n_table_name, n_fk_column_name, schemaName);
 				}		
 				else {
@@ -460,7 +460,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				RelationType mRootRelation = aggregationInfoCollection.getTableRelationType(m_table_name, rootTableName, n_table_name);					
 				// In case of composition or aggregation between the root table and table m, the corresponding 
 				// records in the tables n and m should be deleted using an explicit code-block created below 
-				if (mRootRelation != RelationType.association) {
+				if (mRootRelation != RelationType.ASSOCIATION) {
 					String varName = m_table_name + "_ids" + var_index.getAndIncrement();
 					vars += brDent2 + varName +" ID_ARRAY := ID_ARRAY();";					
 					ref_block += create_n_m_ref_delete(n_table_name, 
@@ -583,11 +583,11 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 			String _nTable = ref.getnTableName();
 			if (!_nFkColumn.equalsIgnoreCase("id")) {
 				if (_mTable != null) {
-					if (aggregationInfoCollection.getTableRelationType(m_table_name, _mTable, _nTable) != RelationType.association) {
+					if (aggregationInfoCollection.getTableRelationType(m_table_name, _mTable, _nTable) != RelationType.ASSOCIATION) {
 						aggComprefList.add(new ReferencingEntry(_nTable, _nFkColumn));
 					}	
 				}			
-				if (aggregationInfoCollection.getTableRelationType(m_table_name, _nTable, _nFkColumn) != RelationType.association) {
+				if (aggregationInfoCollection.getTableRelationType(m_table_name, _nTable, _nFkColumn) != RelationType.ASSOCIATION) {
 					aggComprefList.add(new ReferencingEntry(_nTable, _nFkColumn));
 				}
 			}			
@@ -610,7 +610,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		// In the case of composition, the sub-features shall be directly deleted 
 		// without needing to check if they are referenced by another super features
 		// In other cases (aggregation), this check is required.
-		if (tableRelation != RelationType.composition) {
+		if (tableRelation != RelationType.COMPOSITION) {
 			int index = 1;
 			for (ReferencingEntry ref : aggComprefList) {				
 				String refTable = ref.getRefTable();
@@ -664,13 +664,13 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 			
 			// Exclude the case of normal associations for which the referenced features should be not be deleted. 
 			// Exclude the case of normal associations for which the referenced features should be not be deleted. 
-			RelationType defaultTableRelation = RelationType.composition;
+			RelationType defaultTableRelation = RelationType.COMPOSITION;
 			List<String> tmpList = new ArrayList<String>();
 			for (String fk_column: fk_columns) {
 				RelationType tableRelation = aggregationInfoCollection.getTableRelationType(ref_table_name, tableName, fk_column);
-				if (tableRelation != RelationType.association) {
+				if (tableRelation != RelationType.ASSOCIATION) {
 					tmpList.add(fk_column);
-					if (tableRelation == RelationType.aggregation)
+					if (tableRelation == RelationType.AGGREGATION)
 						defaultTableRelation = tableRelation;
 				}
 			}

@@ -10,6 +10,7 @@ import org.citydb.database.schema.mapping.AbstractJoin;
 import org.citydb.database.schema.mapping.AbstractProperty;
 import org.citydb.database.schema.mapping.AbstractRefTypeProperty;
 import org.citydb.database.schema.mapping.AbstractType;
+import org.citydb.database.schema.mapping.AbstractTypeProperty;
 import org.citydb.database.schema.mapping.GeometryProperty;
 import org.citydb.database.schema.mapping.ImplicitGeometryProperty;
 import org.citydb.database.schema.mapping.Join;
@@ -191,8 +192,8 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		Iterator<AbstractProperty> iter = spatialProperties.iterator();
 		while (iter.hasNext()) {
 			AbstractProperty spatialProperty = iter.next();
-			AbstractType<?> obj = ((AbstractRefTypeProperty<?>) spatialProperty).getType();
-			AbstractJoin propertyJoin = ((AbstractRefTypeProperty<?>) spatialProperty).getJoin();		
+			AbstractType<?> obj = ((AbstractTypeProperty<?>) spatialProperty).getType();
+			AbstractJoin propertyJoin = ((AbstractTypeProperty<?>) spatialProperty).getJoin();		
 			String refTable = obj.getTable();
 			
 			// register a new envelope function (if not exists) for the child object

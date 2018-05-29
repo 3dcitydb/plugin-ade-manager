@@ -5,15 +5,21 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import org.citydb.database.schema.mapping.AbstractExtension;
+import org.citydb.database.schema.mapping.AbstractJoin;
 import org.citydb.database.schema.mapping.AbstractProperty;
 import org.citydb.database.schema.mapping.AbstractRefTypeProperty;
 import org.citydb.database.schema.mapping.AbstractType;
+import org.citydb.database.schema.mapping.AbstractTypeProperty;
 import org.citydb.database.schema.mapping.ComplexProperty;
 import org.citydb.database.schema.mapping.FeatureProperty;
 import org.citydb.database.schema.mapping.GeometryProperty;
 import org.citydb.database.schema.mapping.ImplicitGeometryProperty;
+import org.citydb.database.schema.mapping.Join;
+import org.citydb.database.schema.mapping.JoinTable;
 import org.citydb.database.schema.mapping.ObjectProperty;
+import org.citydb.database.schema.mapping.RelationType;
 import org.citydb.database.schema.mapping.SchemaMapping;
+import org.citydb.database.schema.mapping.TableRole;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
@@ -88,12 +94,24 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 				spatialCollection.addSpatialObjectProperties(property);
 			}
 			else if (property instanceof ObjectProperty || property instanceof FeatureProperty) {
-				AbstractType<?> childObj = ((AbstractRefTypeProperty<?>) property).getType();
+				AbstractType<?> childObj = ((AbstractTypeProperty<?>) property).getType();
 				String childTable = childObj.getTable();
-/*				RelationType tableRelation = checkTableRelationType(childTable, obj.getTable());
-				if (tableRelation == RelationType.composition || tableRelation == RelationType.aggregation) {
+				String parentTable = obj.getTable();
+				AbstractJoin joiner = property.getJoin();
+				String join_table_or_column = null;
+				if (joiner instanceof Join) {
+					if (((Join) joiner).getToRole() == TableRole.CHILD)
+						join_table_or_column = ((Join) joiner).getToColumn();
+					else
+						join_table_or_column = ((Join) joiner).getFromColumn();	
+				}
+				else if (joiner instanceof JoinTable)
+					join_table_or_column = ((JoinTable) joiner).getTable();
+					
+				RelationType tableRelation = aggregationInfoCollection.getTableRelationType(childTable, parentTable, join_table_or_column);
+				if (tableRelation == RelationType.COMPOSITION || tableRelation == RelationType.AGGREGATION) {
 					spatialCollection.addSpatialObjectProperties(property);
-				}*/ 					
+				} 					
 			}
 		}
 		
