@@ -154,22 +154,18 @@ public class DBScriptGenerator {
 	}
 		
 	private void createJoinColumn(Table dbTable, Node columnNode) {
-		String columnName = (String) columnNode.getAttribute().getValueAt("name");		
+		String columnName = (String) columnNode.getAttribute().getValueAt("name");	
+		IndexedColumn indexedColumn = new IndexedColumn();
+		indexedColumn.setName(columnName);
+		indexedColumn.setTypeCode(Types.INTEGER);
+		dbTable.addColumn(indexedColumn);		
 		if (columnNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.PrimaryKeyColumn)) {
-			Column column = new Column();
-			column.setName(columnName);
-			column.setTypeCode(Types.INTEGER);
-			column.setPrimaryKey(true);
-			column.setRequired(true);
-			dbTable.addColumn(column);
+			indexedColumn.setPrimaryKey(true);
+			indexedColumn.setRequired(true);
+			
 		}
-		else {
-			IndexedColumn indexedColumn = new IndexedColumn();
-			indexedColumn.setName(columnName);
-			indexedColumn.setTypeCode(Types.INTEGER);
-			this.createIndexForColumn(dbTable, indexedColumn, columnNode);	
-			dbTable.addColumn(indexedColumn);
-		}		
+		if (!columnName.equalsIgnoreCase("id"))
+			this.createIndexForColumn(dbTable, indexedColumn, columnNode);				
 	}
 	
 	private void createNoramlDataColumn(Table dbTable, Node columnNode) {
@@ -722,7 +718,7 @@ public class DBScriptGenerator {
 		for (int idx = 0; idx < table.getColumnCount(); idx++)
         {
             Column column = table.getColumn(idx);
-            if (column instanceof IndexedColumn) {
+            if (column instanceof IndexedColumn && !column.getName().equalsIgnoreCase("id")) {
             	if (!flag) {
             		printComment("--------------------------------------------------------------------", databasePlatform, writer);						
 					printComment(table.getName(), databasePlatform, writer);
