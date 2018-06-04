@@ -156,9 +156,6 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					br + 
 					brDent2 + "RETURN deleted_id;" + 
 					br + 
-					brDent2 + "EXCEPTION" + 
-						brDent3 + "WHEN OTHERS THEN" + 	
-							brDent4 + "RETURN deleted_id;" +
 				brDent1 + "END;";
 		
 		singleDeleteFunction.setDefinition(delete_func_ddl);
@@ -343,10 +340,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "END LOOP;" + 						
 					br +
 					brDent2 + "dummy_str := citydb_idx.create_spatial_indexes();" + 
-					br +				
-					brDent2 + "EXCEPTION" + 
-							brDent3 + "WHEN others THEN" + 
-								brDent4 + "dbms_output.put_line('cleanup_schema: ' || SQLERRM);" + 					
+					br +								
 				brDent1 + "END;";
 
 		cleanupFunction.setDefinition(cleanup_func_ddl);
