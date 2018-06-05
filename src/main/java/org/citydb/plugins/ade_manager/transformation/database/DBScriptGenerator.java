@@ -6,6 +6,8 @@ import java.io.PrintWriter;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -430,6 +432,26 @@ public class DBScriptGenerator {
 		return null;
 	}
 	
+	private void sortTableColumns(Table table) {
+		Column[] unsortedColumns = table.getColumns();
+		List<Column> sortedColumns = new ArrayList<Column>();
+		for (Column column: unsortedColumns) {
+			if (!column.getName().equalsIgnoreCase("id")) {
+				table.removeColumn(column);	
+				sortedColumns.add(column);
+			}												
+		}
+		
+		Collections.sort(sortedColumns, new Comparator<Column>() {
+		    @Override
+		    public int compare(Column o1, Column o2) {
+		        return o1.getName().compareTo(o2.getName());
+		    }
+		});
+		
+		table.addColumns(sortedColumns);
+	}
+	
 	private boolean isMappedFromforeignClass(String tableName) {
 		if (tableName.equalsIgnoreCase("Objectclass") || tableName.equalsIgnoreCase("surface_geometry") || tableName.equalsIgnoreCase("implicit_geometry"))
 			return true;
@@ -496,7 +518,8 @@ public class DBScriptGenerator {
 				if (!isMappedFromforeignClass(table.getName())) {
 					printComment("--------------------------------------------------------------------", databasePlatform, writer);						
 					printComment(table.getName(), databasePlatform, writer);
-					printComment("--------------------------------------------------------------------", databasePlatform, writer);
+					printComment("--------------------------------------------------------------------", databasePlatform, writer);					
+					sortTableColumns(table);					
 					sqlBuilder.createTable(database, table);
 					tableCounter++;	
 				}
