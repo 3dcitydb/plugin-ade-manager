@@ -10,13 +10,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
 import org.citydb.concurrent.Worker;
 import org.citydb.config.project.database.DatabaseType;
-import org.citydb.config.project.global.LogLevel;
+import org.citydb.database.adapter.AbstractDatabaseAdapter;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.event.Event;
 import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
 import org.citydb.event.global.EventType;
-import org.citydb.event.global.InterruptEvent;
 import org.citydb.event.global.ObjectCounterEvent;
 import org.citydb.event.global.ProgressBarEventType;
 import org.citydb.event.global.StatusDialogProgressBar;
@@ -26,15 +25,17 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 	private final ReentrantLock mainLock = new ReentrantLock();
 	private final Logger LOG = Logger.getInstance();
 	private final EventDispatcher eventDispatcher;	
+	private final Connection connection;
+	private final CallableStatement deleteCall;	
 	private volatile boolean shouldRun = true;
-	private CallableStatement deleteCall;	
-	private String dbSchema;
 	
 	public DBDeleteWorker(EventDispatcher eventDispatcher, Connection connection) throws SQLException {
 		this.eventDispatcher = eventDispatcher;
 		this.eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
-		dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
-		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();
+		this.connection = connection;
+		AbstractDatabaseAdapter databaseAdapter = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter();
+		String dbSchema = databaseAdapter.getConnectionDetails().getSchema();	
+		DatabaseType databaseType = databaseAdapter.getDatabaseType();
 		deleteCall = connection.prepareCall("{? = call " + dbSchema + "."
 				+ (databaseType == DatabaseType.ORACLE ? "citydb_delete." : "") + "del_cityobject(?)}");
 	}
@@ -95,21 +96,46 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 		long objectId = work.getId();
 		int objectclassId = work.getObjectType().getObjectClassId();
 		String objectclassName = work.getObjectType().getPath(); 
+		boolean accept = false;  
+		
 		try {
 			deleteCall.registerOutParameter(1, Types.INTEGER);
 			deleteCall.setInt(2, (int)objectId);
 			deleteCall.executeUpdate();	
+			
 			int deletedObjectId = deleteCall.getInt(1);
 			if (deletedObjectId == objectId) {
-				LOG.debug(objectclassName + " (RowID = " + objectId + ") deleted");			
-			}
+				LOG.debug(objectclassName + " (RowID = " + objectId + ") deleted");
+				accept = true;
+			} 				
 			else {
-				LOG.warn("Failed to delete " + objectclassName + " (RowID = " + objectId + ")");
+				LOG.warn(objectclassName + " (RowID = " + objectId + ") has not been found in the database.");
 			}
-			updateDeleteContext(objectclassId);
+
+			if (connection != null) {
+				try {
+					if (!connection.getAutoCommit())
+						connection.commit();					
+				} catch (SQLException e1) {
+					e1.printStackTrace();
+				}
+			}	
+			
 		} catch (SQLException e) {
-			eventDispatcher.triggerEvent(new InterruptEvent("Aborting delete due to errors.", LogLevel.WARN, e, eventChannel, this));			
-		}
+			LOG.error("Failed to delete " + objectclassName + " (RowID = " + objectId + "). Rollback and Skip this delete process.");
+			LOG.debug(e.getMessage());	
+			
+			if (connection != null) {
+				try {
+					if (!connection.getAutoCommit())
+						connection.rollback();					
+				} catch (SQLException e1) {
+					e1.printStackTrace();
+				}
+			}				
+		} finally {
+			updateDeleteContext(objectclassId, accept);
+		}		
 	}
 
 	public void shutdown() {
@@ -119,23 +145,22 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} 
-		finally {
-			eventDispatcher.removeEventHandler(this);
-		}
+		
+		eventDispatcher.removeEventHandler(this);
 	}
 
-	private void updateDeleteContext(int objectclassId) {
+	private void updateDeleteContext(int objectclassId, boolean accept) {
 		HashMap<Integer, Long> objectCounter = new HashMap<>();
 		objectCounter.put(objectclassId, (long) 1);
-		eventDispatcher.triggerEvent(new ObjectCounterEvent(objectCounter, this));
+		if (accept)
+			eventDispatcher.triggerEvent(new ObjectCounterEvent(objectCounter, this));		
 		eventDispatcher.triggerEvent(new StatusDialogProgressBar(ProgressBarEventType.UPDATE, 1, this));
 	}
 
 	@Override
 	public void handleEvent(Event event) throws Exception {
-		if (event.getChannel() == eventChannel) {
-			shouldRun = false;
-		} 			
+		if (event.getChannel() == eventChannel) 
+			shouldRun = false;		 			
 	}
 
 }

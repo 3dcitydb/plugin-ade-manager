@@ -7,8 +7,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -64,22 +66,25 @@ public class DBDeleteController implements EventHandler {
 		// adding listeners
 		eventDispatcher.addEventHandler(EventType.OBJECT_COUNTER, this);
 		eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
+
+		List<Connection> connections = new ArrayList<Connection>();
 		
-		Connection connection = null;
-		try {		
+		try {	
+			Connection globalConnection = null;
 			try {
-				connection = DatabaseConnectionPool.getInstance().getConnection();
-				connection.setAutoCommit(false);
+				globalConnection = DatabaseConnectionPool.getInstance().getConnection();
+				globalConnection.setAutoCommit(true);
 			} catch (SQLException e1) {
-				throw new DBDeleteException("Failed to initilize a database connection.");
-			}	
+				throw new DBDeleteException("Failed to create a database connection.");
+			}
+		//	connections.add(globalConnection);
 			
 			dbWorkerPool = new WorkerPool<DBSplittingResult>(
 					"db_deleter_pool",
 					minThreads,
 					maxThreads,
 					PoolSizeAdaptationStrategy.AGGRESSIVE,
-					new DBDeleteWorkerFactory(eventDispatcher, connection),
+					new DBDeleteWorkerFactory(eventDispatcher, connections),
 					300,
 					false);
 
@@ -111,24 +116,16 @@ public class DBDeleteController implements EventHandler {
 				throw new DBDeleteException("Failed to shutdown worker pools.", e);
 			}
 		} finally {
-			if (shouldRun) {			
-				try {
-					if (!connection.getAutoCommit())
-						connection.commit();					
-					connection.close();
-				} catch (SQLException e) {
-					//
-				}
+			for (Connection connection: connections) {
+				if (connection != null) {
+					try {
+						connection.close();
+					} catch (SQLException e) {
+						//
+					}
+				}					
 			}
-			else {
-				try {
-					if (!connection.getAutoCommit())
-						connection.rollback();				
-				} catch (SQLException e) {
-					//
-				}
-			}
-
+			
 			// clean up
 			if (dbWorkerPool != null && !dbWorkerPool.isTerminated())
 				dbWorkerPool.shutdownNow();
