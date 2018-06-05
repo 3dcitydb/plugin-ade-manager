@@ -509,9 +509,9 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 									+ ref_child_block 
 									+ br		
 							 	 	+ brDent4 + "IF dummy_ids IS NOT EMPTY THEN"
-										+ brDent4 + "IF dummy_ids(1) = object_id THEN"
-											+ brDent5 + "deleted_child_ids := deleted_child_ids MULTISET UNION ALL dummy_ids;"
-										+ brDent4 + "END IF;"						 	 			
+										+ brDent5 + "IF dummy_ids(1) = object_id THEN"
+											+ brDent6 + "deleted_child_ids := deleted_child_ids MULTISET UNION ALL dummy_ids;"
+										+ brDent5 + "END IF;"						 	 			
 						 	 		+ brDent4 + "END IF;"											
 								 + brDent3 + "END LOOP;"
 							 + brDent2 + "END IF;"
