@@ -68,7 +68,8 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		String declare_block = 
 					brDent2 + "object_id number;" +
 					brDent2 + "objectclass_id number;" +			
-					brDent2 + "object_ids ID_ARRAY := ID_ARRAY();" +		
+					brDent2 + "object_ids ID_ARRAY := ID_ARRAY();" +
+					brDent2 + "deleted_child_ids ID_ARRAY := ID_ARRAY();" +
 					brDent2 + "deleted_ids ID_ARRAY := ID_ARRAY();" +							
 					brDent2 + "dummy_ids ID_ARRAY := ID_ARRAY();";
 		
@@ -80,7 +81,11 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "BULK COLLECT INTO"  
 					  + brDent3 +  "deleted_ids";
 		
-		String return_block = 
+		String return_block =
+					brDent2 + "IF deleted_child_ids IS NOT EMPTY THEN" +
+				 		brDent3 + "deleted_ids := deleted_child_ids;" + 
+				 	brDent2 + "END IF;" + 
+				 	br +
 					brDent2 + "RETURN deleted_ids;" + br;
 		
 		// Code-block for deleting self-references in case of e.g. building/buildingParts
@@ -112,11 +117,6 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		// Code-block for deleting the records in the parent table: e.g. deleting a record in the BUILDING table requires
 		// the deletion of the corresponding record in the CITYOBJECT table.
 		post_block += create_ref_to_parent_delete(tableName, schemaName);
-		
-		String exception_block = 
-					brDent2 + "EXCEPTION" + 
-							brDent3 + "WHEN NO_DATA_FOUND THEN" + 	
-								brDent4 + "RETURN deleted_ids;";	
 				
 		// Putting all together
 		delete_func_ddl += 
@@ -129,7 +129,6 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					br +
 					post_block +  					
 					return_block +	
-					exception_block +
 					brDent1 + "END;";	
 
 		deleteFunction.setDefinition(delete_func_ddl);
@@ -155,7 +154,10 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "END IF;" + 
 					br + 
 					brDent2 + "RETURN deleted_id;" + 
-					br + 
+					br + 				
+					brDent2 + "EXCEPTION" + 
+							brDent3 + "WHEN NO_DATA_FOUND THEN" + 
+								brDent4 + "RETURN deleted_id;" + 	
 				brDent1 + "END;";
 		
 		singleDeleteFunction.setDefinition(delete_func_ddl);
@@ -201,10 +203,6 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "END IF;" + 
 					br + 
 					brDent2 + "RETURN deleted_ids;" + 
-					br + 					
-					brDent2 + "EXCEPTION" + 
-							brDent3 + "WHEN NO_DATA_FOUND THEN" + 
-								brDent4 + "RETURN deleted_ids;" + 
 				brDent1 + "END;";
 		
 		deleteFunction.setDefinition(delete_func_ddl);
@@ -258,10 +256,6 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "END IF;" + 
 					br + 
 					brDent2 + "RETURN deleted_ids;" + 
-					br + 					
-					brDent2 + "EXCEPTION" + 
-							brDent3 + "WHEN NO_DATA_FOUND THEN" + 
-								brDent4 + "RETURN deleted_ids;" + 
 				brDent1 + "END;";
 
 		cleanupFunction.setDefinition(cleanup_func_ddl);
@@ -501,7 +495,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 						 + brDent5 + "-- delete " + childTableName						 	
 						 + brDent5 + "IF objectclass_id = " + childObjectclassId + " THEN"	
 					 	 	+ brDent6 + "dummy_ids := " + getArrayDeleteFunctionName(childTableName) + "(ID_ARRAY(object_id), " + caller + ");"
-						 + brDent5 + "END IF;";
+					 	 + brDent5 + "END IF;";
 			}			
 		}
 		
@@ -513,6 +507,12 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 									+ brDent4 + "EXECUTE IMMEDIATE " +  "'SELECT objectclass_id FROM " + tableName + " WHERE id = :1' "  
 								    		  + "INTO objectclass_id USING object_id;"
 									+ ref_child_block 
+									+ br		
+							 	 	+ brDent4 + "IF dummy_ids IS NOT EMPTY THEN"
+										+ brDent4 + "IF dummy_ids(1) = object_id THEN"
+											+ brDent5 + "deleted_child_ids := deleted_child_ids MULTISET UNION ALL dummy_ids;"
+										+ brDent4 + "END IF;"						 	 			
+						 	 		+ brDent4 + "END IF;"											
 								 + brDent3 + "END LOOP;"
 							 + brDent2 + "END IF;"
 							 + brDent1;

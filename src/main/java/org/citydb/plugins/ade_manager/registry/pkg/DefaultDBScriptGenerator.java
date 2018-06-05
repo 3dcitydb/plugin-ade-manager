@@ -27,6 +27,7 @@ public abstract class DefaultDBScriptGenerator implements DBScriptGenerator {
 	protected final String brDent4 = brDent3 + dent;
 	protected final String brDent5 = brDent4 + dent;
 	protected final String brDent6 = brDent5 + dent;
+	protected final String brDent7 = brDent6 + dent;
 	protected final int MAX_FUNCNAME_LENGTH = 30;
 
 	protected DBStoredFunctionCollection functionCollection;

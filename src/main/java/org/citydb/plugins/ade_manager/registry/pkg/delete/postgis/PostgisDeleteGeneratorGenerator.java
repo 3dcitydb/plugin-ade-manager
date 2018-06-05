@@ -43,6 +43,8 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		String declare_block = 
 				"DECLARE" + 
 				brDent1 + "deleted_ids int[] := '{}';"+
+				brDent1 + "dummy_id integer;" +
+				brDent1 + "deleted_child_ids int[] := '{}';"+
 				brDent1 + "object_id integer;" +
 				brDent1 + "objectclass_id integer;";
 		
@@ -60,6 +62,10 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 					brDent2 + "array_agg(id)";
 		
 		String return_block = 	
+				brDent1 + "IF array_length(deleted_child_ids, 1) > 0 THEN" + 				
+					brDent2 + "deleted_ids := deleted_child_ids;" +
+				brDent1 + "END IF;" +
+				br +
 				brDent1 + "RETURN QUERY" +
 					brDent2 + "SELECT unnest(deleted_ids);";
 		
@@ -392,7 +398,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				ref_child_block += br
 						 + brDent3 + "-- delete " + childTableName						 
 						 + brDent3 + "IF objectclass_id = " + childObjectclassId + " THEN"
-					 	 	+ brDent4 + "PERFORM " + wrapSchemaName(getArrayDeleteFunctionName(childTableName), schemaName) + "(array_agg(object_id), " + caller + ");"
+					 	 	+ brDent4 + "dummy_id := " + wrapSchemaName(getArrayDeleteFunctionName(childTableName), schemaName) + "(array_agg(object_id), " + caller + ");"
 						 + brDent3 + "END IF;";
 			}			
 		}
@@ -403,6 +409,10 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 								 + brDent2 + "LOOP"
 									+ brDent3 + "EXECUTE format('SELECT objectclass_id FROM " + wrapSchemaName(tableName, schemaName) + " WHERE id = %L', object_id) INTO objectclass_id;"
 									+ ref_child_block 
+									+ br
+									+ brDent3 + "IF dummy_id = object_id THEN"
+										+ brDent4 + "deleted_child_ids := array_append(deleted_child_ids, dummy_id);"
+									+ brDent3 + "END IF;"
 								 + brDent2 + "END LOOP;"
 							 + brDent1 + "END IF;"
 							 + br;
