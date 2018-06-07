@@ -29,8 +29,8 @@ import org.citydb.event.global.InterruptEvent;
 import org.citydb.gui.util.GuiUtil;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.deletion.DBDeleteController;
-import org.citydb.plugins.ade_manager.deletion.DBDeleteException;
+import org.citydb.plugins.ade_manager.delete.DBDeleteController;
+import org.citydb.plugins.ade_manager.delete.DBDeleteException;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
 import org.citydb.plugins.ade_manager.gui.util.FilterPanel;

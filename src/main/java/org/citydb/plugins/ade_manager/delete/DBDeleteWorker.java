@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.concurrent;
+package org.citydb.plugins.ade_manager.delete;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;

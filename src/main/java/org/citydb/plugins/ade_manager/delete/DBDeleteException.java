@@ -26,7 +26,7 @@
  * limitations under the License.
  */
 
-package org.citydb.plugins.ade_manager.deletion;
+package org.citydb.plugins.ade_manager.delete;
 
 public class DBDeleteException extends Exception {
 

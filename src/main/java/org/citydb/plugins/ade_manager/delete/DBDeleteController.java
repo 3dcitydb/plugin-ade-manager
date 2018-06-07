@@ -1,4 +1,4 @@
-package org.citydb.plugins.ade_manager.deletion;
+package org.citydb.plugins.ade_manager.delete;
 
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
@@ -28,7 +28,6 @@ import org.citydb.event.global.EventType;
 import org.citydb.event.global.InterruptEvent;
 import org.citydb.event.global.ObjectCounterEvent;
 import org.citydb.log.Logger;
-import org.citydb.plugins.ade_manager.concurrent.DBDeleteWorkerFactory;
 import org.citydb.query.Query;
 import org.citydb.query.builder.QueryBuildException;
 import org.citydb.registry.ObjectRegistry;
