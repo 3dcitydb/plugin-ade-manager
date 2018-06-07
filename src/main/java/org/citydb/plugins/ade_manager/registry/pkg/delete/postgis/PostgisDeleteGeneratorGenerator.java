@@ -46,7 +46,8 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				brDent1 + "dummy_id integer;" +
 				brDent1 + "deleted_child_ids int[] := '{}';"+
 				brDent1 + "object_id integer;" +
-				brDent1 + "objectclass_id integer;";
+				brDent1 + "objectclass_id integer;" +
+				brDent1 + "rec RECORD;";
 		
 		String pre_block = "";
 		String post_block = "";
@@ -405,9 +406,16 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		
 		if (ref_child_block.length() > 0) {
 			ref_child_block  = brDent1 + "IF $2 <> 2 THEN"							 
-								 + brDent2 + "FOREACH object_id IN ARRAY $1"
+								 + brDent2 + "FOR rec IN"
+								 	+ brDent3 + "SELECT"
+								 		+ brDent4 + "co.id, co.objectclass_id"
+								 	+ brDent3 + "FROM"
+								 		+ brDent4 + "cityobject co, unnest($1) a(a_id)"
+								 	+ brDent3 + "WHERE"
+								 		+ brDent4 + "co.id = a.a_id"
 								 + brDent2 + "LOOP"
-									+ brDent3 + "EXECUTE format('SELECT objectclass_id FROM " + wrapSchemaName(tableName, schemaName) + " WHERE id = %L', object_id) INTO objectclass_id;"
+									+ brDent3 + "object_id := rec.id::integer;"
+									+ brDent3 + "objectclass_id := rec.objectclass_id::integer;"
 									+ ref_child_block 
 									+ br
 									+ brDent3 + "IF dummy_id = object_id THEN"

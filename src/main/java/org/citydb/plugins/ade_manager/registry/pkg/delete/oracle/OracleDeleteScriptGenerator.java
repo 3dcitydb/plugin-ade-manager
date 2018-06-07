@@ -71,7 +71,8 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "object_ids ID_ARRAY := ID_ARRAY();" +
 					brDent2 + "deleted_child_ids ID_ARRAY := ID_ARRAY();" +
 					brDent2 + "deleted_ids ID_ARRAY := ID_ARRAY();" +							
-					brDent2 + "dummy_ids ID_ARRAY := ID_ARRAY();";
+					brDent2 + "dummy_ids ID_ARRAY := ID_ARRAY();" +
+					brDent2 + "cur sys_refcursor;";
 		
 		String pre_block = "";
 		String post_block = "";
@@ -501,11 +502,16 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		
 		if (ref_child_block.length() > 0) {
 			ref_child_block  = brDent2 + "IF caller <> 2 THEN"	
-								 + brDent3 + "FOR i in 1..pids.count"
+								 + brDent3 + "OPEN cur FOR" 
+								 	+ brDent4 + "SELECT"
+								 		+ brDent5 + "co.id, co.objectclass_id"
+								 	+ brDent4 + "FROM" 
+								 		+ brDent5 + "cityobject co, TABLE(pids) a" 
+								 	+ brDent4 + "WHERE"
+								 		+ brDent5 + "a.COLUMN_VALUE = co.id;"
 								 + brDent3 + "LOOP"
-								 	+ brDent4 + "object_id := pids(i);"
-									+ brDent4 + "EXECUTE IMMEDIATE " +  "'SELECT objectclass_id FROM " + tableName + " WHERE id = :1' "  
-								    		  + "INTO objectclass_id USING object_id;"
+								 	+ brDent4 + "FETCH cur into object_id, objectclass_id;"
+									+ brDent4 + "EXIT WHEN cur%notfound;"  
 									+ ref_child_block 
 									+ br		
 							 	 	+ brDent4 + "IF dummy_ids IS NOT EMPTY THEN"
@@ -514,8 +520,9 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 										+ brDent5 + "END IF;"						 	 			
 						 	 		+ brDent4 + "END IF;"											
 								 + brDent3 + "END LOOP;"
+								 + brDent3 + "CLOSE cur;"
 							 + brDent2 + "END IF;"
-							 + brDent1;
+						 + brDent1;
 		}
 		
 		ref_block += ref_hook_block	+ ref_child_block;
