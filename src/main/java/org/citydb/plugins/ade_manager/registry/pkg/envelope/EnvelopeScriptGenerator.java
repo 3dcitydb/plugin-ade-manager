@@ -3,7 +3,10 @@ package org.citydb.plugins.ade_manager.registry.pkg.envelope;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.citydb.database.schema.mapping.AbstractExtension;
 import org.citydb.database.schema.mapping.AbstractJoin;
 import org.citydb.database.schema.mapping.AbstractProperty;
@@ -16,6 +19,7 @@ import org.citydb.database.schema.mapping.ImplicitGeometryProperty;
 import org.citydb.database.schema.mapping.Join;
 import org.citydb.database.schema.mapping.JoinTable;
 import org.citydb.database.schema.mapping.ObjectProperty;
+import org.citydb.database.schema.mapping.PropertyInjection;
 import org.citydb.database.schema.mapping.RelationType;
 import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.database.schema.mapping.TableRole;
@@ -51,20 +55,67 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 			EnvelopeFunction envelopeFunction = new EnvelopeFunction(tableName, funcName, schemaName);
 			functionCollection.put(funcName, envelopeFunction); 
 			constructEnvelopeFunction(envelopeFunction);
-			LOG.info("Envelope-function '" + funcName + "' created.");
+			LOG.info("Envelope-function '" + funcName + "' created.");			
 		}			
 	}
 	
-	protected SpatialCollection getSpatialCollection(String tableName) {
-		SpatialCollection spatialCollection = new SpatialCollection();
+	protected CitydbSpatialTable getCitydbSpatialTable(String tableName) throws SQLException {	
+		CitydbSpatialTable citydbSpatialTable = new CitydbSpatialTable(tableName);
 		for (AbstractType<?> obj: schemaMapping.getAbstractTypes()) {
-			if (tableName.equalsIgnoreCase(obj.getTable())) 
-				spatialCollection.append(getSpatialCollection(obj));
+			if (tableName.equalsIgnoreCase(obj.getTable())) {				
+				// get super table
+				if (obj.getExtension() != null) {
+					String superTable = obj.getExtension().getBase().getTable();
+					if (!superTable.equalsIgnoreCase(tableName))
+						citydbSpatialTable.setSuperTable(superTable);					
+				}
+				
+				// get spatial properties
+				List<AbstractProperty> properties = obj.getProperties();
+				for (AbstractProperty property: properties) {
+					if (property instanceof GeometryProperty || property instanceof ImplicitGeometryProperty) {
+						citydbSpatialTable.addSpatialProperty(property);
+					}
+					else if (property instanceof ComplexProperty) {
+						citydbSpatialTable.addSpatialObjectProperties(property);
+					}
+					else if (property instanceof ObjectProperty || property instanceof FeatureProperty) {
+						AbstractType<?> childObj = ((AbstractTypeProperty<?>) property).getType();
+						String childTable = childObj.getTable();
+						String parentTable = obj.getTable();
+						AbstractJoin joiner = property.getJoin();
+						String join_table_or_column = null;
+						if (joiner instanceof Join) {
+							if (((Join) joiner).getToRole() == TableRole.CHILD)
+								join_table_or_column = ((Join) joiner).getToColumn();
+							else
+								join_table_or_column = ((Join) joiner).getFromColumn();	
+						}
+						else if (joiner instanceof JoinTable)
+							join_table_or_column = ((JoinTable) joiner).getTable();
+							
+						RelationType tableRelation = aggregationInfoCollection.getTableRelationType(childTable, parentTable, join_table_or_column);
+						if (tableRelation == RelationType.COMPOSITION || tableRelation == RelationType.AGGREGATION) {
+							citydbSpatialTable.addSpatialObjectProperties(property);
+						} 					
+					}
+				}
+				// get sub-tables
+				citydbSpatialTable.setSubObjectclasses(adeMetadataManager.getSubObjectclassesFromSuperTable(tableName));
+				citydbSpatialTable.setDirectSubTables(getSubTables(tableName));
+			}				
 		}
-		return spatialCollection;
+		
+		for (PropertyInjection injection: schemaMapping.getPropertyInjections()) {
+			String targetBaseTable = injection.getDefaultBase().getTable();	
+			if (targetBaseTable.equalsIgnoreCase(tableName))
+				citydbSpatialTable.addHookTable(injection.getTable());
+		}
+		
+		return citydbSpatialTable;
 	}
 	
-	protected List<String> getSubTables(String superTable) {
+	private List<String> getSubTables(String superTable) {
 		List<String> subTables = new ArrayList<String>();
 		for (AbstractType<?> obj: schemaMapping.getAbstractTypes()) {
 			AbstractExtension<?> extension = obj.getExtension();
@@ -82,48 +133,19 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 		return subTables;
 	}
 
-	private SpatialCollection getSpatialCollection(AbstractType<?> obj) {
-		SpatialCollection spatialCollection = new SpatialCollection();
-		List<AbstractProperty> properties = obj.getProperties();
-		for (AbstractProperty property: properties) {
-			if (property instanceof GeometryProperty || property instanceof ImplicitGeometryProperty) {
-				spatialCollection.addSpatialProperty(property);
-			}
-			else if (property instanceof ComplexProperty) {
-				spatialCollection.addSpatialObjectProperties(property);
-			}
-			else if (property instanceof ObjectProperty || property instanceof FeatureProperty) {
-				AbstractType<?> childObj = ((AbstractTypeProperty<?>) property).getType();
-				String childTable = childObj.getTable();
-				String parentTable = obj.getTable();
-				AbstractJoin joiner = property.getJoin();
-				String join_table_or_column = null;
-				if (joiner instanceof Join) {
-					if (((Join) joiner).getToRole() == TableRole.CHILD)
-						join_table_or_column = ((Join) joiner).getToColumn();
-					else
-						join_table_or_column = ((Join) joiner).getFromColumn();	
-				}
-				else if (joiner instanceof JoinTable)
-					join_table_or_column = ((JoinTable) joiner).getTable();
-					
-				RelationType tableRelation = aggregationInfoCollection.getTableRelationType(childTable, parentTable, join_table_or_column);
-				if (tableRelation == RelationType.COMPOSITION || tableRelation == RelationType.AGGREGATION) {
-					spatialCollection.addSpatialObjectProperties(property);
-				} 					
-			}
+	protected class CitydbSpatialTable {
+		private String table;	
+		private String superTable;		
+		private List<String> hookTables = new ArrayList<String>();		
+		private List<AbstractProperty> spatialProperties = new ArrayList<AbstractProperty>();
+		private List<AbstractProperty> spatialObjectProperties = new ArrayList<AbstractProperty>();	
+		private List<String> directSubTables = new ArrayList<String>();
+		private Map<Integer, String> subObjectclasses = new HashMap<Integer, String>();
+
+		public CitydbSpatialTable(String table) {
+			this.table = table;
 		}
 		
-		return spatialCollection;
-	}
-	
-	protected class SpatialCollection {
-		private List<AbstractProperty> spatialProperties = new ArrayList<AbstractProperty>();
-		private List<AbstractProperty> spatialObjectProperties = new ArrayList<AbstractProperty>();
-		private List<AbstractProperty> superSpatialObject = new ArrayList<AbstractProperty>();
-		private List<AbstractProperty> childSpatialObjects = new ArrayList<AbstractProperty>();
-		private List<AbstractProperty> spatialHookProperties = new ArrayList<AbstractProperty>();
-
 		public List<AbstractProperty> getSpatialProperties() {
 			return spatialProperties;
 		}
@@ -140,49 +162,45 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 			this.spatialObjectProperties.add(property);
 		}
 
-		public List<AbstractProperty> getSuperSpatialObject() {
-			return superSpatialObject;
+		public String getTable() {
+			return table;
 		}
 
-		public void setSuperSpatialObject(List<AbstractProperty> superSpatialObject) {
-			this.superSpatialObject = superSpatialObject;
+		public void setTable(String table) {
+			this.table = table;
 		}
 
-		public List<AbstractProperty> getChildSpatialObjects() {
-			return childSpatialObjects;
+		public String getSuperTable() {
+			return superTable;
 		}
 
-		public void setChildSpatialObjects(List<AbstractProperty> childSpatialObjects) {
-			this.childSpatialObjects = childSpatialObjects;
+		public void setSuperTable(String superTable) {
+			this.superTable = superTable;
 		}
 
-		public List<AbstractProperty> getSpatialHookProperties() {
-			return spatialHookProperties;
+		public List<String> getHookTables() {
+			return hookTables;
 		}
 
-		public void setSpatialHookProperties(List<AbstractProperty> spatialHookProperties) {
-			this.spatialHookProperties = spatialHookProperties;
+		public void addHookTable(String hookTable) {
+			this.hookTables.add(hookTable);
 		}
-		
-		public SpatialCollection append(SpatialCollection collection) {
-			spatialProperties.addAll(collection.getSpatialProperties());
-			spatialObjectProperties.addAll(collection.getSpatialObjectProperties());
-			superSpatialObject.addAll(collection.getSuperSpatialObject());
-			childSpatialObjects.addAll(collection.getChildSpatialObjects());
-			spatialHookProperties.addAll(collection.getSpatialHookProperties());			
-			return this;
+
+		public Map<Integer, String> getSubObjectclasses() {
+			return subObjectclasses;
 		}
-		
-		public boolean isEmpty() {
-			if (!spatialProperties.isEmpty() 
-					|| !spatialObjectProperties.isEmpty()
-					|| !superSpatialObject.isEmpty()
-					|| !childSpatialObjects.isEmpty()
-					|| !spatialHookProperties.isEmpty()) {
-				return false;
-			}
-			return true;
+
+		public void setSubObjectclasses(Map<Integer, String> subObjectclasses) {
+			this.subObjectclasses = subObjectclasses;
 		}
+
+		public List<String> getDirectSubTables() {
+			return directSubTables;
+		}
+
+		public void setDirectSubTables(List<String> directSubTables) {
+			this.directSubTables = directSubTables;
+		}		
 	}
 	
 }

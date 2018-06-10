@@ -5,6 +5,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.citydb.database.schema.mapping.AbstractJoin;
 import org.citydb.database.schema.mapping.AbstractProperty;
@@ -39,34 +41,45 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		String tableName = envelopeFunction.getTargetTable();
 		String funcName = envelopeFunction.getName();
 		String schemaName = envelopeFunction.getOwnerSchema();
-		
-		List<String> subTables = getSubTables(tableName);
-		SpatialCollection spatialCollection = getSpatialCollection(tableName);
-		for (String subTable: subTables) {
-			if (!getSpatialCollection(subTable).isEmpty())
-				registerEnvelopeFunction(subTable, schemaName);
-		}
 
 		// declaration block
 		String declare_block =
 					"CREATE OR REPLACE FUNCTION " + wrapSchemaName(funcName, schemaName) + 
-					"(co_id INTEGER, set_envelope INTEGER DEFAULT 0) RETURNS GEOMETRY AS" + 
+					"(co_id INTEGER, set_envelope INTEGER DEFAULT 0, caller INTEGER DEFAULT 0) RETURNS GEOMETRY AS" + 
 					br + 
 					"$body$" + 
 					br +
 					"DECLARE";			
 		int index = 0;
 		String var_return_bbox = "bbox" + index++;
-		String var_block = brDent1 + var_return_bbox + " GEOMETRY;";
+		String var_block =
+					brDent1 + "objclass_id INTEGER DEFAULT 0," +
+					brDent1 + var_return_bbox + " GEOMETRY;";
+		
 		List<String> bboxList = new ArrayList<String>();
+		CitydbSpatialTable citydbSpatialTable = getCitydbSpatialTable(tableName);
+		
+		// spatial properties from super table
+		String super_geom_block = "";
+		String superTableName = citydbSpatialTable.getSuperTable();
+		if (superTableName != null) {
+			String varBbox = "bbox" + index++;
+			bboxList.add(varBbox);
+			var_block += brDent1 + varBbox + " GEOMETRY;";
+			super_geom_block += brDent1 + commentPrefix + "bbox from parent table";
+			super_geom_block += brDent1 + "IF caller <> 1 THEN" + 
+									brDent2 + varBbox + " := " + wrapSchemaName(getFunctionName(superTableName), schemaName) +"(co_id, set_envelope, 2);" + 
+								brDent1 + "END IF;" + br;
+		}
 		
 		// local geometry properties
 		String local_geom_block = "";
-		List<AbstractProperty> spatialProperties = spatialCollection.getSpatialProperties();
+		List<AbstractProperty> spatialProperties = citydbSpatialTable.getSpatialProperties();
 		if (spatialProperties.size() > 0) {
 			String varBbox = "bbox" + index++;
 			bboxList.add(varBbox);
 			var_block += brDent1 + varBbox + " GEOMETRY;";
+			local_geom_block += brDent1 + commentPrefix + "bbox from inline and referencing spatial columns";
 			local_geom_block += brDent1 + "SELECT box2envelope(ST_3DExtent(geom)) INTO " + varBbox + " FROM (" +
 									create_spatialProperties_block(tableName, schemaName, spatialProperties) +
 								brDent1 + ") g;" + br;					
@@ -74,18 +87,69 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		
 		// aggregating spatial objects
 		String aggr_geom_block = "";
-		List<AbstractProperty> spatialObjectProperties = spatialCollection.getSpatialObjectProperties();
+		List<AbstractProperty> spatialObjectProperties = citydbSpatialTable.getSpatialObjectProperties();
 		if (spatialObjectProperties.size() > 0) {
 			String varBbox = "bbox" + index++;
 			bboxList.add(varBbox);
-			var_block += brDent1 + varBbox + "  GEOMETRY;";
+			var_block += brDent1 + varBbox + " GEOMETRY;";
+			aggr_geom_block += brDent1 + commentPrefix + "bbox from aggregating objects";
 			aggr_geom_block += brDent1 + "SELECT box2envelope(ST_3DExtent(geom)) INTO " + varBbox + " FROM (" +
 									create_spatialObjectProperties_block(tableName, schemaName, spatialObjectProperties) +
 								brDent1 + ") g;" + br;					
 		}
 		
+		// get bbox from sub-tables	
+		String subtables_geom_block = "";
+		Map<Integer, String> subObjectclasses = citydbSpatialTable.getSubObjectclasses();	
+		if (subObjectclasses.size() > 0) {
+			String varBbox = "bbox" + index++;
+			bboxList.add(varBbox);
+			var_block += brDent1 + varBbox + " GEOMETRY;";
+			
+			List<String> directSubTables = citydbSpatialTable.getDirectSubTables();
+			subtables_geom_block += brDent1 + "IF caller <> 2 THEN"
+										+ brDent2 + "SELECT objectclass_id INTO class_id FROM cityobject WHERE id = co_id;"
+										+ brDent2 + "CASE";
+			for (Entry<Integer, String> entry: subObjectclasses.entrySet()) {
+				int subObjectclassId = entry.getKey();
+				String subTableName = entry.getValue();
+				if (tableName.equalsIgnoreCase(subTableName))
+					continue;
+				
+				// register envelop function
+				registerEnvelopeFunction(subTableName, schemaName);
+				
+				int caller = 0;
+				if (directSubTables.contains(subTableName))
+					caller = 1;
+				
+				subtables_geom_block += ""
+						 + brDent3 + "-- " + subTableName						 
+						 + brDent3 + "WHEN objectclass_id = " + subObjectclassId + " THEN"
+					 	 	+ brDent4 + varBbox + " := " + wrapSchemaName(getFunctionName(subTableName), schemaName) + "(co_id, set_envelope, " + caller + ");";			
+			}	
+			subtables_geom_block += brDent2 + "END CASE;"
+							+ brDent1 + "END IF;" + br;
+		}	
+		
+		// get bbox from hook table
+		String hook_geom_block = "";
+		List<String> hookTables = citydbSpatialTable.getHookTables();
+		if (hookTables.size() > 0) {
+			for (String hookTableName : hookTables) {
+				String varBbox = "bbox" + index++;
+				bboxList.add(varBbox);
+				var_block += brDent1 + varBbox + " GEOMETRY;";
+				hook_geom_block += brDent1 + commentPrefix + "bbox from hook table '" + hookTableName + "'";
+				hook_geom_block += brDent1 + varBbox + " := "+ wrapSchemaName(getFunctionName(hookTableName), schemaName) + "(co_id, set_envelope);" + br;
+			}
+		}
+		
+		// union all calculated bounding boxes
 		var_block += br;
-		String union_geom_block = brDent1 + "SELECT ST_Union(ARRAY[";
+		String union_geom_block = "";
+		union_geom_block += brDent1 + commentPrefix + "assemble all bboxes";
+		union_geom_block += brDent1 + var_return_bbox + " := ST_Union(ARRAY[";
 		Iterator<String> iter = bboxList.iterator();
 		while(iter.hasNext()) {
 			String varBbox = iter.next();
@@ -93,33 +157,29 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 			if (iter.hasNext())
 				union_geom_block += ", ";
 		}
-		union_geom_block += "]) INTO " + var_return_bbox + ";" + br;
+		union_geom_block += "]);" + br;
 		
-		// update block
+		// update envelope column of CITYOBJECT table
 		String update_block = "";
 		update_block += brDent1 + "IF set_envelope <> 0 AND bbox IS NOT NULL THEN" + 
 							brDent2 + "UPDATE cityobject SET envelope = bbox WHERE id = co_id;" +
-						brDent1 + "END IF;" + br;
-						
+						brDent1 + "END IF;" + br;						
 		
 		String return_block = 
 						brDent1 + "RETURN " + var_return_bbox + ";" + br;
-		
-		String exception_block = 
-						brDent1 + "EXCEPTION" + 
-							brDent2 + "WHEN OTHERS THEN" + 
-								brDent3 + "RETURN NULL;" + br;
 									
 		String func_ddl =
 				declare_block +
 				var_block +
 				"BEGIN" +
+				super_geom_block + 
 				local_geom_block +
 				aggr_geom_block +
+				subtables_geom_block +
+				hook_geom_block + 
 				union_geom_block +
 				update_block + 
-				return_block +  
-				exception_block + 
+				return_block +
 				"END;" + br + 
 				"$body$" + br + 
 				"LANGUAGE plpgsql STRICT;";	
