@@ -27,4 +27,25 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		return new DBSQLScript();
 	}
 
+
+	@Override
+	protected void constructBox2EnvelopeFunction(EnvelopeFunction box2envelopeFunction) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	protected void constructImplicitGeomEnvelopeFunction(EnvelopeFunction implicitGeomEnvelopeFunction) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	protected void constructSetEnvelopeIfNullFunction(EnvelopeFunction setEnvelopeIfNullFunction) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

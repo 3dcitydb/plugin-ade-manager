@@ -49,14 +49,16 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 					br + 
 					"$body$" + 
 					br +
-					"DECLARE";			
+					"DECLARE";		
+		
 		int index = 0;
 		String var_return_bbox = "bbox" + index++;
 		String var_block =
-					brDent1 + "objclass_id INTEGER DEFAULT 0," +
+					brDent1 + "class_id INTEGER DEFAULT 0;" +
 					brDent1 + var_return_bbox + " GEOMETRY;";
 		
 		List<String> bboxList = new ArrayList<String>();
+		bboxList.add(var_return_bbox);
 		CitydbSpatialTable citydbSpatialTable = getCitydbSpatialTable(tableName);
 		
 		// spatial properties from super table
@@ -80,36 +82,31 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 			bboxList.add(varBbox);
 			var_block += brDent1 + varBbox + " GEOMETRY;";
 			local_geom_block += brDent1 + commentPrefix + "bbox from inline and referencing spatial columns";
-			local_geom_block += brDent1 + "SELECT box2envelope(ST_3DExtent(geom)) INTO " + varBbox + " FROM (" +
-									create_spatialProperties_block(tableName, schemaName, spatialProperties) +
+			local_geom_block += brDent1 + "SELECT " + wrapSchemaName(box2envelope_funcname, schemaName) + "(ST_3DExtent(geom)) INTO " + varBbox + " FROM (" +
+									union_spatialProperties_envelope(tableName, schemaName, spatialProperties) +
 								brDent1 + ") g;" + br;					
 		}
 		
 		// aggregating spatial objects
 		String aggr_geom_block = "";
-		List<AbstractProperty> spatialObjectProperties = citydbSpatialTable.getSpatialObjectProperties();
+		List<AbstractTypeProperty<?>> spatialObjectProperties = citydbSpatialTable.getSpatialRefTypeProperties();
 		if (spatialObjectProperties.size() > 0) {
 			String varBbox = "bbox" + index++;
 			bboxList.add(varBbox);
 			var_block += brDent1 + varBbox + " GEOMETRY;";
 			aggr_geom_block += brDent1 + commentPrefix + "bbox from aggregating objects";
-			aggr_geom_block += brDent1 + "SELECT box2envelope(ST_3DExtent(geom)) INTO " + varBbox + " FROM (" +
-									create_spatialObjectProperties_block(tableName, schemaName, spatialObjectProperties) +
+			aggr_geom_block += brDent1 + "SELECT " + wrapSchemaName(box2envelope_funcname, schemaName) + "(ST_3DExtent(geom)) INTO " + varBbox + " FROM (" +
+									union_spatialRefTypeProperties_envelope(tableName, schemaName, spatialObjectProperties) +
 								brDent1 + ") g;" + br;					
 		}
 		
 		// get bbox from sub-tables	
 		String subtables_geom_block = "";
-		Map<Integer, String> subObjectclasses = citydbSpatialTable.getSubObjectclasses();	
+		Map<Integer, String> subObjectclasses = citydbSpatialTable.getSubObjectclasses();
+		List<String> directSubTables = citydbSpatialTable.getDirectSubTables();
 		if (subObjectclasses.size() > 0) {
-			String varBbox = "bbox" + index++;
-			bboxList.add(varBbox);
-			var_block += brDent1 + varBbox + " GEOMETRY;";
-			
-			List<String> directSubTables = citydbSpatialTable.getDirectSubTables();
-			subtables_geom_block += brDent1 + "IF caller <> 2 THEN"
-										+ brDent2 + "SELECT objectclass_id INTO class_id FROM cityobject WHERE id = co_id;"
-										+ brDent2 + "CASE";
+			String varBbox = "bbox" + index++;			
+			var_block += brDent1 + varBbox + " GEOMETRY;";			
 			for (Entry<Integer, String> entry: subObjectclasses.entrySet()) {
 				int subObjectclassId = entry.getKey();
 				String subTableName = entry.getValue();
@@ -124,19 +121,31 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 					caller = 1;
 				
 				subtables_geom_block += ""
-						 + brDent3 + "-- " + subTableName						 
-						 + brDent3 + "WHEN objectclass_id = " + subObjectclassId + " THEN"
+						 + brDent3 + commentPrefix + subTableName	
+						 + brDent3 + "WHEN class_id = " + subObjectclassId + " THEN"
 					 	 	+ brDent4 + varBbox + " := " + wrapSchemaName(getFunctionName(subTableName), schemaName) + "(co_id, set_envelope, " + caller + ");";			
-			}	
-			subtables_geom_block += brDent2 + "END CASE;"
-							+ brDent1 + "END IF;" + br;
-		}	
+			}
+
+			if (subtables_geom_block.length() > 0) {
+				bboxList.add(varBbox);
+				subtables_geom_block = brDent1 + "IF caller <> 2 THEN"
+											+ brDent2 + "SELECT objectclass_id INTO class_id FROM cityobject WHERE id = co_id;"
+											+ brDent2 + "CASE" 
+											+ subtables_geom_block
+											+ brDent2 + "ELSE"										
+											+ brDent2 + "END CASE;"
+									 + brDent1 + "END IF;" + br;
+			}		
+		}		
 		
 		// get bbox from hook table
 		String hook_geom_block = "";
 		List<String> hookTables = citydbSpatialTable.getHookTables();
 		if (hookTables.size() > 0) {
 			for (String hookTableName : hookTables) {
+				// register function
+				registerEnvelopeFunction(hookTableName, schemaName);
+				
 				String varBbox = "bbox" + index++;
 				bboxList.add(varBbox);
 				var_block += brDent1 + varBbox + " GEOMETRY;";
@@ -149,7 +158,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		var_block += br;
 		String union_geom_block = "";
 		union_geom_block += brDent1 + commentPrefix + "assemble all bboxes";
-		union_geom_block += brDent1 + var_return_bbox + " := ST_Union(ARRAY[";
+		union_geom_block += brDent1 + var_return_bbox + " := " + wrapSchemaName(box2envelope_funcname, schemaName) + "(ST_Union(ARRAY[";
 		Iterator<String> iter = bboxList.iterator();
 		while(iter.hasNext()) {
 			String varBbox = iter.next();
@@ -157,16 +166,18 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 			if (iter.hasNext())
 				union_geom_block += ", ";
 		}
-		union_geom_block += "]);" + br;
+		union_geom_block += "]));" + br;
 		
 		// update envelope column of CITYOBJECT table
 		String update_block = "";
-		update_block += brDent1 + "IF set_envelope <> 0 AND bbox IS NOT NULL THEN" + 
-							brDent2 + "UPDATE cityobject SET envelope = bbox WHERE id = co_id;" +
-						brDent1 + "END IF;" + br;						
+		if (!citydbSpatialTable.isHookTable()) {
+			update_block += brDent1 + "IF set_envelope <> 0 AND " + var_return_bbox + " IS NOT NULL THEN" + 
+								brDent2 + "UPDATE cityobject SET envelope = " + var_return_bbox + " WHERE id = co_id;" +
+							brDent1 + "END IF;" + br;	
+		}					
 		
 		String return_block = 
-						brDent1 + "RETURN " + var_return_bbox + ";" + br;
+							brDent1 + "RETURN " + var_return_bbox + ";" + br;
 									
 		String func_ddl =
 				declare_block +
@@ -187,7 +198,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		envelopeFunction.setDefinition(func_ddl);
 	}
 	
-	private String create_spatialProperties_block(String tableName, String schemaName,
+	private String union_spatialProperties_envelope(String tableName, String schemaName,
 			List<AbstractProperty> spatialProperties) throws SQLException {
 		String geom_block = "";
 		Iterator<AbstractProperty> iter = spatialProperties.iterator();
@@ -200,22 +211,21 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 					geom_block += 
 							brDent2 + commentPrefix + spatialProperty.getPath() +
 						    brDent2 + "SELECT sg.geometry AS geom" + 
-									 " FROM surface_geometry sg, " + tableName + " t" + 
+									 " FROM " + wrapSchemaName("surface_geometry", schemaName) + " sg, " + wrapSchemaName(tableName, schemaName) + " t" + 
 									 " WHERE sg.id = t." + refColumn + 
-									 " AND t.id = co_id " + 
+									 " AND t.id = co_id" + 
 									 " AND sg.geometry IS NOT NULL";						
-					if (iter.hasNext())
-						geom_block += brDent3 + "UNION ALL";
 				}
 				if (inlineColumn != null) {
+					if (refColumn != null)
+						geom_block += brDent3 + "UNION ALL";
+					
 					geom_block += 
 							brDent2 + commentPrefix + spatialProperty.getPath() +
 							brDent2 + "SELECT " + inlineColumn + 
-									 " AS geom FROM " + tableName +  
+									 " AS geom FROM " + wrapSchemaName(tableName, schemaName) +  
 									 " WHERE id = co_id " + 
 									 " AND " + inlineColumn + " IS NOT NULL";	
-					if (iter.hasNext())
-						geom_block += brDent3 + "UNION ALL";
 				}
 			}
 			else if (spatialProperty instanceof ImplicitGeometryProperty) {
@@ -228,79 +238,217 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 									"lod" + lod + "_implicit_transformation";
 				geom_block += 
 						brDent2 + commentPrefix + spatialProperty.getPath() +
-						brDent2 + "SELECT get_envelope_implicit_geometry(" + 
+						brDent2 + "SELECT " + wrapSchemaName(implicitGeomEnvelope_funcname, schemaName) + "(" + 
 								   rep_id_column + ", " + 
 								   ref_point_column + ", " + 
 								   transformation_column + ") AS geom" + 
-								   " FROM " + tableName + 
+								   " FROM " + wrapSchemaName(tableName, schemaName) + 
 								   " WHERE id = co_id" +
-								   " AND " + rep_id_column + " IS NOT NULL";
-				
-				if (iter.hasNext())
-					geom_block += brDent3 + "UNION ALL";
-			}		
+								   " AND " + rep_id_column + " IS NOT NULL";			
+			}	
+			if (iter.hasNext())
+				geom_block += brDent3 + "UNION ALL";
 		}
 		
 		return geom_block;
 	}
 
-	private String create_spatialObjectProperties_block(String tableName, String schemaName,
-			List<AbstractProperty> spatialProperties) throws SQLException {
+	private String union_spatialRefTypeProperties_envelope(String tableName, String schemaName,
+			List<AbstractTypeProperty<?>> spatialRefTypeProperties) throws SQLException {
 		String geom_block = "";
 		
-		Iterator<AbstractProperty> iter = spatialProperties.iterator();
+		Iterator<AbstractTypeProperty<?>> iter = spatialRefTypeProperties.iterator();
 		while (iter.hasNext()) {
-			AbstractProperty spatialProperty = iter.next();
-			AbstractType<?> obj = ((AbstractTypeProperty<?>) spatialProperty).getType();
-			AbstractJoin propertyJoin = ((AbstractTypeProperty<?>) spatialProperty).getJoin();		
-			String refTable = obj.getTable();
+			AbstractTypeProperty<?> spatialRefTypeProperty = iter.next();
+			AbstractType<?> spatialRefType = spatialRefTypeProperty.getType();
+			AbstractJoin propertyJoin = spatialRefTypeProperty.getJoin();					
+			String refTable = spatialRefType.getTable();
 			
-			// register a new envelope function (if not exists) for the child object
-			if (!refTable.equalsIgnoreCase(tableName))
-				registerEnvelopeFunction(refTable, schemaName);
-
-			String ref_envelope_funcName = getFunctionName(refTable);							
+			// register function
+			registerEnvelopeFunction(refTable, schemaName);
+			
 			if (propertyJoin instanceof Join) {
 				Join join = ((Join) propertyJoin);
 				TableRole toRole = join.getToRole();
 				if (toRole == TableRole.PARENT) {
 					String fk_column = join.getFromColumn();
 					geom_block += 
-							brDent2 + commentPrefix + obj.getPath() +
-							brDent2 + "SELECT " + ref_envelope_funcName + "(c.id, set_envelope) AS geom " +
-									  "FROM " + tableName + " p, " + refTable + " c " +
+							brDent2 + commentPrefix + spatialRefType.getPath() +
+							brDent2 + "SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(c.id, set_envelope) AS geom " +
+									  "FROM " + wrapSchemaName(tableName, schemaName) + " p, " + refTable + " c " +
 									  "WHERE p.id = co_id " +
 									  "AND p." + fk_column + " = " + "c.id";
 				}
 				else if (toRole == TableRole.CHILD) {
 					String fk_column = join.getToColumn();
 					geom_block += 
-							brDent2 + commentPrefix + obj.getPath() +
-							brDent2 + "SELECT " + ref_envelope_funcName + "(id, set_envelope) AS geom" +
-									  " FROM " + refTable +
+							brDent2 + commentPrefix + spatialRefType.getPath() +
+							brDent2 + "SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(id, set_envelope) AS geom" +
+									  " FROM " + wrapSchemaName(refTable, schemaName) +
 									  " WHERE " + fk_column + " = co_id";
 				}
-
-				else {/*throw exception*/}
+				else {/**/}
 			}
 			else if (propertyJoin instanceof JoinTable) {
 				String joinTable = ((JoinTable) propertyJoin).getTable();
 				String p_fk_column = ((JoinTable) propertyJoin).getJoin().getFromColumn();
 				String c_fk_column = ((JoinTable) propertyJoin).getInverseJoin().getFromColumn();
 				geom_block += 
-						brDent2 + commentPrefix + obj.getPath() +
-						brDent2 + "SELECT " + ref_envelope_funcName + "(id, set_envelope) AS geom " +
-								  "FROM " + refTable + " c, " + joinTable + " p2c " +
+						brDent2 + commentPrefix + spatialRefType.getPath() +
+						brDent2 + "SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(id, set_envelope) AS geom " +
+								  "FROM " + wrapSchemaName(refTable, schemaName) + " c, " + wrapSchemaName(joinTable, schemaName) + " p2c " +
 								  "WHERE c.id = " + c_fk_column + 
-								  " AMD p2c." + p_fk_column + " = co_id";
+								  " AND p2c." + p_fk_column + " = co_id";
 			} 
-			else {/*throw exception*/}
+			else {/**/}
 			
 			if (iter.hasNext())
-				geom_block += brDent3 + "UNION ALL";
-				
+				geom_block += brDent3 + "UNION ALL";				
 		}
 		
 		return geom_block;
+	}
+
+	@Override
+	protected void constructBox2EnvelopeFunction(EnvelopeFunction box2envelopeFunction) {
+		String schemaName = box2envelopeFunction.getOwnerSchema();
+		
+		String box2envelope_func_ddl = "";
+		box2envelope_func_ddl += 
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(box2envelopeFunction.getName(), schemaName) + 
+				"(box BOX3D) RETURNS GEOMETRY AS" + br + 
+				"$body$" + br +
+				"DECLARE" + 
+				brDent1 + "envelope GEOMETRY;" + 
+				brDent1 + "db_srid INTEGER;" + 
+				br +
+				"BEGIN" + 
+				brDent1 + commentPrefix + "get reference system of input geometry" +  
+				brDent1 + "IF ST_SRID(box) = 0 THEN"+	
+					brDent2 + "SELECT srid INTO db_srid FROM " + wrapSchemaName("database_srs", schemaName) + ";" + 
+				brDent1 + "ELSE" + 
+					brDent2 + "db_srid := ST_SRID(box);" + 
+				brDent1 + "END IF;" + 
+				br + 
+				brDent1 + "SELECT ST_SetSRID(ST_MakePolygon(ST_MakeLine(" + 
+					brDent2 + "ARRAY[" + 
+						brDent3 + "ST_MakePoint(ST_XMin(box), ST_YMin(box), ST_ZMin(box))," + 
+						brDent3 + "ST_MakePoint(ST_XMax(box), ST_YMin(box), ST_ZMin(box))," + 
+						brDent3 + "ST_MakePoint(ST_XMax(box), ST_YMax(box), ST_ZMax(box))," + 
+						brDent3 + "ST_MakePoint(ST_XMin(box), ST_YMax(box), ST_ZMax(box))," + 						
+						brDent3 + "ST_MakePoint(ST_XMin(box), ST_YMin(box), ST_ZMin(box))" +
+					brDent2 + "]" + 
+				brDent1 + ")), db_srid) INTO envelope;" +		
+				br +				
+				brDent1 + "RETURN envelope;" +				
+				br +
+ 				"END;" + br + 
+				"$body$" + br + 
+				"LANGUAGE plpgsql STABLE STRICT;";		
+
+		box2envelopeFunction.setDefinition(box2envelope_func_ddl);
+	}
+
+	@Override
+	protected void constructImplicitGeomEnvelopeFunction(EnvelopeFunction implicitGeomEnvelopeFunction) {
+		String schemaName = implicitGeomEnvelopeFunction.getOwnerSchema();
+		
+		String implict_geom_func_ddl = "";
+		implict_geom_func_ddl += 
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(implicitGeomEnvelopeFunction.getName(), schemaName) + 
+				"(implicit_rep_id INTEGER, ref_pt GEOMETRY, transform4x4 VARCHAR) RETURNS GEOMETRY AS" + br + 
+				"$body$" + br +
+				"DECLARE" + 
+				brDent1 + "envelope GEOMETRY;" + 
+				brDent1 + "params DOUBLE PRECISION[ ] := '{}';" + 
+				br +
+				"BEGIN" + 
+				brDent1 + commentPrefix + "calculate bounding box for implicit geometry" + br + 
+				brDent1 + "SELECT box2envelope(ST_3DExtent(geom)) INTO envelope FROM ("+	
+					brDent2 + commentPrefix + "relative other geometry" + br + 
+					brDent2 + "SELECT relative_other_geom AS geom " +
+						brDent3 + "FROM " + wrapSchemaName("implicit_geometry", schemaName) +
+							brDent4 + "WHERE id = implicit_rep_id" +
+								brDent5 + "AND relative_other_geom IS NOT NULL" +
+					brDent2 + "UNION ALL" + 
+					brDent2 + commentPrefix + "relative brep geometry" + 
+					brDent2 + "SELECT sg.implicit_geometry AS geom" +
+						brDent3 + "FROM " + wrapSchemaName("surface_geometry", schemaName) + " sg, " + wrapSchemaName("implicit_geometry", schemaName) + " ig" +
+							brDent4 + "WHERE sg.root_id = ig.relative_brep_id " + 
+								brDent5 + "AND ig.id = implicit_rep_id " + 
+								brDent5 + "AND sg.implicit_geometry IS NOT NULL" + 
+				brDent1 + ") g;" +
+				br + 
+				brDent1 + "IF transform4x4 IS NOT NULL THEN" + 
+					brDent2 + commentPrefix + "-- extract parameters of transformation matrix" + 
+					brDent2 + "params := string_to_array(transform4x4, ' ')::float8[];" + 
+					br + 
+					brDent2 + "IF array_length(params, 1) < 12 THEN" + 
+						brDent3 + "RAISE EXCEPTION 'Malformed transformation matrix: %', transform4x4 USING HINT = '16 values are required';" + 
+					brDent2 + "END IF; " + 
+				brDent1 + "ELSE" + 						
+					brDent2 + "params := '{" +
+						brDent3 + "1, 0, 0, 0," + 
+						brDent3 + "0, 1, 0, 0," + 
+						brDent3 + "0, 0, 1, 0," + 
+						brDent3 + "0, 0, 0, 1}';" + 
+				brDent1 + "END IF;" +
+				br + 
+				brDent1 + "IF ref_pt IS NOT NULL THEN" +
+					brDent2 + "params[4] := params[4] + ST_X(ref_pt);" + 
+					brDent2 + "params[8] := params[8] + ST_Y(ref_pt);" + 
+					brDent2 + "params[12] := params[12] + ST_Z(ref_pt);" + 
+				brDent1 + "END IF;" + 
+				br +				
+				brDent1 + "IF envelope IS NOT NULL THEN" +
+					brDent2 + commentPrefix + "perform affine transformation against given transformation matrix" +
+					brDent2 + "envelope := ST_Affine(envelope," + 
+						brDent3 + "params[1], params[2], params[3]," + 
+						brDent3 + "params[5], params[6], params[7]," + 
+						brDent3 + "params[9], params[10], params[11]," + 
+						brDent3 + "params[4], params[8], params[12]);" + 
+				brDent1 + "END IF;" + 
+				br + 				
+				brDent1 + "RETURN envelope;" +				
+				br +
+ 				"END;" + br + 
+				"$body$" + br + 
+				"LANGUAGE plpgsql STABLE;";		
+
+		implicitGeomEnvelopeFunction.setDefinition(implict_geom_func_ddl);		
+	}
+
+	@Override
+	protected void constructSetEnvelopeIfNullFunction(EnvelopeFunction setEnvelopeIfNullFunction) {
+		String schemaName = setEnvelopeIfNullFunction.getOwnerSchema();
+		
+		String setEnvelope_func_ddl = "";
+		setEnvelope_func_ddl += 
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(setEnvelopeIfNullFunction.getName(), schemaName) + 
+				"(objclass_id INTEGER DEFAULT 0) RETURNS GEOMETRY AS" + br + 
+				"$body$" + br +
+				"DECLARE" + 
+				brDent1 + "bbox GEOMETRY;" + 
+				br +
+				"BEGIN" + 
+				brDent1 + "IF objclass_id <> 0 THEN" + 
+					brDent2 + "SELECT " + wrapSchemaName("box2envelope", schemaName) + "(ST_3DExtent(geom)) INTO bbox FROM ("+	
+						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, 1) AS geom" + 
+							brDent4 + "FROM " + wrapSchemaName("cityobject", schemaName) + " WHERE envelope IS NULL AND objectclass_id = objclass_id" + 
+					brDent2 + ") g;" + 	
+				brDent1 + "ELSE" + 
+					brDent2 + "SELECT " + wrapSchemaName("box2envelope", schemaName) + "(ST_3DExtent(geom)) INTO bbox FROM ("+	
+						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, 1) AS geom" + 
+							brDent4 + "FROM " + wrapSchemaName("cityobject", schemaName) + " WHERE envelope IS NULL" + 
+					brDent2 + ") g;" + 					
+				brDent1 + "END IF;" + 
+				br +				
+				brDent1 + "RETURN bbox;" +				
+				br +
+ 				"END;" + br + 
+				"$body$" + br + 
+				"LANGUAGE plpgsql STRICT;";		
+
+		setEnvelopeIfNullFunction.setDefinition(setEnvelope_func_ddl);
 	}
 }
