@@ -649,7 +649,7 @@ public class ADEMetadataManager {
 			int lod = ((ImplicitGeometryProperty) property).getLod();
 			join_table_or_column = "lod" + lod + "_implicit_rep_id";
 		}
-		if (relationType != null && insertedAggregationinfo.get(childClassId, parentClassId, join_table_or_column) == null) {
+		if (relationType != null && relationType != RelationType.ASSOCIATION && insertedAggregationinfo.get(childClassId, parentClassId, join_table_or_column) == null) {
 			insertSingleAggregationInfo(
 					childClassId, 
 					parentClassId, 
