@@ -129,7 +129,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 			if (subtables_geom_block.length() > 0) {
 				bboxList.add(varBbox);
 				subtables_geom_block = brDent1 + "IF caller <> 2 THEN"
-											+ brDent2 + "SELECT objectclass_id INTO class_id FROM cityobject WHERE id = co_id;"
+											+ brDent2 + "SELECT objectclass_id INTO class_id FROM " + wrapSchemaName("cityobject", schemaName) + " WHERE id = co_id;"
 											+ brDent2 + "CASE" 
 											+ subtables_geom_block
 											+ brDent2 + "ELSE"										
@@ -212,7 +212,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 							brDent2 + commentPrefix + spatialProperty.getPath() +
 						    brDent2 + "SELECT sg.geometry AS geom" + 
 									 " FROM " + wrapSchemaName("surface_geometry", schemaName) + " sg, " + wrapSchemaName(tableName, schemaName) + " t" + 
-									 " WHERE sg.id = t." + refColumn + 
+									 " WHERE sg.root_id = t." + refColumn + 
 									 " AND t.id = co_id" + 
 									 " AND sg.geometry IS NOT NULL";						
 				}
