@@ -35,9 +35,9 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 	}
 
 	@Override
-	protected void dropCurrentDeleteFunctions() throws SQLException {
+	protected void dropCurrentFunctions() throws SQLException {
 		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
-		Map<String, String> deleteFunctions = queryDeleteFunctions(schema);
+		Map<String, String> deleteFunctions = queryFunctions(schema);
 		for (String funcName: deleteFunctions.keySet()) {
 			String funcDeclaration = deleteFunctions.get(funcName);
 			PreparedStatement pstsmt = null;
@@ -58,7 +58,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 		}		
 	}
 	
-	private Map<String, String> queryDeleteFunctions(String schema) throws SQLException{
+	private Map<String, String> queryFunctions(String schema) throws SQLException{
 		Map<String, String> funcNames = new HashMap<String, String>();
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
@@ -67,7 +67,8 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 		strBuilder.append("SELECT routines.routine_name, routines.data_type, parameters.data_type, parameters.ordinal_position ")
 				      .append("FROM information_schema.routines ")
 				      .append("LEFT JOIN information_schema.parameters ON routines.specific_name=parameters.specific_name ")
-				      .append("WHERE routines.specific_schema= '").append(schema).append("' and routines.routine_name like 'del_%' ")
+				      .append("WHERE routines.specific_schema= '").append(schema).append("' AND (")
+				      .append("routines.routine_name like 'del_%' OR routines.routine_name like 'env_%') ")
 				      .append("ORDER BY routines.routine_name, parameters.ordinal_position");
 		try {
 			pstsmt = connection.prepareStatement(strBuilder.toString());

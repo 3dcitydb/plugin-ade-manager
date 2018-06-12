@@ -48,7 +48,7 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		try {
 			String dropDBScriptString = adeMetadataManager.getDropDBScript(adeId);
 			SQLScriptRunner.getInstance().runScript(dropDBScriptString, connection);
-			dropCurrentDeleteFunctions();
+			dropCurrentFunctions();
 		} catch (SQLException e) {		
 			throw new SQLException("Error occurred while dropping the current delete functions", e);
 		} 
@@ -97,6 +97,6 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 
 	protected abstract String readCreateADEDBScript() throws IOException;
 	protected abstract String processScript(String inputScript) throws SQLException;
-	protected abstract void dropCurrentDeleteFunctions() throws SQLException;
+	protected abstract void dropCurrentFunctions() throws SQLException;
 	
 }

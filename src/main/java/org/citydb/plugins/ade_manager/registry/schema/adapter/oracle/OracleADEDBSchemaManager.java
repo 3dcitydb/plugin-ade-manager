@@ -58,7 +58,7 @@ public class OracleADEDBSchemaManager extends AbstractADEDBSchemaManager {
 	}
 
 	@Override
-	protected void dropCurrentDeleteFunctions() throws SQLException {
+	protected void dropCurrentFunctions() throws SQLException {
 		
 	}
 
