@@ -48,4 +48,11 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		
 	}
 
+
+	@Override
+	protected void constructCityobjectsEnvelopeFunction(EnvelopeFunction cityobjectsEnvelopeFunction) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

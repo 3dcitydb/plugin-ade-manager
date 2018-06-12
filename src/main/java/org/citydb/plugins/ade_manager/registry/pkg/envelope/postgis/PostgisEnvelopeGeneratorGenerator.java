@@ -451,4 +451,43 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 
 		setEnvelopeIfNullFunction.setDefinition(setEnvelope_func_ddl);
 	}
+
+	@Override
+	protected void constructCityobjectsEnvelopeFunction(EnvelopeFunction cityobjectsEnvelopeFunction) {
+		String schemaName = cityobjectsEnvelopeFunction.getOwnerSchema();
+		
+		String getEnvelope_func_ddl = "";
+		getEnvelope_func_ddl += 
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(cityobjectsEnvelopeFunction.getName(), schemaName) + 
+				"(objclass_id INTEGER DEFAULT 0, set_envelope INTEGER DEFAULT 0, only_if_null INTEGER DEFAULT 1) RETURNS GEOMETRY AS" + br + 
+				"$body$" + br +
+				"DECLARE" + 
+				brDent1 + "bbox GEOMETRY;" + 
+				br +
+				"BEGIN" + 
+				brDent1 + "IF set_envelope = 1 AND only_if_null <> 0 THEN" +
+					brDent2 + "RETURN set_envelope_cityobjects_if_null(objclass_id);" + 
+				brDent1 + "END IF;" + 
+				br +					
+				brDent1 + "IF objclass_id <> 0 THEN" + 
+					brDent2 + "SELECT " + wrapSchemaName("box2envelope", schemaName) + "(ST_3DExtent(geom)) INTO bbox FROM ("+	
+						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, 1) AS geom" + 
+							brDent4 + "FROM " + wrapSchemaName("cityobject", schemaName) + " WHERE objectclass_id = objclass_id" + 
+					brDent2 + ") g;" + 	
+				brDent1 + "ELSE" + 
+					brDent2 + "SELECT " + wrapSchemaName("box2envelope", schemaName) + "(ST_3DExtent(geom)) INTO bbox FROM ("+	
+						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, 1) AS geom" + 
+							brDent4 + "FROM " + wrapSchemaName("cityobject", schemaName) + 
+					brDent2 + ") g;" + 					
+				brDent1 + "END IF;" + 
+				br +				
+				brDent1 + "RETURN bbox;" +				
+				br +
+ 				"END;" + br + 
+				"$body$" + br + 
+				"LANGUAGE plpgsql STRICT;";		
+
+		cityobjectsEnvelopeFunction.setDefinition(getEnvelope_func_ddl);
+		
+	}
 }

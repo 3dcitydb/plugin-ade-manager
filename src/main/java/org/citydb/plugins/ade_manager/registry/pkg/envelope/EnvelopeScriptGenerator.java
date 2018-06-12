@@ -35,6 +35,7 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 	protected final String box2envelope_funcname = "box2envelope";
 	protected final String implicitGeomEnvelope_funcname = "get_envelope_implicit_geometry";
 	protected final String set_envelope_ifNull_funcname = "set_envelope_cityobjects_if_null";
+	protected final String get_envelope_cityobjects_funcname = "get_envelope_cityobjects";
 	
 	public EnvelopeScriptGenerator(Connection connection, ConfigImpl config, ADEMetadataManager adeMetadataManager) {
 		super(connection, config, adeMetadataManager);
@@ -57,6 +58,7 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 	protected abstract void constructBox2EnvelopeFunction(EnvelopeFunction box2envelopeFunction);
 	protected abstract void constructImplicitGeomEnvelopeFunction(EnvelopeFunction implicitGeomEnvelopeFunction);
 	protected abstract void constructSetEnvelopeIfNullFunction(EnvelopeFunction setEnvelopeIfNullFunction);
+	protected abstract void constructCityobjectsEnvelopeFunction(EnvelopeFunction cityobjectsEnvelopeFunction);
 	
 	protected void registerEnvelopeFunction(String tableName, String schemaName) throws SQLException {
 		String funcName = getFunctionName(tableName);
@@ -179,11 +181,17 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 		functionCollection.put(implicitGeomEnvelope_funcname, implicitGeomEnvelopeFunction);
 		LOG.info("Function '" + implicitGeomEnvelope_funcname + "' created." );
 		
-		// implicit geometry envelope function
+		// setEnvelopeIfNullFunction
 		EnvelopeFunction setEnvelopeIfNullFunction = new EnvelopeFunction(set_envelope_ifNull_funcname, schemaName);
 		constructSetEnvelopeIfNullFunction(setEnvelopeIfNullFunction);
 		functionCollection.put(set_envelope_ifNull_funcname, setEnvelopeIfNullFunction);
 		LOG.info("Function '" + set_envelope_ifNull_funcname + "' created." );
+		
+		// cityobjects envelope function
+		EnvelopeFunction cityobjectsEnvelopeFunction = new EnvelopeFunction(get_envelope_cityobjects_funcname, schemaName);
+		constructCityobjectsEnvelopeFunction(cityobjectsEnvelopeFunction);
+		functionCollection.put(get_envelope_cityobjects_funcname, cityobjectsEnvelopeFunction);
+		LOG.info("Function '" + get_envelope_cityobjects_funcname + "' created." );
 	}
 	
 	protected class CitydbSpatialTable {
