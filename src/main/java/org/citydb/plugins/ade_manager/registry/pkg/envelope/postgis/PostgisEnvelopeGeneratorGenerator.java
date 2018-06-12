@@ -24,7 +24,8 @@ import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.envelope.EnvelopeFunction;
 
 public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
-
+	private final String set_envelope_ifNull_funcname = "set_envelope_cityobjects_if_null";
+	
 	public PostgisEnvelopeGeneratorGenerator(Connection connection, ConfigImpl config, ADEMetadataManager adeMetadataManager) {
 		super(connection, config, adeMetadataManager);
 	}
@@ -252,7 +253,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		
 		return geom_block;
 	}
-
+	
 	private String union_spatialRefTypeProperties_envelope(String tableName, String schemaName,
 			List<AbstractTypeProperty<?>> spatialRefTypeProperties) throws SQLException {
 		String geom_block = "";
@@ -307,6 +308,50 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		}
 		
 		return geom_block;
+	}
+
+	@Override
+	protected void registerExtraFunctions(String schemaName) {
+		super.registerExtraFunctions(schemaName);	
+		
+		// setEnvelopeIfNullFunction for postgis version
+		EnvelopeFunction setEnvelopeIfNullFunction = new EnvelopeFunction(set_envelope_ifNull_funcname, schemaName);
+		constructSetEnvelopeIfNullFunction(setEnvelopeIfNullFunction);
+		functionCollection.put(set_envelope_ifNull_funcname, setEnvelopeIfNullFunction);
+		LOG.info("Function '" + set_envelope_ifNull_funcname + "' created." );
+	}
+
+	private void constructSetEnvelopeIfNullFunction(EnvelopeFunction setEnvelopeIfNullFunction) {
+		String schemaName = setEnvelopeIfNullFunction.getOwnerSchema();
+		
+		String setEnvelope_func_ddl = "";
+		setEnvelope_func_ddl += 
+				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(setEnvelopeIfNullFunction.getName(), schemaName) + 
+				"(objclass_id INTEGER DEFAULT 0) RETURNS GEOMETRY AS" + br + 
+				"$body$" + br +
+				"DECLARE" + 
+				brDent1 + "bbox GEOMETRY;" + 
+				br +
+				"BEGIN" + 
+				brDent1 + "IF objclass_id <> 0 THEN" + 
+					brDent2 + "SELECT " + wrapSchemaName("box2envelope", schemaName) + "(ST_3DExtent(geom)) INTO bbox FROM ("+	
+						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, 1) AS geom" + 
+							brDent4 + "FROM " + wrapSchemaName("cityobject", schemaName) + " WHERE envelope IS NULL AND objectclass_id = objclass_id" + 
+					brDent2 + ") g;" + 	
+				brDent1 + "ELSE" + 
+					brDent2 + "SELECT " + wrapSchemaName("box2envelope", schemaName) + "(ST_3DExtent(geom)) INTO bbox FROM ("+	
+						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, 1) AS geom" + 
+							brDent4 + "FROM " + wrapSchemaName("cityobject", schemaName) + " WHERE envelope IS NULL" + 
+					brDent2 + ") g;" + 					
+				brDent1 + "END IF;" + 
+				br +				
+				brDent1 + "RETURN bbox;" +				
+				br +
+				"END;" + br + 
+				"$body$" + br + 
+				"LANGUAGE plpgsql STRICT;";		
+	
+		setEnvelopeIfNullFunction.setDefinition(setEnvelope_func_ddl);
 	}
 
 	@Override
@@ -419,40 +464,6 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 	}
 
 	@Override
-	protected void constructSetEnvelopeIfNullFunction(EnvelopeFunction setEnvelopeIfNullFunction) {
-		String schemaName = setEnvelopeIfNullFunction.getOwnerSchema();
-		
-		String setEnvelope_func_ddl = "";
-		setEnvelope_func_ddl += 
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(setEnvelopeIfNullFunction.getName(), schemaName) + 
-				"(objclass_id INTEGER DEFAULT 0) RETURNS GEOMETRY AS" + br + 
-				"$body$" + br +
-				"DECLARE" + 
-				brDent1 + "bbox GEOMETRY;" + 
-				br +
-				"BEGIN" + 
-				brDent1 + "IF objclass_id <> 0 THEN" + 
-					brDent2 + "SELECT " + wrapSchemaName("box2envelope", schemaName) + "(ST_3DExtent(geom)) INTO bbox FROM ("+	
-						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, 1) AS geom" + 
-							brDent4 + "FROM " + wrapSchemaName("cityobject", schemaName) + " WHERE envelope IS NULL AND objectclass_id = objclass_id" + 
-					brDent2 + ") g;" + 	
-				brDent1 + "ELSE" + 
-					brDent2 + "SELECT " + wrapSchemaName("box2envelope", schemaName) + "(ST_3DExtent(geom)) INTO bbox FROM ("+	
-						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, 1) AS geom" + 
-							brDent4 + "FROM " + wrapSchemaName("cityobject", schemaName) + " WHERE envelope IS NULL" + 
-					brDent2 + ") g;" + 					
-				brDent1 + "END IF;" + 
-				br +				
-				brDent1 + "RETURN bbox;" +				
-				br +
- 				"END;" + br + 
-				"$body$" + br + 
-				"LANGUAGE plpgsql STRICT;";		
-
-		setEnvelopeIfNullFunction.setDefinition(setEnvelope_func_ddl);
-	}
-
-	@Override
 	protected void constructCityobjectsEnvelopeFunction(EnvelopeFunction cityobjectsEnvelopeFunction) {
 		String schemaName = cityobjectsEnvelopeFunction.getOwnerSchema();
 		
@@ -471,12 +482,12 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 				br +					
 				brDent1 + "IF objclass_id <> 0 THEN" + 
 					brDent2 + "SELECT " + wrapSchemaName("box2envelope", schemaName) + "(ST_3DExtent(geom)) INTO bbox FROM ("+	
-						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, 1) AS geom" + 
+						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, set_envelope) AS geom" + 
 							brDent4 + "FROM " + wrapSchemaName("cityobject", schemaName) + " WHERE objectclass_id = objclass_id" + 
 					brDent2 + ") g;" + 	
 				brDent1 + "ELSE" + 
 					brDent2 + "SELECT " + wrapSchemaName("box2envelope", schemaName) + "(ST_3DExtent(geom)) INTO bbox FROM ("+	
-						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, 1) AS geom" + 
+						brDent3 + "SELECT " + wrapSchemaName(getFunctionName("cityobject"), schemaName) + "(id, set_envelope) AS geom" + 
 							brDent4 + "FROM " + wrapSchemaName("cityobject", schemaName) + 
 					brDent2 + ") g;" + 					
 				brDent1 + "END IF;" + 
