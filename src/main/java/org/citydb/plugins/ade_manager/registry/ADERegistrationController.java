@@ -76,6 +76,14 @@ public class ADERegistrationController {
 		} catch (ADERegistrationException e) {
 			LOG.info("Failed to create and install delete-script into database. (Skipped)");
 		} 	
+		
+		// create and install envelope-functions.
+		LOG.info("Creating and installing envelope-function...");
+		try {	
+			createEnvelopeScripts(true);
+		} catch (ADERegistrationException e) {
+			LOG.info("Failed to create and install envelope-script into database. (Skipped)");
+		} 	
 
 		return true;
 	}
@@ -128,6 +136,15 @@ public class ADERegistrationController {
 			LOG.info("Failed to create and install delete-script into database. (Skipped)");
 		} 
 
+
+		// Step 5: re-create and install envelope-functions.
+		LOG.info("Re-Creating and installing envelope-function...");
+		try {	
+			createEnvelopeScripts(true);
+		} catch (ADERegistrationException e) {
+			LOG.info("Failed to create and install envelope-script into database. (Skipped)");
+		} 
+		
 		return true;
 	}
 	
