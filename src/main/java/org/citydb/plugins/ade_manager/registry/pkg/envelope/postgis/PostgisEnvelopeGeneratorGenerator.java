@@ -130,7 +130,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 			if (subtables_geom_block.length() > 0) {
 				bboxList.add(varBbox);
 				subtables_geom_block = brDent1 + "IF caller <> 2 THEN"
-											+ brDent2 + "SELECT objectclass_id INTO class_id FROM " + wrapSchemaName("cityobject", schemaName) + " WHERE id = co_id;"
+											+ brDent2 + "SELECT objectclass_id INTO class_id FROM " + wrapSchemaName(tableName, schemaName) + " WHERE id = co_id;"
 											+ brDent2 + "CASE" 
 											+ subtables_geom_block
 											+ brDent2 + "ELSE"										
@@ -296,7 +296,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 				String c_fk_column = ((JoinTable) propertyJoin).getInverseJoin().getFromColumn();
 				geom_block += 
 						brDent2 + commentPrefix + spatialRefType.getPath() +
-						brDent2 + "SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(id, set_envelope) AS geom " +
+						brDent2 + "SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(c.id, set_envelope) AS geom " +
 								  "FROM " + wrapSchemaName(refTable, schemaName) + " c, " + wrapSchemaName(joinTable, schemaName) + " p2c " +
 								  "WHERE c.id = " + c_fk_column + 
 								  " AND p2c." + p_fk_column + " = co_id";
