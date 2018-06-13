@@ -2,9 +2,20 @@ package org.citydb.plugins.ade_manager.registry.pkg.envelope.oracle;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
+import org.citydb.database.schema.mapping.AbstractJoin;
 import org.citydb.database.schema.mapping.AbstractProperty;
+import org.citydb.database.schema.mapping.AbstractType;
+import org.citydb.database.schema.mapping.AbstractTypeProperty;
+import org.citydb.database.schema.mapping.GeometryProperty;
+import org.citydb.database.schema.mapping.ImplicitGeometryProperty;
+import org.citydb.database.schema.mapping.Join;
+import org.citydb.database.schema.mapping.JoinTable;
+import org.citydb.database.schema.mapping.TableRole;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.pkg.envelope.EnvelopeScriptGenerator;
 
@@ -60,6 +71,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		
 		String declare_block = 
 				brDent2 + "bbox SDO_GEOMETRY;" +
+				brDent2 + "class_id NUMBER;" +
 				brDent2 + "dummy_box SDO_GEOMETRY;" +			
 				brDent2 + "nested_feat_cur ref_cursor;" +
 				brDent2 + "nested_feat_id NUMBER;";
@@ -82,29 +94,213 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		if (spatialProperties.size() > 0) {
 			local_geom_block += brDent2 + commentPrefix + "bbox from inline and referencing spatial columns";
 			local_geom_block += brDent2 + "WITH collect_geom AS (" +
-								//	union_spatialProperties_envelope(tableName, schemaName, spatialProperties) +
+									union_spatialProperties_envelope(tableName, schemaName, spatialProperties) +
 								brDent2 + ")" +
 								brDent2 + "SELECT" + 
 									brDent3 + "box2envelope(SDO_AGGR_MBR(geom))" + 
 								brDent2 + "INTO" + 
 									brDent3 + "bbox" + 
 								brDent2 + "FROM" + 
-									brDent3 + "collect_geom;";
+									brDent3 + "collect_geom;" + br;
 		}
 		
-		// TODO...
+		// aggregating spatial objects
+		String aggr_geom_block = "";
+		List<AbstractTypeProperty<?>> spatialObjectProperties = citydbSpatialTable.getSpatialRefTypeProperties();
+		if (spatialObjectProperties.size() > 0) {
+			aggr_geom_block += brDent2 + commentPrefix + "bbox from aggregating objects";
+			aggr_geom_block += 
+					union_spatialRefTypeProperties_envelope(tableName, schemaName, spatialObjectProperties);					
+		}
+		
+		// get bbox from sub-tables	
+		String subtables_geom_block = "";
+		Map<Integer, String> subObjectclasses = citydbSpatialTable.getSubObjectclasses();
+		List<String> directSubTables = citydbSpatialTable.getDirectSubTables();
+		if (subObjectclasses.size() > 0) {	
+			for (Entry<Integer, String> entry: subObjectclasses.entrySet()) {
+				int subObjectclassId = entry.getKey();
+				String subTableName = entry.getValue();
+				if (tableName.equalsIgnoreCase(subTableName))
+					continue;
+				
+				// register envelop function
+				registerEnvelopeFunction(subTableName, schemaName);
+				
+				int caller = 0;
+				if (directSubTables.contains(subTableName))
+					caller = 1;
+				
+				subtables_geom_block +=
+						  brDent3 + commentPrefix + subTableName +	
+						  brDent3 + "WHEN class_id = " + subObjectclassId + " THEN" +
+					 	 	 brDent4 + "bbox := update_bounds(bbox, " + getFunctionName(subTableName)  + "(co_id, set_envelope, " + caller + "));";			
+			}
+
+			if (subtables_geom_block.length() > 0) {
+				subtables_geom_block = brDent2 + "IF caller <> 2 THEN" + 
+											brDent3 + "SELECT objectclass_id INTO class_id FROM " + tableName + " WHERE id = co_id;" + 
+											brDent3 + "CASE" + 
+											subtables_geom_block + 
+											brDent3 + "ELSE" + 										
+											brDent3 + "END;" + 
+									   brDent2 + "END IF;" + br;
+			}		
+		}
+		
+		// get bbox from hook table
+		String hook_geom_block = "";
+		List<String> hookTables = citydbSpatialTable.getHookTables();
+		if (hookTables.size() > 0) {
+			for (String hookTableName : hookTables) {
+				// register function
+				registerEnvelopeFunction(hookTableName, schemaName);
+
+				hook_geom_block += brDent2 + commentPrefix + "bbox from hook table '" + hookTableName + "'";
+				hook_geom_block += brDent2 + "bbox := update_bounds(bbox, " + getFunctionName(hookTableName) + "(co_id, set_envelope);" + br;
+			}
+		}		
+		
+		// update envelope column of CITYOBJECT table
+		String update_block = "";
+		if (!citydbSpatialTable.isHookTable()) {
+			update_block += brDent2 + "IF set_envelope <> 0 AND bbox IS NOT NULL THEN" + 
+								brDent3 + "UPDATE cityobject SET envelope = bbox WHERE id = co_id;" +
+							brDent2 + "END IF;" + br;	
+		}					
+		
+		// return block
+		String return_block = 
+							brDent2 + "RETURN bbox;" + br;
 
 		// Putting all together
 		envelope_func_ddl += 
 					declare_block + 
 					brDent1 + "BEGIN" + 
 					super_geom_block + 
-					local_geom_block + 
-					brDent2 + "-- delete " + tableName + "s" + 
-
+					local_geom_block +
+					aggr_geom_block +
+					subtables_geom_block +
+					hook_geom_block +
+					update_block + 
+					return_block +
 					brDent1 + "END;";	
 
 		envelopeFunction.setDefinition(envelope_func_ddl);				
+	}
+	
+	private String union_spatialProperties_envelope(String tableName, String schemaName,
+			List<AbstractProperty> spatialProperties) throws SQLException {
+		String geom_block = "";
+		Iterator<AbstractProperty> iter = spatialProperties.iterator();
+		while (iter.hasNext()) {
+			AbstractProperty spatialProperty = iter.next();
+			if (spatialProperty instanceof GeometryProperty) {
+				String refColumn = ((GeometryProperty) spatialProperty).getRefColumn();
+				String inlineColumn = ((GeometryProperty) spatialProperty).getInlineColumn();
+				if (refColumn != null) {
+					geom_block += 
+							brDent3 + commentPrefix + spatialProperty.getPath() +
+						    brDent3 + "SELECT sg.geometry AS geom" + 
+									 " FROM surface_geometry sg, " + tableName + " t" + 
+									 " WHERE sg.root_id = t." + refColumn + 
+									 " AND t.id = co_id" + 
+									 " AND sg.geometry IS NOT NULL";						
+				}
+				if (inlineColumn != null) {
+					if (refColumn != null)
+						geom_block += brDent3 + "UNION ALL";
+					
+					geom_block += 
+							brDent3 + commentPrefix + spatialProperty.getPath() +
+							brDent3 + "SELECT " + inlineColumn + 
+									 " AS geom FROM " + tableName +  
+									 " WHERE id = co_id " + 
+									 " AND " + inlineColumn + " IS NOT NULL";	
+				}
+			}
+			else if (spatialProperty instanceof ImplicitGeometryProperty) {
+				int lod = ((ImplicitGeometryProperty) spatialProperty).getLod();
+				String rep_id_column = 
+									"lod" + lod + "_implicit_rep_id";
+				String ref_point_column =
+									"lod" + lod + "_implicit_ref_point";
+				String transformation_column = 
+									"lod" + lod + "_implicit_transformation";
+				geom_block += 
+						brDent3 + commentPrefix + spatialProperty.getPath() +
+						brDent3 + "SELECT " + implicitGeomEnvelope_funcname+ "(" + 
+								   rep_id_column + ", " + 
+								   ref_point_column + ", " + 
+								   transformation_column + ") AS geom" + 
+								   " FROM " + wrapSchemaName(tableName, schemaName) + 
+								   " WHERE id = co_id" +
+								   " AND " + rep_id_column + " IS NOT NULL";			
+			}	
+			if (iter.hasNext())
+				geom_block += brDent4 + "UNION ALL";
+		}
+		
+		return geom_block;
+	}
+	
+	private String union_spatialRefTypeProperties_envelope(String tableName, String schemaName,
+			List<AbstractTypeProperty<?>> spatialRefTypeProperties) throws SQLException {
+		String geom_block = "";
+		
+		Iterator<AbstractTypeProperty<?>> iter = spatialRefTypeProperties.iterator();
+		while (iter.hasNext()) {
+			AbstractTypeProperty<?> spatialRefTypeProperty = iter.next();
+			AbstractType<?> spatialRefType = spatialRefTypeProperty.getType();
+			AbstractJoin propertyJoin = spatialRefTypeProperty.getJoin();					
+			String refTable = spatialRefType.getTable();
+			
+			// register function
+			registerEnvelopeFunction(refTable, schemaName);
+			
+			geom_block += brDent2 + "OPEN nested_feat_cur FOR" +
+							brDent3 + commentPrefix + spatialRefType.getPath();
+			if (propertyJoin instanceof Join) {
+				Join join = ((Join) propertyJoin);
+				TableRole toRole = join.getToRole();
+				if (toRole == TableRole.PARENT) {
+					String fk_column = join.getFromColumn();
+					geom_block += 						
+							brDent3 + "SELECT c.id " +
+									  "FROM " + tableName + " p, " + refTable + " c " +
+									  "WHERE p.id = co_id " +
+									  "AND p." + fk_column + " = " + "c.id";
+				}
+				else if (toRole == TableRole.CHILD) {
+					String fk_column = join.getToColumn();
+					geom_block += 
+							brDent3 + "SELECT id"  +
+									  " FROM " + refTable +
+									  " WHERE " + fk_column + " = co_id";
+				}
+				else {/**/}
+			}
+			else if (propertyJoin instanceof JoinTable) {
+				String joinTable = ((JoinTable) propertyJoin).getTable();
+				String p_fk_column = ((JoinTable) propertyJoin).getJoin().getFromColumn();
+				String c_fk_column = ((JoinTable) propertyJoin).getInverseJoin().getFromColumn();
+				geom_block += 
+						brDent3 + "SELECT c.id " +
+								  "FROM " + refTable + " c, " + joinTable + " p2c " +
+								  "WHERE c.id = " + c_fk_column + 
+								  " AND p2c." + p_fk_column + " = co_id";
+			} 
+			else {/**/}
+			
+			geom_block += brDent2 + "LOOP" +
+						  	brDent3 + "FETCH nested_feat_cur INTO nested_feat_id;" +
+						  	brDent3 + "EXIT WHEN nested_feat_cur%notfound;" +
+						  	brDent3 + "bbox := update_bounds(bbox, " + getFunctionName(refTable) + "(nested_feat_id, set_envelope));" +
+						  brDent2 + "END LOOP;" + 
+						  brDent2 + "CLOSE nested_feat_cur;" + br;
+		}
+		
+		return geom_block;
 	}
 	
 	@Override
