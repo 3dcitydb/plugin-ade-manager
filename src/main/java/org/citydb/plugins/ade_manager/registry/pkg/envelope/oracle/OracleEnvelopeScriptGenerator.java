@@ -24,7 +24,6 @@ import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.envelope.EnvelopeFunction;
 
 public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
-	private final String update_bounds_funcname = "update_bounds";
 	
 	public OracleEnvelopeScriptGenerator(Connection connection, ConfigImpl config, ADEMetadataManager adeMetadataManager) {
 		super(connection, config, adeMetadataManager);
@@ -47,7 +46,6 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		String packageBody =
 					"CREATE OR REPLACE PACKAGE BODY citydb_envelope" + br +
 					"AS" + 	
-					brDent1 + "TYPE ref_cursor IS REF CURSOR;" + br +
 					functionCollection.printFunctionDefinitions(dent + separatorLine) + 
 					"END citydb_envelope;" + br + 
 					"/";		
@@ -73,7 +71,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 				brDent2 + "bbox SDO_GEOMETRY;" +
 				brDent2 + "class_id NUMBER;" +
 				brDent2 + "dummy_box SDO_GEOMETRY;" +			
-				brDent2 + "nested_feat_cur ref_cursor;" +
+				brDent2 + "nested_feat_cur sys_refcursor;" +
 				brDent2 + "nested_feat_id NUMBER;";
 	
 		CitydbSpatialTable citydbSpatialTable = getCitydbSpatialTable(tableName);
@@ -84,7 +82,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		if (superTableName != null) {
 			super_geom_block += brDent2 + commentPrefix + "bbox from parent table";
 			super_geom_block += brDent2 + "IF caller <> 1 THEN" + 
-									brDent3 + "bbox := " + wrapSchemaName(getFunctionName(superTableName), schemaName) +"(co_id, set_envelope, 2);" + 
+									brDent3 + "bbox := " + getFunctionName(superTableName) +"(co_id, set_envelope, 2);" + 
 								brDent2 + "END IF;" + br;
 		}	
 		
@@ -141,9 +139,9 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 				subtables_geom_block = brDent2 + "IF caller <> 2 THEN" + 
 											brDent3 + "SELECT objectclass_id INTO class_id FROM " + tableName + " WHERE id = co_id;" + 
 											brDent3 + "CASE" + 
-											subtables_geom_block + 
-											brDent3 + "ELSE" + 										
-											brDent3 + "END;" + 
+											subtables_geom_block +
+											brDent3 + "ELSE bbox := bbox;" + 
+											brDent3 + "END CASE;" + 
 									   brDent2 + "END IF;" + br;
 			}		
 		}
@@ -157,7 +155,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 				registerEnvelopeFunction(hookTableName, schemaName);
 
 				hook_geom_block += brDent2 + commentPrefix + "bbox from hook table '" + hookTableName + "'";
-				hook_geom_block += brDent2 + "bbox := update_bounds(bbox, " + getFunctionName(hookTableName) + "(co_id, set_envelope);" + br;
+				hook_geom_block += brDent2 + "bbox := update_bounds(bbox, " + getFunctionName(hookTableName) + "(co_id, set_envelope));" + br;
 			}
 		}		
 		
@@ -233,7 +231,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 								   rep_id_column + ", " + 
 								   ref_point_column + ", " + 
 								   transformation_column + ") AS geom" + 
-								   " FROM " + wrapSchemaName(tableName, schemaName) + 
+								   " FROM " + tableName + 
 								   " WHERE id = co_id" +
 								   " AND " + rep_id_column + " IS NOT NULL";			
 			}	
@@ -269,14 +267,14 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 							brDent3 + "SELECT c.id " +
 									  "FROM " + tableName + " p, " + refTable + " c " +
 									  "WHERE p.id = co_id " +
-									  "AND p." + fk_column + " = " + "c.id";
+									  "AND p." + fk_column + " = " + "c.id;";
 				}
 				else if (toRole == TableRole.CHILD) {
 					String fk_column = join.getToColumn();
 					geom_block += 
 							brDent3 + "SELECT id"  +
 									  " FROM " + refTable +
-									  " WHERE " + fk_column + " = co_id";
+									  " WHERE " + fk_column + " = co_id;";
 				}
 				else {/**/}
 			}
@@ -288,7 +286,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 						brDent3 + "SELECT c.id " +
 								  "FROM " + refTable + " c, " + joinTable + " p2c " +
 								  "WHERE c.id = " + c_fk_column + 
-								  " AND p2c." + p_fk_column + " = co_id";
+								  " AND p2c." + p_fk_column + " = co_id;";
 			} 
 			else {/**/}
 			
@@ -303,18 +301,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		return geom_block;
 	}
 	
-	@Override
-	protected void registerExtraFunctions(String schemaName) {
-		super.registerExtraFunctions(schemaName);	
-		
-		// update bounds function for oracle version
-		EnvelopeFunction updateBoundsFunction = new EnvelopeFunction(update_bounds_funcname, schemaName);
-		constructUpdateBoundsFunction(updateBoundsFunction);
-		functionCollection.put(update_bounds_funcname, updateBoundsFunction);
-		LOG.info("Function '" + update_bounds_funcname + "' created." );
-	}
-	
-	private void constructUpdateBoundsFunction(EnvelopeFunction updateBoundsFunction) {
+	protected void constructUpdateBoundsFunction(EnvelopeFunction updateBoundsFunction) {
 		String funcName = updateBoundsFunction.getName();
 		
 		String declareField = "FUNCTION " + funcName + "(old_box SDO_GEOMETRY, new_box SDO_GEOMETRY) RETURN SDO_GEOMETRY";		
@@ -342,7 +329,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 							brDent4 + "SELECT srid INTO db_srid FROM database_srs;" +
 						brDent3 + "ELSE" + 
 							brDent4 + "db_srid := old_box.sdo_srid;" +
-						brDent3 + "END IF" +
+						brDent3 + "END IF;" +
 						br + 
 						brDent3 + "updated_box := MDSYS.SDO_GEOMETRY(3003,db_srid,NULL,MDSYS.SDO_ELEM_INFO_ARRAY(1,1003,1),MDSYS.SDO_ORDINATE_ARRAY(" +
 							brDent4 + commentPrefix + "first point" +
@@ -355,16 +342,16 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 							brDent4 + "CASE WHEN old_box.sdo_ordinates(6) < new_box.sdo_ordinates(6) THEN old_box.sdo_ordinates(6) ELSE new_box.sdo_ordinates(6) END," +
 							brDent4 + commentPrefix + "third point" +
 							brDent4 + "CASE WHEN old_box.sdo_ordinates(7) > new_box.sdo_ordinates(7) THEN old_box.sdo_ordinates(7) ELSE new_box.sdo_ordinates(7) END," +
-							brDent4 + "CASE WHEN old_box.sdo_ordinates(8) < new_box.sdo_ordinates(8) THEN old_box.sdo_ordinates(8) ELSE new_box.sdo_ordinates(8) END," +
-							brDent4 + "CASE WHEN old_box.sdo_ordinates(9) < new_box.sdo_ordinates(9) THEN old_box.sdo_ordinates(9) ELSE new_box.sdo_ordinates(9) END," +
+							brDent4 + "CASE WHEN old_box.sdo_ordinates(8) > new_box.sdo_ordinates(8) THEN old_box.sdo_ordinates(8) ELSE new_box.sdo_ordinates(8) END," +
+							brDent4 + "CASE WHEN old_box.sdo_ordinates(9) > new_box.sdo_ordinates(9) THEN old_box.sdo_ordinates(9) ELSE new_box.sdo_ordinates(9) END," +
 							brDent4 + commentPrefix + "forth point" +
-							brDent4 + "CASE WHEN old_box.sdo_ordinates(10) > new_box.sdo_ordinates(10) THEN old_box.sdo_ordinates(10) ELSE new_box.sdo_ordinates(10) END," +
-							brDent4 + "CASE WHEN old_box.sdo_ordinates(11) < new_box.sdo_ordinates(11) THEN old_box.sdo_ordinates(11) ELSE new_box.sdo_ordinates(11) END," +
-							brDent4 + "CASE WHEN old_box.sdo_ordinates(12) < new_box.sdo_ordinates(12) THEN old_box.sdo_ordinates(12) ELSE new_box.sdo_ordinates(12) END," +
+							brDent4 + "CASE WHEN old_box.sdo_ordinates(10) < new_box.sdo_ordinates(10) THEN old_box.sdo_ordinates(10) ELSE new_box.sdo_ordinates(10) END," +
+							brDent4 + "CASE WHEN old_box.sdo_ordinates(11) > new_box.sdo_ordinates(11) THEN old_box.sdo_ordinates(11) ELSE new_box.sdo_ordinates(11) END," +
+							brDent4 + "CASE WHEN old_box.sdo_ordinates(12) > new_box.sdo_ordinates(12) THEN old_box.sdo_ordinates(12) ELSE new_box.sdo_ordinates(12) END," +
 							brDent4 + commentPrefix + "fifth point" +
-							brDent4 + "CASE WHEN old_box.sdo_ordinates(13) > new_box.sdo_ordinates(13) THEN old_box.sdo_ordinates(13) ELSE new_box.sdo_ordinates(13) END," +
+							brDent4 + "CASE WHEN old_box.sdo_ordinates(13) < new_box.sdo_ordinates(13) THEN old_box.sdo_ordinates(13) ELSE new_box.sdo_ordinates(13) END," +
 							brDent4 + "CASE WHEN old_box.sdo_ordinates(14) < new_box.sdo_ordinates(14) THEN old_box.sdo_ordinates(14) ELSE new_box.sdo_ordinates(14) END," +
-							brDent4 + "CASE WHEN old_box.sdo_ordinates(15) < new_box.sdo_ordinates(15) THEN old_box.sdo_ordinates(15) ELSE new_box.sdo_ordinates(15) END," +
+							brDent4 + "CASE WHEN old_box.sdo_ordinates(15) < new_box.sdo_ordinates(15) THEN old_box.sdo_ordinates(15) ELSE new_box.sdo_ordinates(15) END" +
 							brDent4 + "));" +
 					brDent2 + "END IF;" +
 					br + 				
@@ -441,7 +428,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 				brDent1 + "BEGIN" + 
 					brDent2 + commentPrefix + "calculate bounding box for implicit geometry" +
 					brDent2 + "WITH collect_geom AS (" + 
-						brDent3 + "relative other geometry" +
+						brDent3 + commentPrefix + "relative other geometry" +
 						brDent3 + "SELECT" + 
 							brDent4 + "relative_other_geom AS geom" +
 						brDent3 + "FROM" +
@@ -494,7 +481,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 							brDent4 + "bbox," + 
 							brDent4 + "params(1), params(2), params(3)," + 
 							brDent4 + "params(5), params(6), params(7)," + 
-							brDent4 + "params(9), params(10), params(11)" + 
+							brDent4 + "params(9), params(10), params(11)," + 
 							brDent4 + "params(4), params(8), params(12));" +
 					brDent2 + "END IF;" + 
 					br +
@@ -516,35 +503,27 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 				dent + declareField + 
 				brDent1 + "IS" +
 					brDent2 + "bbox SDO_GEOMETRY;" + 
-					brDent2 + "filter VARCHAR2(150) := '';" + 
-					brDent2 + "cityobject_cur ref_cursor;" + 
+					brDent2 + "filter VARCHAR2(150);" + 
+					brDent2 + "cityobject_cur sys_refcursor;" + 
 					brDent2 + "cityobject_rec cityobject%rowtype;" + 
 				brDent1 + "BEGIN" + 
 					brDent2 + "IF only_if_null <> 0 THEN" + 
 						brDent3 + "filter := ' WHERE envelope IS NULL';" +
 					brDent2 + "END IF;" + 
 					br +
-					brDent2 + "filter := CASE WHEN filter IS NULL THEN ' WHERE ' ELSE filter || ' AND ' END;" +
-					brDent2 + "IF objclass_id <> 0 THEN" +						
+					brDent2 + "IF objclass_id <> 0 THEN" +	
+						brDent3 + "filter := CASE WHEN filter IS NULL THEN ' WHERE ' ELSE filter || ' AND ' END;" +
 						brDent3 + "filter := filter || 'objectclass_id = ' || to_char(objclass_id);" +
 					brDent2 + "END IF;" +
 					br +
-					brDent2 + "IF set_envelope <> 0 THEN" +
-						brDent3 + "OPEN cityobject_cur FOR" + 
-							brDent4 + "'SELECT * FROM cityobject' || filter;" +
-						brDent3 + "LOOP" +
-							brDent4 + "FETCH cityobject_cur INTO cityobject_rec;" + 
-							brDent4 + "EXIT WHEN cityobject_cur%notfound;" +
-							brDent4 + "bbox := update_bounds(bbox, " + getFunctionName("cityobject") + "(cityobject_rec.id, set_envelope));" +
-						brDent3 + "END LOOP;" + 
-						brDent3 + "CLOSE cityobject_cur;" +
-					brDent2 + "ELSE" +
-						brDent3 + "EXECUTE IMMEDIATE" +
-							brDent4 + "'SELECT box2envelope('" +
-							brDent4 + "|| 'SDO_AGGR_MBR(" + getFunctionName("cityobject") + "(id, set_envelope))'" +
-							brDent4 + "|| ') FROM cityobject' || filter" + 
-							brDent4 + "INTO bbox;" +
-					brDent2 + "END IF;" +
+					brDent2 + "OPEN cityobject_cur FOR" + 
+						brDent3 + "'SELECT * FROM cityobject' || filter;" +
+					brDent2 + "LOOP" +
+						brDent3 + "FETCH cityobject_cur INTO cityobject_rec;" + 
+						brDent3 + "EXIT WHEN cityobject_cur%notfound;" +
+						brDent3 + "bbox := update_bounds(bbox, " + getFunctionName("cityobject") + "(cityobject_rec.id, set_envelope));" +
+					brDent2 + "END LOOP;" + 
+					brDent2 + "CLOSE cityobject_cur;" +
 					br +		
 					brDent2 + "RETURN bbox;" + 
 					br +

@@ -32,6 +32,8 @@ import org.citydb.plugins.ade_manager.registry.pkg.DefaultDBScriptGenerator;
 
 public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 	protected SchemaMapping schemaMapping; 
+	
+	protected final String update_bounds_funcname = "update_bounds";	
 	protected final String box2envelope_funcname = "box2envelope";
 	protected final String implicitGeomEnvelope_funcname = "get_envelope_implicit_geometry";
 	protected final String get_envelope_cityobjects_funcname = "get_envelope_cityobjects";
@@ -54,6 +56,7 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 	
 	protected abstract DBSQLScript buildEnvelopeScript() throws SQLException;
 	protected abstract void constructEnvelopeFunction(EnvelopeFunction envelopeFunction) throws SQLException;
+	protected abstract void constructUpdateBoundsFunction(EnvelopeFunction updateBoundsFunction);
 	protected abstract void constructBox2EnvelopeFunction(EnvelopeFunction box2envelopeFunction);
 	protected abstract void constructImplicitGeomEnvelopeFunction(EnvelopeFunction implicitGeomEnvelopeFunction);
 	protected abstract void constructCityobjectsEnvelopeFunction(EnvelopeFunction cityobjectsEnvelopeFunction);
@@ -108,6 +111,12 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 	}
 	
 	protected void registerExtraFunctions(String schemaName) {
+		// update bounds function for oracle version
+		EnvelopeFunction updateBoundsFunction = new EnvelopeFunction(update_bounds_funcname, schemaName);
+		constructUpdateBoundsFunction(updateBoundsFunction);
+		functionCollection.put(update_bounds_funcname, updateBoundsFunction);
+		LOG.info("Function '" + update_bounds_funcname + "' created." );
+		
 		// box2envelope function
 		EnvelopeFunction box2envelopeFunction = new EnvelopeFunction(box2envelope_funcname, schemaName);
 		constructBox2EnvelopeFunction(box2envelopeFunction);;
