@@ -417,7 +417,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 									+ brDent3 + "CASE"
 										+ ref_child_block 
 										+ brDent4 + "ELSE"
-											+ brDent5 + "dummy_id := dummy_id;"
+											+ brDent5 + "dummy_id := NULL;"
 									+ brDent3 + "END CASE;"
 									+ br
 									+ brDent3 + "IF dummy_id = object_id THEN"

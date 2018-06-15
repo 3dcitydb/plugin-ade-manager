@@ -513,7 +513,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 									+ brDent4 + "CASE"
 										+ ref_child_block 
 										+ brDent5 + "ELSE"
-											+ brDent6 + "dummy_ids := dummy_ids;"
+											+ brDent6 + "dummy_ids := NULL;"
 									+ brDent4 + "END CASE;"
 									+ br		
 							 	 	+ brDent4 + "IF dummy_ids IS NOT EMPTY THEN"
