@@ -337,6 +337,39 @@ public class ADEMetadataManager {
 		return objectclassIds;
 	}
 
+	public boolean checkTableExists(String tableName) throws SQLException {
+		StringBuilder query = new StringBuilder();
+		DatabaseType dbType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();
+						
+		if (dbType == DatabaseType.ORACLE) {
+			query.append("select * from all_tables where table_name = upper('")
+			.append(tableName.toLowerCase()).append("') and owner = upper('").append(schema).append("')");
+		}
+		else if (dbType == DatabaseType.POSTGIS){
+			query.append("select * from information_schema.tables where table_name = '")
+			.append(tableName.toLowerCase()).append("' and table_schema  = '").append(schema).append("'");
+		}
+		
+		Statement stmt = null;
+		ResultSet rs = null;
+		boolean tableExists = false;
+	
+		try {						
+			stmt = connection.createStatement();
+			rs = stmt.executeQuery(query.toString());		
+			if (rs.next())
+				tableExists = true;
+		} finally {
+			if (rs != null) 
+				rs.close();
+			
+			if (stmt != null) 
+				stmt.close();
+		}
+		
+		return tableExists;
+	}
+
 	private AggregationInfoCollection queryAggregationInfoCollection() throws SQLException {
 		PreparedStatement pstsmt = null;
 		ResultSet rs = null;
@@ -743,7 +776,7 @@ public class ADEMetadataManager {
 	
 		return id;
 	}
-
+	
 	private int getBaseclassId(AbstractType<?> objectType) {
 		int objectclassId = objectType.getObjectClassId();
 		

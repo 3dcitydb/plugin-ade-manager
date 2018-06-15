@@ -63,7 +63,7 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 	
 	protected void registerEnvelopeFunction(String tableName, String schemaName) throws SQLException {
 		String funcName = getFunctionName(tableName);
-		if (!functionCollection.containsKey(funcName)) {	
+		if (!functionCollection.containsKey(funcName) && adeMetadataManager.checkTableExists(tableName)) {	
 			EnvelopeFunction envelopeFunction = new EnvelopeFunction(tableName, funcName, schemaName);
 			functionCollection.put(funcName, envelopeFunction); 
 			constructEnvelopeFunction(envelopeFunction);
