@@ -211,7 +211,8 @@ public class ADEDeletePanel extends OperationModuleView {
 			DBDeleteController deleter = new DBDeleteController(query);
 			boolean success = false;
 			try {
-				success = deleter.doProcess();
+				boolean singleConnection = true;
+				success = deleter.doProcess(singleConnection);
 				if (JOptionPane.showConfirmDialog(parentPanel.getTopLevelAncestor(), 
 						"Do you want to clean up the global appearances, which are not referenced by any other features any more?",
 						"Cleaning up global appearances?",

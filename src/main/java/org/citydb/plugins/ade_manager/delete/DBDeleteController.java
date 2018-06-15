@@ -57,7 +57,7 @@ public class DBDeleteController implements EventHandler {
 		eventDispatcher.removeEventHandler(this);
 	}
 
-	public boolean doProcess() throws DBDeleteException {
+	public boolean doProcess(boolean singleConnection) throws DBDeleteException {
 		long start = System.currentTimeMillis();
 		int minThreads = 2;
 		int maxThreads = Math.max(minThreads, Runtime.getRuntime().availableProcessors());
@@ -76,7 +76,9 @@ public class DBDeleteController implements EventHandler {
 			} catch (SQLException e1) {
 				throw new DBDeleteException("Failed to create a database connection.");
 			}
-		//	connections.add(globalConnection);
+			
+			if (singleConnection)
+				connections.add(globalConnection);
 			
 			dbWorkerPool = new WorkerPool<DBSplittingResult>(
 					"db_deleter_pool",
