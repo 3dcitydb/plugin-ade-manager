@@ -396,11 +396,9 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				int caller = 0;
 				if (directChildTables.contains(childTableName))
 					caller = 1;
-				ref_child_block += br
-						 + brDent3 + "-- delete " + childTableName						 
-						 + brDent3 + "IF objectclass_id = " + childObjectclassId + " THEN"
-					 	 	+ brDent4 + "dummy_id := " + wrapSchemaName(getArrayDeleteFunctionName(childTableName), schemaName) + "(array_agg(object_id), " + caller + ");"
-						 + brDent3 + "END IF;";
+				ref_child_block += brDent4 + commentPrefix + "delete " + childTableName						 
+								 + brDent4 + "WHEN objectclass_id = " + childObjectclassId + " THEN"
+							 	 	+ brDent5 + "dummy_id := " + wrapSchemaName(getArrayDeleteFunctionName(childTableName), schemaName) + "(array_agg(object_id), " + caller + ");";				   
 			}			
 		}
 		
@@ -410,13 +408,17 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 								 	+ brDent3 + "SELECT"
 								 		+ brDent4 + "co.id, co.objectclass_id"
 								 	+ brDent3 + "FROM"
-								 		+ brDent4 + "cityobject co, unnest($1) a(a_id)"
+								 		+ brDent4 + wrapSchemaName("cityobject", schemaName) + " co, unnest($1) a(a_id)"
 								 	+ brDent3 + "WHERE"
 								 		+ brDent4 + "co.id = a.a_id"
 								 + brDent2 + "LOOP"
 									+ brDent3 + "object_id := rec.id::integer;"
 									+ brDent3 + "objectclass_id := rec.objectclass_id::integer;"
-									+ ref_child_block 
+									+ brDent3 + "CASE"
+										+ ref_child_block 
+										+ brDent4 + "ELSE"
+											+ brDent5 + "dummy_id := dummy_id;"
+									+ brDent3 + "END CASE;"
 									+ br
 									+ brDent3 + "IF dummy_id = object_id THEN"
 										+ brDent4 + "deleted_child_ids := array_append(deleted_child_ids, dummy_id);"

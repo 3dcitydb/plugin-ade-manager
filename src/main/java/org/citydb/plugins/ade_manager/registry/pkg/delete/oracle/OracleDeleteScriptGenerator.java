@@ -492,11 +492,9 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				if (directChildTables.contains(childTableName))
 					caller = 1;
 				
-				ref_child_block += br
-						 + brDent5 + "-- delete " + childTableName						 	
-						 + brDent5 + "IF objectclass_id = " + childObjectclassId + " THEN"	
-					 	 	+ brDent6 + "dummy_ids := " + getArrayDeleteFunctionName(childTableName) + "(ID_ARRAY(object_id), " + caller + ");"
-					 	 + brDent5 + "END IF;";
+				ref_child_block += brDent5 + commentPrefix + "delete " + childTableName						 	
+						 		 + brDent5 + "WHEN objectclass_id = " + childObjectclassId + " THEN"	
+						 			 + brDent6 + "dummy_ids := " + getArrayDeleteFunctionName(childTableName) + "(ID_ARRAY(object_id), " + caller + ");";
 			}			
 		}
 		
@@ -511,8 +509,12 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 								 		+ brDent5 + "a.COLUMN_VALUE = co.id;"
 								 + brDent3 + "LOOP"
 								 	+ brDent4 + "FETCH cur into object_id, objectclass_id;"
-									+ brDent4 + "EXIT WHEN cur%notfound;"  
-									+ ref_child_block 
+									+ brDent4 + "EXIT WHEN cur%notfound;" 
+									+ brDent4 + "CASE"
+										+ ref_child_block 
+										+ brDent5 + "ELSE"
+											+ brDent6 + "dummy_ids := dummy_ids;"
+									+ brDent4 + "END CASE;"
 									+ br		
 							 	 	+ brDent4 + "IF dummy_ids IS NOT EMPTY THEN"
 										+ brDent5 + "IF dummy_ids(1) = object_id THEN"
