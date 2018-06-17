@@ -28,23 +28,23 @@
 
 package org.citydb.plugins.ade_manager.delete;
 
-public class DBDeleteException extends Exception {
+public class DeleteException extends Exception {
 
 	private static final long serialVersionUID = -3399011994826829781L;
 
-	public DBDeleteException() {
+	public DeleteException() {
 		super();
 	}
 	
-	public DBDeleteException(String message) {
+	public DeleteException(String message) {
 		super(message);
 	}
 	
-	public DBDeleteException(Throwable cause) {
+	public DeleteException(Throwable cause) {
 		super(cause);
 	}
 	
-	public DBDeleteException(String message, Throwable cause) {
+	public DeleteException(String message, Throwable cause) {
 		super(message, cause);
 	}
 	

@@ -29,8 +29,8 @@ import org.citydb.event.global.InterruptEvent;
 import org.citydb.gui.util.GuiUtil;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.delete.DBDeleteController;
-import org.citydb.plugins.ade_manager.delete.DBDeleteException;
+import org.citydb.plugins.ade_manager.delete.DeleteController;
+import org.citydb.plugins.ade_manager.delete.DeleteException;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
 import org.citydb.plugins.ade_manager.gui.util.FilterPanel;
@@ -208,10 +208,10 @@ public class ADEDeletePanel extends OperationModuleView {
 			viewContoller.setStatusText("Delete");
 			LOG.info("Initializing database delete...");
 
-			DBDeleteController deleter = new DBDeleteController(query);
+			DeleteController deleter = new DeleteController(query);
 			boolean success = false;
 			try {
-				boolean singleConnection = true;
+				boolean singleConnection = false;
 				success = deleter.doProcess(singleConnection);
 				if (JOptionPane.showConfirmDialog(parentPanel.getTopLevelAncestor(), 
 						"Do you want to clean up the global appearances, which are not referenced by any other features any more?",
@@ -219,7 +219,7 @@ public class ADEDeletePanel extends OperationModuleView {
 						JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
 					success = deleter.cleanupGlobalAppearances();
 				}				
-			} catch (DBDeleteException e) {
+			} catch (DeleteException e) {
 				LOG.error(e.getMessage());
 				Throwable cause = e.getCause();
 				while (cause != null) {
@@ -285,11 +285,11 @@ public class ADEDeletePanel extends OperationModuleView {
 			}
 		});
 		
-		DBDeleteController deleter = new DBDeleteController(null);
+		DeleteController deleter = new DeleteController(null);
 		boolean success = false;
 		try {
 			success = deleter.cleanupSchema();
-		} catch (DBDeleteException e) {
+		} catch (DeleteException e) {
 			LOG.error(e.getMessage());
 
 			Throwable cause = e.getCause();

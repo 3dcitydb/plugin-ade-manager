@@ -10,12 +10,14 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
 import org.citydb.concurrent.Worker;
 import org.citydb.config.project.database.DatabaseType;
+import org.citydb.config.project.global.LogLevel;
 import org.citydb.database.adapter.AbstractDatabaseAdapter;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.event.Event;
 import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
 import org.citydb.event.global.EventType;
+import org.citydb.event.global.InterruptEvent;
 import org.citydb.event.global.ObjectCounterEvent;
 import org.citydb.event.global.ProgressBarEventType;
 import org.citydb.event.global.StatusDialogProgressBar;
@@ -25,17 +27,18 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 	private final ReentrantLock mainLock = new ReentrantLock();
 	private final Logger LOG = Logger.getInstance();
 	private final EventDispatcher eventDispatcher;	
-	private final Connection connection;
 	private final CallableStatement deleteCall;	
+	private final BundledDBConnection bundledConnection;	
 	private volatile boolean shouldRun = true;
 	
-	public DBDeleteWorker(EventDispatcher eventDispatcher, Connection connection) throws SQLException {
+	public DBDeleteWorker(EventDispatcher eventDispatcher, BundledDBConnection bundledConnection) throws SQLException {
 		this.eventDispatcher = eventDispatcher;
 		this.eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
-		this.connection = connection;
+		this.bundledConnection = bundledConnection;
 		AbstractDatabaseAdapter databaseAdapter = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter();
 		String dbSchema = databaseAdapter.getConnectionDetails().getSchema();	
 		DatabaseType databaseType = databaseAdapter.getDatabaseType();
+		Connection connection = bundledConnection.getOrCreateConnection();
 		deleteCall = connection.prepareCall("{? = call " + dbSchema + "."
 				+ (databaseType == DatabaseType.ORACLE ? "citydb_delete." : "") + "del_cityobject(?)}");
 	}
@@ -43,6 +46,7 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 	@Override
 	public void interrupt() {
 		shouldRun = false;
+		bundledConnection.setShouldRollback(true);
 		workerThread.interrupt();
 	}
 
@@ -111,28 +115,11 @@ public class DBDeleteWorker extends Worker<DBSplittingResult> implements EventHa
 			else {
 				LOG.warn(objectclassName + " (RowID = " + objectId + ") has not been found in the database.");
 			}
-
-			if (connection != null) {
-				try {
-					if (!connection.getAutoCommit())
-						connection.commit();					
-				} catch (SQLException e1) {
-					e1.printStackTrace();
-				}
-			}	
-			
 		} catch (SQLException e) {
-			LOG.error("Failed to delete " + objectclassName + " (RowID = " + objectId + "). Rollback and Skip this delete process.");
-			LOG.debug(e.getMessage());	
-			
-			if (connection != null) {
-				try {
-					if (!connection.getAutoCommit())
-						connection.rollback();					
-				} catch (SQLException e1) {
-					e1.printStackTrace();
-				}
-			}				
+			eventDispatcher.triggerEvent(new InterruptEvent(
+					"Failed to delete " + objectclassName + " (RowID = " + objectId + "). Abort and rollback transactions.",
+					LogLevel.WARN, e, eventChannel, this));
+			bundledConnection.setShouldRollback(true);		
 		} finally {
 			updateDeleteContext(objectclassId, accept);
 		}		

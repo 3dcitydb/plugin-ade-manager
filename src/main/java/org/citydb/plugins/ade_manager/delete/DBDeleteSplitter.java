@@ -34,7 +34,6 @@ public class DBDeleteSplitter {
 
 	private final AbstractDatabaseAdapter databaseAdapter;
 	private final Connection connection;
-	private final String schema;
 	private final SchemaMapping schemaMapping;
 	private final SQLQueryBuilder builder;
 
@@ -53,14 +52,12 @@ public class DBDeleteSplitter {
 		this.eventDispatcher = eventDispatcher;
 		databaseAdapter = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter();
 		connection = DatabaseConnectionPool.getInstance().getConnection();
-		schema = databaseAdapter.getConnectionDetails().getSchema();
 
 		BuildProperties buildProperties = BuildProperties.defaults().addProjectionColumn(MappingConstants.GMLID);
 
 		builder = new SQLQueryBuilder(
 				schemaMapping, 
 				databaseAdapter, 
-				schema,
 				buildProperties);
 	}
 

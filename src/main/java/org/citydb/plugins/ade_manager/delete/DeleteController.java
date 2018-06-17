@@ -7,10 +7,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,7 +33,7 @@ import org.citydb.util.Util;
 
 import oracle.jdbc.OracleTypes;
 
-public class DBDeleteController implements EventHandler {
+public class DeleteController implements EventHandler {
 	private final Logger log = Logger.getInstance();
 	private final SchemaMapping schemaMapping;
 	private final EventDispatcher eventDispatcher;
@@ -45,8 +43,9 @@ public class DBDeleteController implements EventHandler {
 	private WorkerPool<DBSplittingResult> dbWorkerPool;
 	private HashMap<Integer, Long> objectCounter;
 	private Query query;
+	private BundledDBConnection bundledConnection;
 	
-	public DBDeleteController(Query query) {				
+	public DeleteController(Query query) {				
 		this.schemaMapping = ObjectRegistry.getInstance().getSchemaMapping();
 		this.eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
 		this.objectCounter = new HashMap<>();
@@ -57,7 +56,7 @@ public class DBDeleteController implements EventHandler {
 		eventDispatcher.removeEventHandler(this);
 	}
 
-	public boolean doProcess(boolean singleConnection) throws DBDeleteException {
+	public boolean doProcess(boolean useSingleConnection) throws DeleteException {
 		long start = System.currentTimeMillis();
 		int minThreads = 2;
 		int maxThreads = Math.max(minThreads, Runtime.getRuntime().availableProcessors());
@@ -66,33 +65,22 @@ public class DBDeleteController implements EventHandler {
 		eventDispatcher.addEventHandler(EventType.OBJECT_COUNTER, this);
 		eventDispatcher.addEventHandler(EventType.INTERRUPT, this);
 
-		List<Connection> connections = new ArrayList<Connection>();
+		bundledConnection = new BundledDBConnection(useSingleConnection);
 		
-		try {	
-			Connection globalConnection = null;
-			try {
-				globalConnection = DatabaseConnectionPool.getInstance().getConnection();
-				globalConnection.setAutoCommit(true);
-			} catch (SQLException e1) {
-				throw new DBDeleteException("Failed to create a database connection.");
-			}
-			
-			if (singleConnection)
-				connections.add(globalConnection);
-			
+		try {				
 			dbWorkerPool = new WorkerPool<DBSplittingResult>(
 					"db_deleter_pool",
 					minThreads,
 					maxThreads,
 					PoolSizeAdaptationStrategy.AGGRESSIVE,
-					new DBDeleteWorkerFactory(eventDispatcher, connections),
+					new DBDeleteWorkerFactory(eventDispatcher, bundledConnection),
 					300,
 					false);
 
 			dbWorkerPool.prestartCoreWorkers();
 
 			if (dbWorkerPool.getPoolSize() == 0)
-				throw new DBDeleteException("Failed to start database delete worker pool. Check the database connection pool settings.");
+				throw new DeleteException("Failed to start database delete worker pool. Check the database connection pool settings.");
 
 			// get database splitter and start query
 			dbSplitter = null;
@@ -108,27 +96,17 @@ public class DBDeleteController implements EventHandler {
 					dbSplitter.startQuery();
 				}
 			} catch (SQLException | QueryBuildException e) {
-				throw new DBDeleteException("Failed to query the database.", e);
-			}
-
-			try {
-				dbWorkerPool.shutdownAndWait();
-			} catch (InterruptedException e) {
-				throw new DBDeleteException("Failed to shutdown worker pools.", e);
+				throw new DeleteException("Failed to query the database.", e);
 			}
 		} finally {
-			for (Connection connection: connections) {
-				if (connection != null) {
-					try {
-						connection.close();
-					} catch (SQLException e) {
-						//
-					}
-				}					
-			}
+			try {
+				bundledConnection.close();
+			} catch (SQLException e) {
+				//
+			}			
 			
 			// clean up
-			if (dbWorkerPool != null && !dbWorkerPool.isTerminated())
+			if (dbWorkerPool != null)
 				dbWorkerPool.shutdownNow();
 
 			try {
@@ -155,7 +133,7 @@ public class DBDeleteController implements EventHandler {
 		return shouldRun;
 	}
 	
-	public boolean cleanupGlobalAppearances() throws DBDeleteException {
+	public boolean cleanupGlobalAppearances() throws DeleteException {
 		String dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();	
 		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();	
 		Connection connection = null;
@@ -179,9 +157,9 @@ public class DBDeleteController implements EventHandler {
 				} 					
 			}
 			else
-				throw new DBDeleteException("Unsupported database type for running appearance cleanup.");
+				throw new DeleteException("Unsupported database type for running appearance cleanup.");
 		} catch (SQLException e) {
-			throw new DBDeleteException("Failed to cleanup global appearances.", e);
+			throw new DeleteException("Failed to cleanup global appearances.", e);
 		} finally {
 			if (cleanupStmt != null) {
 				try {
@@ -207,7 +185,7 @@ public class DBDeleteController implements EventHandler {
 		return shouldRun;
 	}
 	
-	public boolean cleanupSchema() throws DBDeleteException {
+	public boolean cleanupSchema() throws DeleteException {
 		String dbSchema = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionDetails().getSchema();
 		DatabaseType databaseType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getDatabaseType();	
 		Connection connection = null;
@@ -219,7 +197,7 @@ public class DBDeleteController implements EventHandler {
 					+ (databaseType == DatabaseType.ORACLE ? "citydb_delete." : "") + "cleanup_schema()}");
 			cleanupStmt.execute();	
 		} catch (SQLException e) {
-			throw new DBDeleteException("Failed to cleanup data schema.", e);
+			throw new DeleteException("Failed to cleanup data schema.", e);
 		} finally {
 			if (cleanupStmt != null) {
 				try {
@@ -257,6 +235,7 @@ public class DBDeleteController implements EventHandler {
 		else if (e.getEventType() == EventType.INTERRUPT) {
 			if (isInterrupted.compareAndSet(false, true)) {
 				shouldRun = false;
+				bundledConnection.setShouldRollback(true);
 				InterruptEvent interruptEvent = (InterruptEvent)e;
 
 				if (interruptEvent.getCause() != null) {

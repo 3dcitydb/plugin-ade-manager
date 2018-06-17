@@ -16,6 +16,7 @@ import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.delete.DBDeleteWorker;
+import org.citydb.plugins.ade_manager.delete.BundledDBConnection;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.registry.schema.SQLScriptRunner;
@@ -81,16 +82,19 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		
 		int totalWorkNumber = deleteWorks.size();
 		DBDeleteWorker deleteWorker = null;
+		BundledDBConnection transaction = new BundledDBConnection(true);
 		final ReentrantLock lock = new ReentrantLock();		
-		try {				
-			deleteWorker = new DBDeleteWorker(ObjectRegistry.getInstance().getEventDispatcher(), connection);
+		try {			
+			
+			deleteWorker = new DBDeleteWorker(ObjectRegistry.getInstance().getEventDispatcher(), transaction);
 			for (DBSplittingResult work: deleteWorks) {
 				deleteWorker.doWork(work);	
 				LOG.info("Remaining number of ADE objects going to be deleted: " + (--totalWorkNumber));
 			}							
 		} finally {
 			if (deleteWorker != null)
-				deleteWorker.shutdown();			
+				deleteWorker.shutdown();		
+			transaction.close();
 			lock.lock();			
 		}
 	}
