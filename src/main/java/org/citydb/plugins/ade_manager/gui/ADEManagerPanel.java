@@ -17,7 +17,6 @@ import org.citydb.gui.util.GuiUtil;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.gui.modules.ADEDeletePanel;
 import org.citydb.plugins.ade_manager.gui.modules.ADERegistryPanel;
 import org.citydb.plugins.ade_manager.gui.modules.ADETransformationPanel;
 import org.citydb.plugins.ade_manager.gui.modules.OperationModuleView;
@@ -44,13 +43,11 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 
 	private void initGui() {	
 		OperationModuleView transformationPanel = new ADETransformationPanel(this, config);
-		OperationModuleView deletePanel = new ADEDeletePanel(this, config);
 		OperationModuleView registryPanel = new ADERegistryPanel(this, config);
 		
-		subModulePanels = new OperationModuleView[3];
-		subModulePanels[0] = transformationPanel;	
-		subModulePanels[1] = deletePanel;		
-		subModulePanels[2] = registryPanel;
+		subModulePanels = new OperationModuleView[2];
+		subModulePanels[0] = transformationPanel;			
+		subModulePanels[1] = registryPanel;
 
 		subModuleTab = new JTabbedPane();
 		for (int i = 0; i < subModulePanels.length - 1; ++i)

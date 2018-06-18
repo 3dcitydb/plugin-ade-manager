@@ -9,14 +9,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.citydb.citygml.deleter.concurrent.DBDeleteWorker;
+import org.citydb.citygml.deleter.util.BundledDBConnection;
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.schema.mapping.AbstractObjectType;
 import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.delete.DBDeleteWorker;
-import org.citydb.plugins.ade_manager.delete.BundledDBConnection;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.registry.schema.SQLScriptRunner;

@@ -22,7 +22,7 @@ import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.registry.ObjectRegistry;
 
 public abstract class OperationModuleView extends DatabaseOperationView implements EventHandler{
-	protected static final int BORDER_THICKNESS = 3;
+	protected static final int BORDER_THICKNESS = 5;
 	protected static final int MAX_TEXTFIELD_HEIGHT = 20;
 	protected static final int MAX_LABEL_WIDTH = 60;
 	protected static final int BUTTON_WIDTH = 155;
