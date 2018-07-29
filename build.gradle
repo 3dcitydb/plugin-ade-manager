@@ -65,7 +65,8 @@ distributions.main.contents {
         ])
     }
     into('lib') {
-        from configurations.compile.copy().exclude(group: 'org.citydb')
+        from 'lib'
+        exclude 'shared'
     }
     into('samples') {
         from 'samples'
