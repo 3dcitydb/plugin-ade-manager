@@ -119,7 +119,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 			for (Entry<Integer, String> entry: subObjectclasses.entrySet()) {
 				int subObjectclassId = entry.getKey();
 				String subTableName = entry.getValue();
-				if (tableName.equalsIgnoreCase(subTableName))
+				if (tableName.equalsIgnoreCase(subTableName) || !tableExists(subTableName, schemaName))
 					continue;
 				
 				// register envelop function

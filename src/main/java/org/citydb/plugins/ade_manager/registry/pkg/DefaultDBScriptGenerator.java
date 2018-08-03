@@ -1,7 +1,9 @@
 package org.citydb.plugins.ade_manager.registry.pkg;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.citydb.database.connection.DatabaseConnectionPool;
@@ -71,4 +73,25 @@ public abstract class DefaultDBScriptGenerator implements DBScriptGenerator {
 		return schemaName + "." + entryName;
 	}
 
+	protected boolean tableExists(String tableName, String schemaName) throws SQLException {
+		boolean exist = false;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {					
+			stmt = connection.createStatement();
+			rs = stmt.executeQuery("select 1 from ALL_TABLES "
+					 + "where TABLE_NAME = upper('" + tableName + "') "
+					 + "and OWNER = upper('" + schemaName + "')");		
+			if (rs.next()) 
+				exist = true;	
+		} finally {
+			if (rs != null) 
+				rs.close();
+	
+			if (stmt != null) 
+				stmt.close();
+		}
+
+		return exist;
+	}
 }

@@ -1,9 +1,7 @@
 package org.citydb.plugins.ade_manager.registry.pkg.delete.oracle;
 
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -731,25 +729,4 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		return code_block;
 	}
 	
-	private boolean tableExists(String tableName, String schemaName) throws SQLException {
-		boolean exist = false;
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {					
-			stmt = connection.createStatement();
-			rs = stmt.executeQuery("select 1 from ALL_TABLES "
-					 + "where TABLE_NAME = upper('" + tableName + "') "
-					 + "and OWNER = upper('" + schemaName + "')");		
-			if (rs.next()) 
-				exist = true;	
-		} finally {
-			if (rs != null) 
-				rs.close();
-	
-			if (stmt != null) 
-				stmt.close();
-		}
-
-		return exist;
-	}
 }
