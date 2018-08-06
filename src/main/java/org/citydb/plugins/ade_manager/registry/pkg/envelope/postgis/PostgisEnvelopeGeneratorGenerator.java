@@ -142,9 +142,9 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		
 		// update envelope column of CITYOBJECT table
 		String update_block = "";
-		if (!citydbSpatialTable.isHookTable()) {
+		if (!citydbSpatialTable.isHookTable() && tableName.equalsIgnoreCase("cityobject")) {
 			update_block += brDent1 + "IF set_envelope <> 0 AND bbox IS NOT NULL THEN" + 
-								brDent2 + "UPDATE cityobject SET envelope = bbox WHERE id = co_id;" +
+								brDent2 + "UPDATE " + wrapSchemaName("cityobject", schemaName) + " SET envelope = bbox WHERE id = co_id;" +
 							brDent1 + "END IF;" + br;	
 		}					
 		

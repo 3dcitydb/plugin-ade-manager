@@ -161,7 +161,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		
 		// update envelope column of CITYOBJECT table
 		String update_block = "";
-		if (!citydbSpatialTable.isHookTable()) {
+		if (!citydbSpatialTable.isHookTable() && tableName.equalsIgnoreCase("cityobject")) {
 			update_block += brDent2 + "IF set_envelope <> 0 AND bbox IS NOT NULL THEN" + 
 								brDent3 + "UPDATE cityobject SET envelope = bbox WHERE id = co_id;" +
 							brDent2 + "END IF;" + br;	

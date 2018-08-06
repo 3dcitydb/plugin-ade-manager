@@ -276,7 +276,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "dummy_str := citydb_idx.drop_spatial_indexes();" + 
 					br +
 					brDent2 + "for uc in (" + 
-						brDent3 + "select constraint_name, table_name from user_constraints" + 
+						brDent3 + "select constraint_name, table_name from user_constraints where constraint_type = 'R'" + 
 					brDent2 + ")" + 
 					brDent2 + "LOOP" + 
 						brDent3 + "execute immediate 'alter table '||uc.table_name||' disable constraint '||uc.constraint_name||'';" + 						
@@ -304,7 +304,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					brDent2 + "END loop;" +
 					br +
 					brDent2 + "for uc in (" + 						
-						brDent3 + "select constraint_name, table_name from user_constraints" + 
+						brDent3 + "select constraint_name, table_name from user_constraints where constraint_type = 'R'" + 
 					brDent2 + ")" +
 					brDent2 + "LOOP" + 			
 						brDent3 + "execute immediate 'alter table '||uc.table_name||' enable constraint '||uc.constraint_name||'';" +
