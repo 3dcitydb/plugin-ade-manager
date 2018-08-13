@@ -48,7 +48,7 @@ public class OracleADEDBSchemaManager extends AbstractADEDBSchemaManager {
 				}				
 			}
 			scanner.close();
-			int srid = dbPool.getActiveDatabaseAdapter().getUtil().getDatabaseInfo().getReferenceSystem().getSrid();
+			int srid = dbPool.getActiveDatabaseAdapter().getUtil().getDatabaseInfo(schema).getReferenceSystem().getSrid();
 			result = os.toString().replace("&SRSNO", String.valueOf(srid));		
 		} catch (SQLException e) {
 			throw new SQLException("Failed to get SRID from the database", e);
