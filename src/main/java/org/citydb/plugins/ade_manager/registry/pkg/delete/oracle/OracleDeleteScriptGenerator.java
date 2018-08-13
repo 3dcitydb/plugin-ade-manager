@@ -52,12 +52,10 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 	@Override
 	protected void constructArrayDeleteFunction(DeleteFunction deleteFunction) throws SQLException {
 		String tableName = deleteFunction.getTargetTable();
-		String funcName = deleteFunction.getName();
-		String schemaName = deleteFunction.getOwnerSchema();		
-		AtomicInteger var_index = new AtomicInteger(0);
+		String schemaName = deleteFunction.getOwnerSchema();
+		String declareField = deleteFunction.getDeclareField();
 		
-		String declareField = "FUNCTION " + funcName + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY";		
-		deleteFunction.setDeclareField(declareField);
+		AtomicInteger var_index = new AtomicInteger(0);
 		
 		String delete_func_ddl =
 				dent + declareField + 
@@ -135,10 +133,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 
 	@Override
 	protected void constructSingleDeleteFunction(DeleteFunction singleDeleteFunction, String arrayDeleteFuncname) {
-		String funcName = singleDeleteFunction.getName();
-		
-		String declareField = "FUNCTION " + funcName + "(pid NUMBER) RETURN NUMBER";		
-		singleDeleteFunction.setDeclareField(declareField);
+		String declareField = singleDeleteFunction.getDeclareField();
 		
 		String delete_func_ddl =
 				dent + declareField + 
@@ -414,7 +409,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 			
 			RelationType nRootRelation = aggregationInfoCollection.getTableRelationType(n_table_name, rootTableName, n_fk_column_name);
 
-			if (!functionCollection.containsKey(n_table_name) && m_table_name == null) {
+			if (m_table_name == null) {
 				registerDeleteFunction(n_table_name, schemaName);
 			}				
 			
@@ -454,9 +449,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 			// If the n_fk_column is not nullable and the table m exists, the table n should be an associative table 
 			// between the root table and table m
 			if (m_table_name != null) {		
-				if (!functionCollection.containsKey(m_table_name)) {
-					registerDeleteFunction(m_table_name, schemaName);
-				}					
+				registerDeleteFunction(m_table_name, schemaName);					
 
 				RelationType mRootRelation = aggregationInfoCollection.getTableRelationType(m_table_name, rootTableName, n_table_name);					
 				// In case of composition or aggregation between the root table and table m, the corresponding 
@@ -703,8 +696,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				}
 				collect_block += br;
 
-				if (!functionCollection.containsKey(ref_table_name))
-					registerDeleteFunction(ref_table_name, schemaName);
+				registerDeleteFunction(ref_table_name, schemaName);
 				
 				// Check if we need add additional code-block for cleaning up the sub-features
 				// for the case of aggregation relationship. 
@@ -729,8 +721,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		if (parent_table != null) {
 			List<String> adeHookTables = adeMetadataManager.getADEHookTables(parent_table);
 			if (!adeHookTables.contains(tableName)) {
-				if (!functionCollection.containsKey(parent_table))
-					registerDeleteFunction(parent_table, schemaName);
+				registerDeleteFunction(parent_table, schemaName);
 				
 				code_block += brDent2 + "IF caller <> 1 THEN"
 						    	+ brDent3 + "-- delete " + parent_table
@@ -741,6 +732,16 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 			}			
 		}
 		return code_block;
+	}
+
+	@Override
+	protected String getArrayDeleteFunctionDeclareField(String arrayDeleteFuncName, String schemaName) {
+		return "FUNCTION " + arrayDeleteFuncName + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY";
+	}
+
+	@Override
+	protected String getSingleDeleteFunctionDeclareField(String singleDeleteFuncName, String schemaName) {
+		return "FUNCTION " + singleDeleteFuncName + "(pid NUMBER) RETURN NUMBER";
 	}
 	
 }

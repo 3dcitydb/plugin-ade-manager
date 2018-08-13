@@ -33,12 +33,10 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	@Override
 	protected void constructArrayDeleteFunction(DeleteFunction deleteFunction) throws SQLException  {
 		String tableName = deleteFunction.getTargetTable();
-		String funcName = deleteFunction.getName();
-		String schemaName = deleteFunction.getOwnerSchema();
+		String schemaName = deleteFunction.getOwnerSchema();		
+		String declareField = deleteFunction.getDeclareField();
 		
-		String delete_func_ddl =
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(funcName, schemaName) + 
-				"(int[], caller INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + "$body$" + br;
+		String delete_func_ddl = "CREATE OR REPLACE " + declareField + " AS" + br + "$body$" + br;
 		
 		String declare_block = 
 				"DECLARE" + 
@@ -124,12 +122,11 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 
 	@Override
 	protected void constructSingleDeleteFunction(DeleteFunction singleDeleteFunction, String arrayDeleteFuncname) {
-		String funcName = singleDeleteFunction.getName();
-		String schemaName = singleDeleteFunction.getOwnerSchema();
+		String schemaName = singleDeleteFunction.getOwnerSchema();		
+		String declareField = singleDeleteFunction.getDeclareField();
 		
 		String delete_func_ddl =
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(funcName, schemaName) + 
-				"(pid int) RETURNS integer AS" + br + 
+				"CREATE OR REPLACE " + declareField + " AS" + br + 
 				"$body$" + br +
 				"DECLARE" +
 				brDent1 + "deleted_id integer;" + br +
@@ -146,11 +143,12 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	@Override
 	protected void constructLineageDeleteFunction(DeleteFunction deleteFunction) {
 		String schemaName = deleteFunction.getOwnerSchema();
+		String declareField = "FUNCTION " + wrapSchemaName(deleteFunction.getName(), schemaName) + 
+				"(lineage_value TEXT, objectclass_id INTEGER DEFAULT 0) RETURNS SETOF int";
+		deleteFunction.setDeclareField(declareField);
 		
-		String delete_func_ddl = "";
-		delete_func_ddl += 
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(deleteFunction.getName(), schemaName) + 
-				"(lineage_value TEXT, objectclass_id INTEGER DEFAULT 0) RETURNS SETOF int AS" + br + 
+		String delete_func_ddl = 
+				"CREATE OR REPLACE " + declareField + " AS" + br + 
 				"$body$" + br +
 				commentPrefix + "Function for deleting cityobjects by lineage value" + br + 
 				"DECLARE" + 
@@ -188,11 +186,12 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	@Override
 	protected void constructAppearanceCleanupFunction(DeleteFunction cleanupFunction) {
 		String schemaName = cleanupFunction.getOwnerSchema();
-			
-		String cleanup_func_ddl = "";
-		cleanup_func_ddl += 
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
-				"(only_global INTEGER DEFAULT 1) RETURNS SETOF int AS" + br + 
+		String declareField = "FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
+				"(only_global INTEGER DEFAULT 1) RETURNS SETOF int";
+		cleanupFunction.setDeclareField(declareField);
+		
+		String cleanup_func_ddl = 
+				"CREATE OR REPLACE " + declareField + " AS" + br + 
 				"$body$" + br +
 				"DECLARE" + 
 				brDent1 + "deleted_id int;" + 
@@ -234,11 +233,12 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	@Override
 	protected void constructSchemaCleanupFunction(DeleteFunction cleanupFunction) {
 		String schemaName = cleanupFunction.getOwnerSchema();
+		String declareField = "FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
+				"() RETURNS SETOF void";
+		cleanupFunction.setDeclareField(declareField);
 		
-		String cleanup_func_ddl = "";
-		cleanup_func_ddl += 
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
-				"() RETURNS SETOF void AS" + br + 
+		String cleanup_func_ddl = 
+				"CREATE OR REPLACE " + declareField + " AS" + br + 
 				"$body$" + br +
 				commentPrefix + "Function for cleaning up data schema" + br + 
 				"DECLARE" + 
@@ -325,7 +325,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			
 			RelationType nRootRelation = aggregationInfoCollection.getTableRelationType(n_table_name, rootTableName, n_fk_column_name);
 
-			if (!functionCollection.containsKey(n_table_name) && m_table_name == null)
+			if (m_table_name == null)
 				registerDeleteFunction(n_table_name, schemaName);
 			
 			if (n_fk_column_name.equalsIgnoreCase("id")) { 
@@ -362,8 +362,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			// If the n_fk_column is not nullable and the table m exists, the table n should be an associative table 
 			// between the root table and table m
 			if (m_table_name != null) {												
-				if (!functionCollection.containsKey(m_table_name))
-					registerDeleteFunction(m_table_name, schemaName);
+				registerDeleteFunction(m_table_name, schemaName);
 
 				RelationType mRootRelation = aggregationInfoCollection.getTableRelationType(m_table_name, rootTableName, n_table_name);				
 				// In case of composition or aggregation between the root table and table m, the corresponding 
@@ -586,8 +585,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				into_block += "," 
 						    + brDent2 + ref_table_name + "_ids";
 				
-				if (!functionCollection.containsKey(ref_table_name))
-					registerDeleteFunction(ref_table_name, schemaName);
+				registerDeleteFunction(ref_table_name, schemaName);
 				
 				// Check if we need add additional code-block for cleaning up the sub-features
 				// for the case of aggregation relationship. 
@@ -612,8 +610,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		if (parent_table != null) {
 			List<String> adeHookTables = adeMetadataManager.getADEHookTables(parent_table);
 			if (!adeHookTables.contains(tableName)) {
-				if (!functionCollection.containsKey(parent_table))
-					registerDeleteFunction(parent_table, schemaName);
+				registerDeleteFunction(parent_table, schemaName);
 				
 				code_block += brDent1 + "IF $2 <> 1 THEN"
 						    	+ brDent2 + "-- delete " + parent_table
@@ -622,6 +619,17 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			}			
 		}
 		return code_block;
+	}
+
+	@Override
+	protected String getArrayDeleteFunctionDeclareField(String arrayDeleteFuncName, String schemaName) {
+		return "FUNCTION " + wrapSchemaName(arrayDeleteFuncName, schemaName) + 
+				"(int[], caller INTEGER DEFAULT 0) RETURNS SETOF int";
+	}
+
+	@Override
+	protected String getSingleDeleteFunctionDeclareField(String singleDeleteFuncName, String schemaName) {
+		return "FUNCTION " + wrapSchemaName(singleDeleteFuncName, schemaName) + "(pid int) RETURNS integer";	
 	}
 
 }

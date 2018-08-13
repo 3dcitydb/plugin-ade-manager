@@ -75,8 +75,8 @@ public class DBStoredFunctionCollection implements Map<String, DBStoredFunction>
 	
 	public String printFunctionNameList(String prefix) {
 		StringBuilder builder = new StringBuilder();
-		for (String funcName: this.keySet()) 
-			builder.append(prefix).append(funcName).append(br);
+		for (DBStoredFunction func: values()) 
+			builder.append(prefix).append(func.getDeclareField()).append(br);
 		
 		return builder.toString();
 	}

@@ -10,10 +10,15 @@ public class DeleteFunction extends DBStoredFunction {
 	}
 	
 	public DeleteFunction(String targetTable, String name, String schema) {
-		super(name, schema);
+		this(name, schema);
 		this.targetTable = targetTable;
 	}
 
+	public DeleteFunction(String targetTable, String name, String declareField, String schema) {
+		this(targetTable, name, schema);
+		super.setDeclareField(declareField);
+	}
+	
 	public String getTargetTable() {
 		return targetTable;
 	}

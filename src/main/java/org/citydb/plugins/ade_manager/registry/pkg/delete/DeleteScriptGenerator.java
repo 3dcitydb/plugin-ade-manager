@@ -33,9 +33,11 @@ public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 	}
 	
 	protected String convertSingleToArrayDeleteFunctionName(String singleDeleteFuncname) {
-		return singleDeleteFuncname + "s";
+		return singleDeleteFuncname + "";
 	}
 	
+	protected abstract String getArrayDeleteFunctionDeclareField(String arrayDeleteFuncName, String schemaName); 
+	protected abstract String getSingleDeleteFunctionDeclareField(String singleDeleteFuncName, String schemaName); 
 	protected abstract DBSQLScript buildDeleteScript() throws SQLException; 	
 	protected abstract void constructArrayDeleteFunction(DeleteFunction arrayDeleteFunction) throws SQLException;
 	protected abstract void constructSingleDeleteFunction(DeleteFunction singleDeleteFunction, String arrayDeleteFuncname);
@@ -46,18 +48,20 @@ public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 	protected void registerDeleteFunction(String tableName, String schemaName) throws SQLException {
 		// create array-delete function
 		String arrayDeleteFuncName = getArrayDeleteFunctionName(tableName);
-		if (!functionCollection.containsKey(arrayDeleteFuncName)) {	
-			DeleteFunction deleteFunction = new DeleteFunction(tableName, arrayDeleteFuncName, schemaName);
-			functionCollection.put(arrayDeleteFuncName, deleteFunction); 
+		String arrayDeleteDeclareField = getArrayDeleteFunctionDeclareField(arrayDeleteFuncName, schemaName);
+		if (!functionCollection.containsKey(arrayDeleteDeclareField)) {	
+			DeleteFunction deleteFunction = new DeleteFunction(tableName, arrayDeleteFuncName, arrayDeleteDeclareField, schemaName);
+			functionCollection.put(arrayDeleteDeclareField, deleteFunction); 
 			constructArrayDeleteFunction(deleteFunction);
 			LOG.info("Delete-function '" + arrayDeleteFuncName + "' created." );
 		}	
 		
 		// create single-delete function
 		String singleDeleteFuncName = getSingleDeleteFunctionName(tableName);
-		if (!functionCollection.containsKey(singleDeleteFuncName)) {	
-			DeleteFunction singleDeleteFunction = new DeleteFunction(tableName, singleDeleteFuncName, schemaName);
-			functionCollection.put(singleDeleteFuncName, singleDeleteFunction); 
+		String singleDeleteDeclareField = getSingleDeleteFunctionDeclareField(singleDeleteFuncName, schemaName);
+		if (!functionCollection.containsKey(singleDeleteDeclareField)) {	
+			DeleteFunction singleDeleteFunction = new DeleteFunction(tableName, singleDeleteFuncName, singleDeleteDeclareField, schemaName);
+			functionCollection.put(singleDeleteDeclareField, singleDeleteFunction); 
 			constructSingleDeleteFunction(singleDeleteFunction, arrayDeleteFuncName);
 			LOG.info("Delete-function '" + singleDeleteFuncName + "' created." );
 		}	
@@ -67,19 +71,19 @@ public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 		// Lineage delete function
 		DeleteFunction lineageDeleteFunction = new DeleteFunction(lineage_delete_funcname, schemaName);
 		constructLineageDeleteFunction(lineageDeleteFunction);
-		functionCollection.put(lineage_delete_funcname, lineageDeleteFunction);
+		functionCollection.put(lineageDeleteFunction.getDeclareField(), lineageDeleteFunction);
 		LOG.info("Delete-function '" + lineage_delete_funcname + "' created." );
 
 		// Appearance cleanup function
 		DeleteFunction cleanupAppearancesFunction = new DeleteFunction(appearance_cleanup_funcname, schemaName);
 		constructAppearanceCleanupFunction(cleanupAppearancesFunction);
-		functionCollection.put(appearance_cleanup_funcname, cleanupAppearancesFunction);
+		functionCollection.put(cleanupAppearancesFunction.getDeclareField(), cleanupAppearancesFunction);
 		LOG.info("Cleanup-function '" + appearance_cleanup_funcname + "' created." );
 		
-		// Appearance cleanup function
+		// Schema cleanup function
 		DeleteFunction cleanupSchemaFunction = new DeleteFunction(schema_cleanup_funcname, schemaName);
 		constructSchemaCleanupFunction(cleanupSchemaFunction);
-		functionCollection.put(schema_cleanup_funcname, cleanupSchemaFunction);
+		functionCollection.put(cleanupSchemaFunction.getDeclareField(), cleanupSchemaFunction);
 		LOG.info("Cleanup-function '" + schema_cleanup_funcname + "' created." );
 	}
 }
