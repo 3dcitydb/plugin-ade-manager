@@ -209,7 +209,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 
 	@Override
 	protected void constructAppearanceCleanupFunction(DeleteFunction cleanupFunction) {
-		String declareField = "FUNCTION " + cleanupFunction.getName() + " RETURN ID_ARRAY";
+		String declareField = "FUNCTION " + cleanupFunction.getName() + "(only_global int := 1) RETURN ID_ARRAY";
 		cleanupFunction.setDeclareField(declareField);
 		
 		String cleanup_func_ddl = "";
@@ -237,18 +237,32 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 						brDent3 + "dummy_ids := " + getArrayDeleteFunctionName("surface_data") + "(surface_data_ids);" + 
 					brDent2 + "END IF;" +
 					br +
-					brDent2 + "SELECT" + 
-						brDent4 + "a.id" + 
-					brDent3 + "BULK COLLECT INTO" + 
-						brDent4 + "appearance_ids" + 
-					brDent3 + "FROM" + 						
-						brDent4 + "appearance a" + 
-					brDent3 + "LEFT OUTER JOIN" +
-						brDent4 + "appear_to_surface_data asd" + 			
-						brDent4 + "ON a.id=asd.appearance_id" +
-					brDent3 + "WHERE" + 						
-						brDent4 + "a.cityobject_id IS NULL" +
-						brDent4 + "AND asd.appearance_id IS NULL;" +
+					brDent2 + "IF only_global=1 THEN" +
+						brDent3 + "SELECT" + 
+							brDent4 + "a.id" + 
+						brDent3 + "BULK COLLECT INTO" + 
+							brDent4 + "appearance_ids" + 
+						brDent3 + "FROM" + 						
+							brDent4 + "appearance a" + 
+						brDent3 + "LEFT OUTER JOIN" +
+							brDent4 + "appear_to_surface_data asd" + 			
+							brDent4 + "ON a.id=asd.appearance_id" +
+						brDent3 + "WHERE" + 						
+							brDent4 + "a.cityobject_id IS NULL" +
+							brDent4 + "AND asd.appearance_id IS NULL;" +
+					brDent2 + "ELSE" +
+						brDent3 + "SELECT" + 
+							brDent4 + "a.id" + 
+						brDent3 + "BULK COLLECT INTO" + 
+							brDent4 + "appearance_ids" + 
+						brDent3 + "FROM" + 						
+							brDent4 + "appearance a" + 
+						brDent3 + "LEFT OUTER JOIN" +
+							brDent4 + "appear_to_surface_data asd" + 			
+							brDent4 + "ON a.id=asd.appearance_id" +
+						brDent3 + "WHERE" + 						
+							brDent4 + "asd.appearance_id IS NULL;" +	
+					brDent2 + "END IF;" +
 					br +
 					brDent2 + "IF appearance_ids IS NOT EMPTY THEN" + 
 						brDent3 + "deleted_ids := " + getArrayDeleteFunctionName("appearance") + "(appearance_ids);" +

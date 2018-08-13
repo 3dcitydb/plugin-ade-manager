@@ -9,7 +9,7 @@ import org.citydb.plugins.ade_manager.registry.pkg.DefaultDBScriptGenerator;
 
 public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 	protected final String lineage_delete_funcname = "del_cityobjects_by_lineage";
-	protected final String appearance_cleanup_funcname = "cleanup_global_appearances";
+	protected final String appearance_cleanup_funcname = "cleanup_appearances";
 	protected final String schema_cleanup_funcname = "cleanup_schema";
 	
 	public DeleteScriptGenerator(Connection connection, ConfigImpl config, ADEMetadataManager adeMetadataManager) {

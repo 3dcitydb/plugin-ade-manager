@@ -192,9 +192,8 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		String cleanup_func_ddl = "";
 		cleanup_func_ddl += 
 				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
-				"() RETURNS SETOF int AS" + br + 
+				"(only_global INTEGER DEFAULT 1) RETURNS SETOF int AS" + br + 
 				"$body$" + br +
-				commentPrefix + "Function for cleaning up global appearance" + br + 
 				"DECLARE" + 
 				brDent1 + "deleted_id int;" + 
 				brDent1 + "app_id int;" + br +
@@ -204,14 +203,25 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 					brDent2 + "LEFT OUTER JOIN " + wrapSchemaName("textureparam", schemaName) + " t ON s.id = t.surface_data_id" + 
 					brDent2 + "WHERE t.surface_data_id IS NULL;" + 
 					br +
-					brDent2 + "FOR app_id IN" + 						
-						brDent3 + "SELECT a.id FROM " + wrapSchemaName("appearance", schemaName) + " a" +
-							brDent4 + "LEFT OUTER JOIN appear_to_surface_data asd ON a.id=asd.appearance_id" +
-								brDent5 + "WHERE a.cityobject_id IS NULL AND asd.appearance_id IS NULL" + 
-					brDent2 + "LOOP" + 
-						brDent3 +  "DELETE FROM " + wrapSchemaName("appearance", schemaName) + " WHERE id = app_id RETURNING id INTO deleted_id;" +
-						brDent3 +  "RETURN NEXT deleted_id;" + 
-					brDent2 + "END LOOP;" + 	
+					brDent2 + "IF only_global=1 THEN" + 
+						brDent3 + "FOR app_id IN" + 						
+							brDent4 + "SELECT a.id FROM " + wrapSchemaName("appearance", schemaName) + " a" +
+								brDent5 + "LEFT OUTER JOIN " + wrapSchemaName("appear_to_surface_data", schemaName) + " asd ON a.id=asd.appearance_id" +
+									brDent6 + "WHERE a.cityobject_id IS NULL AND asd.appearance_id IS NULL" + 
+						brDent3 + "LOOP" + 
+							brDent4 +  "DELETE FROM " + wrapSchemaName("appearance", schemaName) + " WHERE id = app_id RETURNING id INTO deleted_id;" +
+							brDent4 +  "RETURN NEXT deleted_id;" + 
+						brDent3 + "END LOOP;" + 
+					brDent2 + "ELSE" + 
+						brDent3 + "FOR app_id IN" + 						
+							brDent4 + "SELECT a.id FROM " + wrapSchemaName("appearance", schemaName) + " a" +
+								brDent5 + "LEFT OUTER JOIN " + wrapSchemaName("appear_to_surface_data", schemaName) + " asd ON a.id=asd.appearance_id" +
+									brDent6 + "WHERE asd.appearance_id IS NULL" + 
+						brDent3 + "LOOP" + 
+							brDent4 +  "DELETE FROM " + wrapSchemaName("appearance", schemaName) + " WHERE id = app_id RETURNING id INTO deleted_id;" +
+							brDent4 +  "RETURN NEXT deleted_id;" + 
+						brDent3 + "END LOOP;" + 
+					brDent2 + "END IF;" + 	
 					br +
 				brDent1 + "RETURN;" + br +
  				"END;" + br + 
