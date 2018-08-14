@@ -142,7 +142,9 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 				continue;
 			
 			if (property instanceof GeometryProperty || property instanceof ImplicitGeometryProperty) {
-				citydbSpatialTable.addSpatialProperty((AbstractProperty) property);
+				if (!citydbSpatialTable.table.equalsIgnoreCase("cityobject") 
+						&& !((AbstractProperty) property).getPath().equalsIgnoreCase("boundedBy"))
+					citydbSpatialTable.addSpatialProperty((AbstractProperty) property);				
 			}
 			else if (property instanceof ComplexProperty) {
 				AbstractJoin joiner = ((ComplexProperty)property).getJoin();

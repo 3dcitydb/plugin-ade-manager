@@ -38,13 +38,14 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 	@Override
 	protected void constructEnvelopeFunction(EnvelopeFunction envelopeFunction) throws SQLException {
 		String tableName = envelopeFunction.getTargetTable();
-		String funcName = envelopeFunction.getName();
 		String schemaName = envelopeFunction.getOwnerSchema();
-
+		String declareField = "FUNCTION " + wrapSchemaName(envelopeFunction.getName(), schemaName) + 
+				"(co_id INTEGER, set_envelope INTEGER DEFAULT 0, caller INTEGER DEFAULT 0) RETURNS GEOMETRY";
+		envelopeFunction.setDeclareField(declareField);
+		
 		// declaration block
 		String declare_block =
-					"CREATE OR REPLACE FUNCTION " + wrapSchemaName(funcName, schemaName) + 
-					"(co_id INTEGER, set_envelope INTEGER DEFAULT 0, caller INTEGER DEFAULT 0) RETURNS GEOMETRY AS" + 
+					"CREATE OR REPLACE " + declareField + " AS" + 
 					br + 
 					"$body$" + 
 					br +
@@ -283,11 +284,12 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 	@Override
 	protected void constructUpdateBoundsFunction(EnvelopeFunction updateBoundsFunction) {
 		String schemaName = updateBoundsFunction.getOwnerSchema();
-		
-		String updateBounds_func_ddl = "";
-		updateBounds_func_ddl += 
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(updateBoundsFunction.getName(), schemaName) + 
-				"(old_box GEOMETRY, new_box GEOMETRY) RETURNS GEOMETRY AS" + br + 
+		String declareField = "FUNCTION " + wrapSchemaName(updateBoundsFunction.getName(), schemaName) + 
+				"(old_box GEOMETRY, new_box GEOMETRY) RETURNS GEOMETRY";
+		updateBoundsFunction.setDeclareField(declareField);
+
+		String updateBounds_func_ddl = 
+				"CREATE OR REPLACE " + declareField + " AS" + br + 
 				"$body$" + br +
 				"DECLARE" + 
 				brDent1 + "updated_box GEOMETRY;" + 
@@ -319,11 +321,12 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 	@Override
 	protected void constructBox2EnvelopeFunction(EnvelopeFunction box2envelopeFunction) {
 		String schemaName = box2envelopeFunction.getOwnerSchema();
+		String declareField = "FUNCTION " + wrapSchemaName(box2envelopeFunction.getName(), schemaName) + 
+				"(box BOX3D) RETURNS GEOMETRY";
+		box2envelopeFunction.setDeclareField(declareField);
 		
-		String box2envelope_func_ddl = "";
-		box2envelope_func_ddl += 
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(box2envelopeFunction.getName(), schemaName) + 
-				"(box BOX3D) RETURNS GEOMETRY AS" + br + 
+		String box2envelope_func_ddl = 
+				"CREATE OR REPLACE " + declareField + " AS" + br + 
 				"$body$" + br +
 				"DECLARE" + 
 				brDent1 + "envelope GEOMETRY;" + 
@@ -359,11 +362,12 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 	@Override
 	protected void constructImplicitGeomEnvelopeFunction(EnvelopeFunction implicitGeomEnvelopeFunction) {
 		String schemaName = implicitGeomEnvelopeFunction.getOwnerSchema();
-		
-		String implict_geom_func_ddl = "";
-		implict_geom_func_ddl += 
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(implicitGeomEnvelopeFunction.getName(), schemaName) + 
-				"(implicit_rep_id INTEGER, ref_pt GEOMETRY, transform4x4 VARCHAR) RETURNS GEOMETRY AS" + br + 
+		String declareField = "FUNCTION " + wrapSchemaName(implicitGeomEnvelopeFunction.getName(), schemaName) + 
+				"(implicit_rep_id INTEGER, ref_pt GEOMETRY, transform4x4 VARCHAR) RETURNS GEOMETRY";
+		implicitGeomEnvelopeFunction.setDeclareField(declareField);
+
+		String implict_geom_func_ddl = 
+				"CREATE OR REPLACE " + declareField + " AS" + br + 
 				"$body$" + br +
 				"DECLARE" + 
 				brDent1 + "envelope GEOMETRY;" + 
@@ -428,11 +432,12 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 	@Override
 	protected void constructCityobjectsEnvelopeFunction(EnvelopeFunction cityobjectsEnvelopeFunction) {
 		String schemaName = cityobjectsEnvelopeFunction.getOwnerSchema();
-		
-		String getEnvelope_func_ddl = "";
-		getEnvelope_func_ddl += 
-				"CREATE OR REPLACE FUNCTION " + wrapSchemaName(cityobjectsEnvelopeFunction.getName(), schemaName) + 
-				"(objclass_id INTEGER DEFAULT 0, set_envelope INTEGER DEFAULT 0, only_if_null INTEGER DEFAULT 1) RETURNS GEOMETRY AS" + br + 
+		String declareField = "FUNCTION " + wrapSchemaName(cityobjectsEnvelopeFunction.getName(), schemaName) + 
+				"(objclass_id INTEGER DEFAULT 0, set_envelope INTEGER DEFAULT 0, only_if_null INTEGER DEFAULT 1) RETURNS GEOMETRY";
+		cityobjectsEnvelopeFunction.setDeclareField(declareField);
+
+		String getEnvelope_func_ddl = 
+				"CREATE OR REPLACE " + declareField + " AS" + br + 
 				"$body$" + br +
 				"DECLARE" + 
 				brDent1 + "bbox GEOMETRY;" + 
