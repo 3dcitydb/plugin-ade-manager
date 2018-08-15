@@ -170,6 +170,12 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		// return block
 		String return_block = 
 							brDent2 + "RETURN bbox;" + br;
+		
+		// exception block
+		String exception_block = 
+							brDent2 + "EXCEPTION" + 
+									brDent3 + "WHEN NO_DATA_FOUND THEN" + 
+										brDent4 + "RETURN bbox;" + br;
 
 		// Putting all together
 		envelope_func_ddl += 
@@ -182,6 +188,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 					hook_geom_block +
 					update_block + 
 					return_block +
+					exception_block +
 					brDent1 + "END;";	
 
 		envelopeFunction.setDefinition(envelope_func_ddl);				
