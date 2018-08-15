@@ -275,6 +275,105 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		cleanupFunction.setDefinition(cleanup_func_ddl);
 	}
 
+	@Override
+	protected void constructTableCleanupFunction(DeleteFunction cleanupFunction) {
+		String schemaName = cleanupFunction.getOwnerSchema();
+		String declareField = "FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
+				"(tab_name TEXT) RETURNS SETOF INTEGER";
+		cleanupFunction.setDeclareField(declareField);
+		
+		String cleanup_func_ddl = 
+				"CREATE OR REPLACE " + declareField + " AS" + br + 
+				"$body$" + br +
+				"DECLARE" + 
+				brDent1 + "rec RECORD;" + 
+				brDent1 + "rec_id INTEGER;" +
+				brDent1 + "where_clause TEXT;" +
+				brDent1 + "query_ddl TEXT;" +
+				brDent1 + "counter INTEGER;" +
+				brDent1 + "table_alias TEXT;" +
+				brDent1 + "table_name_with_schemaprefix TEXT;" +
+				brDent1 + "del_func_name TEXT;" +
+				brDent1 + "schema_name TEXT;" +
+				brDent1 + "deleted_id INTEGER;" +
+				br +
+				"BEGIN" + 
+				brDent1 + "schema_name = '" + schemaName + "';" + 
+				brDent1 + "IF md5(schema_name) <> '373663016e8a76eedd0e1ac37f392d2a' THEN" +
+					brDent2 + "table_name_with_schemaprefix = schema_name || '.' || tab_name;" +
+				brDent1 + "ELSE" +
+					brDent2 + "table_name_with_schemaprefix = tab_name;" +
+				brDent1 + "END IF;" +
+				br +
+				brDent1 + "counter = 0;" +
+				brDent1 + "del_func_name = 'del_' || tab_name;" +
+				brDent1 + "query_ddl = 'SELECT id FROM ' || schema_name || '.' || tab_name || ' WHERE id IN ('" +
+					brDent2 + "|| 'SELECT a.id FROM ' || schema_name || '.' || tab_name || ' a';" +	
+				br +
+				brDent1 + "FOR rec IN" + 
+					brDent2 + "SELECT" + 
+						brDent3 + "c.confrelid::regclass::text AS root_table_name," + 
+						brDent3 + "c.conrelid::regclass::text AS fk_table_name," + 
+						brDent3 + "a.attname::text AS fk_column_name" + 
+					brDent2 + "FROM" + 
+						brDent3 + "pg_constraint c" + 
+					brDent2 + "JOIN" + 
+						brDent3 + "pg_attribute a" + 
+						brDent3 + "ON a.attrelid = c.conrelid" + 
+						brDent3 + "AND a.attnum = ANY (c.conkey)" + 
+					brDent2 + "WHERE" + 
+						brDent3 + "upper(c.confrelid::regclass::text) = upper(table_name_with_schemaprefix)" + 
+						brDent3 + "AND c.conrelid <> c.confrelid" + 
+						brDent3 + "AND c.contype = 'f'" + 						
+					brDent2 + "ORDER BY" + 
+						brDent3 + "fk_table_name," + 
+						brDent3 + "fk_column_name" + 					
+				brDent1 + "LOOP" + 						
+					brDent2 + "counter = counter + 1;" + 
+					brDent2 + "table_alias = 'n' || counter;" + 
+					brDent2 + "IF counter = 1 THEN" + 
+						brDent3 + "where_clause = ' WHERE ' || table_alias || '.' || rec.fk_column_name || ' IS NULL';" +
+					brDent2 + "ELSE" + 
+						brDent3 + "where_clause = where_clause || ' AND ' || table_alias || '.' || rec.fk_column_name || ' IS NULL';" +
+					brDent2 + "END IF;" + 
+					br + 
+				brDent2 + "IF md5(schema_name) <> '373663016e8a76eedd0e1ac37f392d2a' THEN" +
+					brDent3 + "query_ddl = query_ddl || ' LEFT JOIN ' || rec.fk_table_name || ' ' || table_alias || ' ON '" +
+						brDent4 + "|| table_alias || '.' || rec.fk_column_name || ' = a.id';" + 
+				brDent2 + "ELSE" +
+					brDent3 + "query_ddl = query_ddl || ' LEFT JOIN ' || schema_name || '.' || rec.fk_table_name || ' ' || table_alias || ' ON '" +
+						brDent4 + "|| table_alias || '.' || rec.fk_column_name || ' = a.id';" + 
+				brDent2 + "END IF;" +					
+					
+				brDent1 + "END LOOP;" +  					
+				br +
+				brDent1 + "query_ddl = query_ddl || where_clause || ')';" +  
+				br + 
+				brDent1 + "FOR rec_id IN EXECUTE query_ddl LOOP" +
+					brDent2 + "EXECUTE 'SELECT ' || schema_name || '.' || del_func_name || '(' || rec_id || ')' INTO deleted_id;" + 
+					brDent2 + "RETURN NEXT deleted_id;" + 
+				brDent1 + "END LOOP;" + 
+				br +
+				brDent1 + "RETURN;" + 
+				br +
+ 				"END;" + br + 
+				"$body$" + br + 
+				"LANGUAGE plpgsql;";		
+
+		cleanupFunction.setDefinition(cleanup_func_ddl);
+	}
+
+	@Override
+	protected String getArrayDeleteFunctionDeclareField(String arrayDeleteFuncName, String schemaName) {
+		return "FUNCTION " + wrapSchemaName(arrayDeleteFuncName, schemaName) + 
+				"(int[], caller INTEGER DEFAULT 0) RETURNS SETOF int";
+	}
+
+	@Override
+	protected String getSingleDeleteFunctionDeclareField(String singleDeleteFuncName, String schemaName) {
+		return "FUNCTION " + wrapSchemaName(singleDeleteFuncName, schemaName) + "(pid int) RETURNS integer";	
+	}
+
 	private String create_local_delete(String tableName, String schemaName) {
 		String code_blcok = "";		
 		code_blcok += brDent2 + "DELETE FROM"
@@ -619,17 +718,6 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			}			
 		}
 		return code_block;
-	}
-
-	@Override
-	protected String getArrayDeleteFunctionDeclareField(String arrayDeleteFuncName, String schemaName) {
-		return "FUNCTION " + wrapSchemaName(arrayDeleteFuncName, schemaName) + 
-				"(int[], caller INTEGER DEFAULT 0) RETURNS SETOF int";
-	}
-
-	@Override
-	protected String getSingleDeleteFunctionDeclareField(String singleDeleteFuncName, String schemaName) {
-		return "FUNCTION " + wrapSchemaName(singleDeleteFuncName, schemaName) + "(pid int) RETURNS integer";	
 	}
 
 }

@@ -348,6 +348,92 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		cleanupFunction.setDefinition(cleanup_func_ddl);
 	}
 
+	@Override
+	protected void constructTableCleanupFunction(DeleteFunction cleanupFunction) {
+		String declareField = "FUNCTION " + cleanupFunction.getName() + "(tab_name varchar2) RETURN ID_ARRAY";
+		cleanupFunction.setDeclareField(declareField);
+		
+		String cleanup_func_ddl = "";
+		cleanup_func_ddl += dent + 
+				declareField + 
+				brDent1 + "IS" +   
+					brDent2 + "where_clause VARCHAR2(2000);" +
+					brDent2 + "query_ddl VARCHAR2(4000);" +
+					brDent2 + "counter NUMBER;" +
+					brDent2 + "table_alias VARCHAR2(10);" + 
+					brDent2 + "del_func_name VARCHAR2(30);" + 
+					brDent2 + "deleted_id NUMBER;" + 
+					brDent2 + "cur sys_refcursor;" + 
+					brDent2 + "rec_id NUMBER;" + 
+					brDent2 + "deleted_ids ID_ARRAY := ID_ARRAY();" + 
+				brDent1 + "BEGIN" + 	
+					brDent2 + "counter := 0;" + 
+					brDent2 + "del_func_name := 'del_' || tab_name;" + 
+					brDent2 + "query_ddl := 'SELECT id FROM ' || tab_name || ' WHERE id IN (' || 'SELECT a.id FROM ' || tab_name || ' a';" + 
+					br +
+					brDent2 + "FOR rec IN (" + 
+						brDent3 + "SELECT" + 						
+							brDent4 + "c2.table_name AS root_table_name," + 
+							brDent4 + "c.table_name AS fk_table_name," + 
+							brDent4 + "a.column_name AS fk_column_name" + 						
+						brDent3 + "FROM" +
+							brDent4 + "user_constraints c" +
+						brDent3	+ "JOIN" + 
+							brDent4 + "user_cons_columns a" +
+							brDent4 + "ON a.constraint_name = c.constraint_name" +
+							brDent4 + "AND a.table_name = c.table_name" +
+						brDent3 + "JOIN" + 	
+							brDent4 + "user_constraints c2" + 
+							brDent4 + "ON c2.constraint_name = c.r_constraint_name" +
+						brDent3 + "WHERE" +
+							brDent4 + "c2.table_name = upper(tab_name)" + 
+							brDent4 + "AND c.table_name <> c2.table_name" + 
+							brDent4 + "AND c.constraint_type = 'R'" + 
+						brDent3 + "ORDER BY" + 
+							brDent4 + "fk_table_name," + 						
+							brDent4 + "fk_column_name" + 
+					brDent2 + ") LOOP" +
+						brDent3 + "counter := counter + 1;" + 			
+						brDent3 + "table_alias := 'n' || counter;" +
+						brDent3 + "IF counter = 1 THEN" + 						
+							brDent4 + "where_clause := ' WHERE ' || table_alias || '.' || rec.fk_column_name || ' IS NULL';" +
+						brDent3 + "ELSE" +
+							brDent4 + "where_clause := where_clause || ' AND ' || table_alias || '.' || rec.fk_column_name || ' IS NULL';" +
+						brDent3 + "END IF;" + 
+						br +	
+						brDent3 + "query_ddl := query_ddl || ' LEFT JOIN ' || rec.fk_table_name || ' ' || table_alias || ' ON ' " + 
+							brDent4 + "|| table_alias || '.' || rec.fk_column_name || ' = a.id';" + 
+					brDent2 + "END LOOP;" + 	
+					br +
+					brDent2 + "query_ddl := query_ddl || where_clause || ')';" + 
+					br + 
+					brDent2 + "OPEN cur FOR query_ddl;" + 
+					brDent2 + "LOOP" +					
+						brDent3 + "FETCH cur INTO rec_id;" +
+						brDent3 + "EXIT WHEN cur%notfound;" + 
+						brDent3 + "BEGIN" +
+							brDent4 + "EXECUTE IMMEDIATE 'BEGIN :val := citydb_delete.' || del_func_name || '(' || rec_id || '); END;' using out deleted_id;" + 			
+							brDent4 + "deleted_ids.extend;" +
+							brDent4 + "deleted_ids(deleted_ids.count) := deleted_id;" +
+						brDent3 + "END;" + 							
+					brDent2 + "END LOOP;  " +
+					br +
+					brDent2 + "RETURN deleted_ids;" + 
+				brDent1 + "END;";
+
+		cleanupFunction.setDefinition(cleanup_func_ddl);
+	}
+
+	@Override
+	protected String getArrayDeleteFunctionDeclareField(String arrayDeleteFuncName, String schemaName) {
+		return "FUNCTION " + arrayDeleteFuncName + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY";
+	}
+
+	@Override
+	protected String getSingleDeleteFunctionDeclareField(String singleDeleteFuncName, String schemaName) {
+		return "FUNCTION " + singleDeleteFuncName + "(pid NUMBER) RETURN NUMBER";
+	}
+
 	private String create_local_delete(String tableName, String schemaName) {
 		String code_blcok = "";		
 		code_blcok += brDent2 + "DELETE FROM"
@@ -732,16 +818,6 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 			}			
 		}
 		return code_block;
-	}
-
-	@Override
-	protected String getArrayDeleteFunctionDeclareField(String arrayDeleteFuncName, String schemaName) {
-		return "FUNCTION " + arrayDeleteFuncName + "(pids ID_ARRAY, caller int := 0) RETURN ID_ARRAY";
-	}
-
-	@Override
-	protected String getSingleDeleteFunctionDeclareField(String singleDeleteFuncName, String schemaName) {
-		return "FUNCTION " + singleDeleteFuncName + "(pid NUMBER) RETURN NUMBER";
 	}
 	
 }
