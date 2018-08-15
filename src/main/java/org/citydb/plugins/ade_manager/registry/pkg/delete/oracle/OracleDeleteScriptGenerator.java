@@ -279,10 +279,12 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				declareField + 
 				brDent1 + "IS" + 
 					brDent2 + "dummy_str strarray;" +
-					brDent2 + "seq_value number;" +				
+					brDent2 + "seq_value number;" +		
+					brDent2 + "schema_name VARCHAR2(30);" +	
 				brDent1 + "BEGIN" + 
 					br +
-					brDent2 + "dummy_str := citydb_idx.drop_spatial_indexes();" + 
+					brDent2 + "schema_name := sys_context('userenv', 'current_schema');" +
+					brDent2 + "dummy_str := citydb_idx.drop_spatial_indexes(schema_name);" + 
 					br +
 					brDent2 + "for uc in (" + 
 						brDent3 + "select constraint_name, table_name from user_constraints where constraint_type = 'R'" + 
@@ -341,7 +343,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 						brDent3 + "execute immediate 'alter sequence ' || us.sequence_name || ' increment by 1';" +
 					brDent2 + "END LOOP;" + 						
 					br +
-					brDent2 + "dummy_str := citydb_idx.create_spatial_indexes();" + 
+					brDent2 + "dummy_str := citydb_idx.create_spatial_indexes(schema_name);" + 
 					br +								
 				brDent1 + "END;";
 
