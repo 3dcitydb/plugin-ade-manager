@@ -513,26 +513,7 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				}			 	 
 			}
 			else {											
-				if (nRootRelation == RelationType.COMPOSITION) {		
-					ref_block += create_n_ref_delete(n_table_name, n_fk_column_name, schemaName);
-				}		
-				else {
-					// If the n_fk_column is nullable, the n_fk_column could be a foreign key column like
-					// lodx_multi_surf_fk in the BUILDING table, or like building_id_fk in the THEMATIC_SURFACE table 
-					// In both these cases, the foreign key on this column shall be defined as "ON DELETE SET NULL"					
-					/**
-					if (!n_column_is_not_null) { 
-						updateConstraintsSql += "select citydb_pkg.update_table_constraint('"
-								+ n_fk_name + "', '"
-								+ n_table_name + "', '"
-								+ n_fk_column_name + "', '"
-								+ rootTableName + "', '"
-								+ "id', '"
-								+ "SET NULL', '"
-								+ schemaName + "');" + br;
-					}	
-					**/					
-				}
+				ref_block += create_n_ref_delete(n_table_name, n_fk_column_name, schemaName, nRootRelation);		
 			}	
 			// If the n_fk_column is not nullable and the table m exists, the table n should be an associative table 
 			// between the root table and table m
@@ -626,9 +607,10 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 		return result; 
 	}
 	
-	private String create_n_ref_delete(String tableName, String fk_column_name, String schemaName) {
+	private String create_n_ref_delete(String tableName, String fk_column_name, String schemaName, RelationType relationType) throws SQLException {
 		String code_block = "";
-		code_block += brDent2 + "--delete " + tableName + "s"		
+		if (relationType == RelationType.COMPOSITION) {	
+			code_block += brDent2 + "--delete " + tableName + "s"		
 					+ brDent2 + "SELECT"
 						+ brDent3 + "t.id"
 					+ brDent2 + "BULK COLLECT INTO"
@@ -642,7 +624,36 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 					+ brDent2 + "IF object_ids IS NOT EMPTY THEN"
 						+ brDent3 + "dummy_ids := " + getArrayDeleteFunctionName(tableName) + "(object_ids);"
 					+ brDent2 + "END IF;" + br;	
-		
+		}
+		else if (relationType == RelationType.AGGREGATION) {
+			List<String> joinColumns = adeMetadataManager.getAggregationJoinColumns(tableName);	
+			String varName = "object_ids";			
+			code_block += brDent2 + "--select " + tableName + "s"		
+						+ brDent2 + "SELECT"
+							+ brDent3 + "t.id"
+						+ brDent2 + "BULK COLLECT INTO"
+							+ brDent3 + "object_ids"		
+						+ brDent2 + "FROM"
+							+ brDent3 + tableName + " t,"
+							+ brDent3 + "TABLE(pids) a"
+						+ brDent2 + "WHERE"
+							+ brDent3 + "t." + fk_column_name + " = a.COLUMN_VALUE;"
+						+ br;
+			if (joinColumns.size() > 1) {
+				code_block += brDent2 + "--update " + tableName + "s"
+						    + brDent2 + "IF " + varName + " IS NOT EMPTY THEN"
+								+ brDent3 + "UPDATE"
+									+ brDent4 + tableName
+								+ brDent3 + "SET"
+									+ brDent4 + fk_column_name + " = NULL"
+								+ brDent3 + "WHERE"
+									+ brDent4 + fk_column_name + " IN (SELECT a.COLUMN_VALUE FROM TABLE(pids) a);" 
+							+ brDent2 + "END IF;"
+							+ br;				
+			}	
+			code_block += this.create_m_ref_delete(tableName, schemaName, RelationType.AGGREGATION, varName);
+		}	
+				
 		return code_block;
 	}
 	
@@ -688,13 +699,40 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				}
 			}			
 		}
+		
+		String code_block = brDent2 + "-- delete " + m_table_name + "(s)";	
+		List<String> joinColumns = adeMetadataManager.getAggregationJoinColumns(m_table_name);
+		if (tableRelation != RelationType.COMPOSITION && joinColumns.size() > 1) {
+			code_block += brDent2 + "IF " + varName + " IS NOT EMPTY THEN"		
+							+ brDent3 + "SELECT"
+								+ brDent4 + "t.id"
+							+ brDent3 + "BULK COLLECT INTO"
+								+ brDent4 + varName
+							+ brDent3 + "FROM"
+								+ brDent4 + m_table_name + " t"
+							+ brDent3 + "WHERE"
+								+ brDent4 + "t.id IN (SELECT DISTINCT a.COLUMN_VALUE FROM TABLE(" + varName + ") a)";
 			
-		String code_block = "";		
+			for (int i = 0; i < joinColumns.size(); i++) {
+				code_block += 
+						  brDent4 + "AND " + joinColumns.get(i) + " IS NULL";
+			}			
+			code_block += ";"
+					+ brDent2 + "END IF;" + br;
+		}		
+		
+		if (aggComprefList.size() == 0) {
+			code_block += 
+					   brDent2 + "IF " + varName + " IS NOT EMPTY THEN"
+						+ brDent3 + "dummy_ids := " + getArrayDeleteFunctionName(m_table_name) + "(" + varName + ");"
+					 + brDent2 + "END IF;" + br;			
+			return code_block;
+		}
+					
 		String join_block = "";
 		String where_block = "";
 		String tmp_block = "";
-		
-		code_block += brDent2 + "-- delete " + m_table_name + "(s)";		
+				
 		tmp_block = brDent2 + "IF " + varName + " IS NOT EMPTY THEN"
 						+ brDent3 + "SELECT DISTINCT"
 							+ brDent4 + "a.COLUMN_VALUE"
@@ -721,14 +759,16 @@ public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 				}				
 				index++; 
 			}
-			tmp_block += brDent3 + join_block
-						+ brDent3 + "WHERE " + where_block + ";";
+			if (join_block.length() > 0) {
+				tmp_block += brDent3 + join_block
+						   + brDent3 + "WHERE " + where_block + ";";
+			}			
 		}
 		else {
 			tmp_block += ";";
 		}
 		
-		if (join_block.length() > 0) {
+		if (tableRelation != RelationType.COMPOSITION) {
 			code_block += tmp_block + br
 					 + brDent3 + "IF object_ids IS NOT EMPTY THEN"
 						+ brDent4 + "dummy_ids := " + getArrayDeleteFunctionName(m_table_name) + "(object_ids);"

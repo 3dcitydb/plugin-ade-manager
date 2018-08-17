@@ -369,6 +369,33 @@ public class ADEMetadataManager {
 		
 		return tableExists;
 	}
+		
+	public List<String> getAggregationJoinColumns(String tableName) throws SQLException {
+		StringBuilder query = new StringBuilder();
+		List<String> columnList = new ArrayList<String>();
+		
+		query.append("select join_table_or_column_name from ").append(schema).append(".aggregation_info left join ")
+		.append(schema).append(".objectclass on id = child_id where upper(tablename) = upper('").append(tableName).append("')")
+		.append(" and upper(join_table_or_column_name) like '%_ID' and max_occurs is null");
+		
+		Statement stmt = null;
+		ResultSet rs = null;
+		
+		try {						
+			stmt = connection.createStatement();
+			rs = stmt.executeQuery(query.toString());		
+			while (rs.next()) 
+				columnList.add(rs.getString(1));
+		} finally {
+			if (rs != null) 
+				rs.close();
+			
+			if (stmt != null) 
+				stmt.close();
+		}
+		
+		return columnList;
+	}
 
 	private AggregationInfoCollection queryAggregationInfoCollection() throws SQLException {
 		PreparedStatement pstsmt = null;

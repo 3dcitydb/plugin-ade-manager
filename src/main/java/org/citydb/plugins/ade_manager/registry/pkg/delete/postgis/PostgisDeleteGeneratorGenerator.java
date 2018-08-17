@@ -436,27 +436,10 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 								 	+ br;
 				}			 	 
 			}
-			else {											
-				if (nRootRelation == RelationType.COMPOSITION) {							
-					ref_block += create_n_ref_delete(n_table_name, n_fk_column_name, schemaName);
-				}		
-				else {
-					// If the n_fk_column is nullable, the n_fk_column could be a foreign key column like
-					// lodx_multi_surf_fk in the BUILDING table, or like building_id_fk in the THEMATIC_SURFACE table 
-					// In both these cases, the foreign key on this column shall be defined as "ON DELETE SET NULL"					
-					/**
-					if (!n_column_is_not_null) { 
-						updateConstraintsSql += "select citydb_pkg.update_table_constraint('"
-								+ n_fk_name + "', '"
-								+ n_table_name + "', '"
-								+ n_fk_column_name + "', '"
-								+ rootTableName + "', '"
-								+ "id', '"
-								+ "SET NULL', '"
-								+ schemaName + "');" + br;
-					}	
-					**/					
-				}
+			else {	
+				ref_block += create_n_ref_delete(n_table_name, n_fk_column_name, schemaName, nRootRelation);	
+				if (nRootRelation == RelationType.AGGREGATION)
+					vars += brDent1 + n_table_name + "_ids int[] := '{}';";
 			}	
 			// If the n_fk_column is not nullable and the table m exists, the table n should be an associative table 
 			// between the root table and table m
@@ -542,9 +525,10 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		return result; 
 	}
 
-	private String create_n_ref_delete(String tableName, String fk_column_name, String schemaName) {
+	private String create_n_ref_delete(String tableName, String fk_column_name, String schemaName, RelationType relationType) throws SQLException {
 		String code_block = "";
-		code_block += brDent1 + "--delete " + tableName + "s"		
+		if (relationType == RelationType.COMPOSITION) {							
+			code_block += brDent1 + "--delete " + tableName + "s"		
 					+ brDent1 + "PERFORM"
 						+ brDent2 + wrapSchemaName(getArrayDeleteFunctionName(tableName), schemaName) + "(array_agg(t.id))"
 					+ brDent1 + "FROM"
@@ -552,6 +536,34 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 						+ brDent2 + "unnest($1) a(a_id)"
 					+ brDent1 + "WHERE"
 						+ brDent2 + "t." + fk_column_name + " = a.a_id;" + br;	
+		}
+		else if (relationType == RelationType.AGGREGATION) {
+			List<String> joinColumns = adeMetadataManager.getAggregationJoinColumns(tableName);	
+				code_block += brDent1 + "--select " + tableName + "s"		
+						+ brDent1 + "SELECT"
+							+ brDent2 + "array_agg(t.id)"
+						+ brDent1 + "INTO"
+							+ brDent2 + tableName + "_ids"
+						+ brDent1 + "FROM"
+							+ brDent2 + wrapSchemaName(tableName, schemaName) + " t,"		
+							+ brDent2 + "unnest($1) a(a_id)"
+						+ brDent1 + "WHERE"
+							+ brDent2 + "t." + fk_column_name + " = a.a_id;"
+						+ br;
+				if (joinColumns.size() > 1) {	
+					code_block += brDent1 + "--update " + tableName + "s"	
+						+ brDent1 + "IF -1 = ALL(" + tableName + "_ids) IS NOT NULL THEN"
+							+ brDent2 + "UPDATE"
+								+ brDent3 + wrapSchemaName(tableName, schemaName)
+							+ brDent2 + "SET"
+								+ brDent3 + fk_column_name + " = NULL"
+							+ brDent2 + "WHERE"
+								+ brDent3 + fk_column_name + " IN (SELECT a_id from unnest(" + tableName + "_ids) a(a_id));"
+						+ brDent1 + "END IF;" 
+						+ br;
+			}			
+			code_block += this.create_m_ref_delete(tableName, schemaName, RelationType.AGGREGATION);
+		}		
 		
 		return code_block;
 	}
@@ -581,7 +593,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		return code_block;
 	}
 	
-	private String create_m_ref_delete(String m_table_name, String schemaName, RelationType tableRelation) throws SQLException {	
+	private String create_m_ref_delete(String m_table_name, String schemaName, RelationType tableRelation) throws SQLException {							
 		List<MnRefEntry> nmEntries = querier.query_ref_fk(m_table_name, schemaName);	
 		List<ReferencingEntry> aggComprefList = new ArrayList<ReferencingEntry>(); 
 			
@@ -600,8 +612,39 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				}
 			}			
 		}
-			
-		String code_block = "";		
+		
+		String code_block = 
+				  brDent1 + "-- delete " + wrapSchemaName(m_table_name, schemaName) + "(s)";
+				  
+		List<String> joinColumns = adeMetadataManager.getAggregationJoinColumns(m_table_name);
+		if (tableRelation != RelationType.COMPOSITION && joinColumns.size() > 1) {
+			code_block += 
+				  brDent1 + "IF -1 = ALL(" + m_table_name + "_ids) IS NOT NULL THEN";
+			code_block +=
+					  brDent2 + "SELECT"
+						+ brDent3 + "t.id"
+					+ brDent2 + "INTO"
+						+ brDent3 + m_table_name + "_ids"
+					+ brDent2 + "FROM"
+						+ brDent3 + wrapSchemaName(m_table_name, schemaName) + " t"		
+					+ brDent2 + "WHERE"
+						+ brDent3 + "t.id IN (SELECT a_id from unnest(" + m_table_name + "_ids) a(a_id))";
+				for (int i = 0; i < joinColumns.size(); i++) {
+					code_block += 
+							  brDent3 + "AND " + joinColumns.get(i) + " IS NULL";
+				}	
+			code_block += ";"
+				 + brDent1 + "END IF;" + br;	
+		}
+		
+		if (aggComprefList.size() == 0) {
+			code_block += 
+				   brDent1 + "IF -1 = ALL(" + m_table_name + "_ids) IS NOT NULL THEN"
+					+ brDent2 + "PERFORM " + wrapSchemaName(getArrayDeleteFunctionName(m_table_name), schemaName) + "(" + m_table_name + "_ids)"
+				 + brDent1 + "END IF;" + br;
+			return code_block;
+		}	
+		
 		String join_block = "";
 		String where_block = "";
 		int index = 1;
@@ -619,17 +662,17 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			index++; 
 		}
 		
-		code_block += brDent1 + "-- delete " + wrapSchemaName(m_table_name, schemaName) + "(s)"
-					+ brDent1 + "IF -1 = ALL(" + m_table_name + "_ids) IS NOT NULL THEN"
-						+ brDent2 + "PERFORM"
-							+ brDent3 + wrapSchemaName(getArrayDeleteFunctionName(m_table_name), schemaName) + "(array_agg(a.a_id))"
-						+ brDent2 + "FROM"
-							+ brDent3 + "(SELECT DISTINCT unnest(" + m_table_name + "_ids) AS a_id) a";
+		code_block += 
+				 brDent1 + "IF -1 = ALL(" + m_table_name + "_ids) IS NOT NULL THEN"							
+					+ brDent2 + "PERFORM"
+						+ brDent3 + wrapSchemaName(getArrayDeleteFunctionName(m_table_name), schemaName) + "(array_agg(a.a_id))"
+					+ brDent2 + "FROM"
+						+ brDent3 + "(SELECT DISTINCT unnest(" + m_table_name + "_ids) AS a_id) a";
 		
 		// In the case of composition, the sub-features shall be directly deleted 
 		// without needing to check if they are referenced by another super features
 		// In other cases (aggregation), this check is required.
-		if (tableRelation != RelationType.COMPOSITION) {
+		if (tableRelation != RelationType.COMPOSITION && join_block.length() > 0) {			
 			code_block += brDent2 + join_block
 						+ brDent2 + "WHERE " + where_block + ";";
 		}
