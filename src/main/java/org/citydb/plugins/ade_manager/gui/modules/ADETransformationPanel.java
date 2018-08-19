@@ -34,6 +34,7 @@ import org.citydb.plugins.ade_manager.gui.table.ADESchemaNamespaceRow;
 import org.citydb.plugins.ade_manager.gui.table.TableModel;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.transformation.TransformationException;
+import org.citydb.plugins.ade_manager.util.Translator;
 import org.citydb.plugins.ade_manager.transformation.TransformationController;
 
 public class ADETransformationPanel extends OperationModuleView {	
@@ -206,19 +207,19 @@ public class ADETransformationPanel extends OperationModuleView {
 
 	// localized Labels and Strings
 	public void doTranslation() {	
-		browseXMLSchemaPanel.setBorder(BorderFactory.createTitledBorder("XML Schema (XSD)"));
+		browseXMLSchemaPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.browseXMLSchemaPanel.border")));
 
-		namePanel.setBorder(BorderFactory.createTitledBorder("Name"));
-		descriptionPanel.setBorder(BorderFactory.createTitledBorder("Description"));
-		versionPanel.setBorder(BorderFactory.createTitledBorder("Version"));
-		dbPrefixPanel.setBorder(BorderFactory.createTitledBorder("DB_Prefix"));
-		initObjectClassIdPanel.setBorder(BorderFactory.createTitledBorder("InitialObjectclassId"));
+		namePanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.namePanel.border")));
+		descriptionPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.descriptionPanel.border")));
+		versionPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.versionPanel.border")));
+		dbPrefixPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.dbPrefixPanel.border")));
+		initObjectClassIdPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.initObjectClassIdPanel.border")));
 
 		browseXMLSchemaButton.setText(Language.I18N.getString("common.button.browse"));
-		readXMLSchemaButton.setText("Read XML Schema");
-		((TitledBorder) transformationOutputPanel.getBorder()).setTitle("Output");
+		readXMLSchemaButton.setText(Translator.I18N.getString("ade_manager.transformationPanel.button.readXMLSchema"));
+		((TitledBorder) transformationOutputPanel.getBorder()).setTitle(Translator.I18N.getString("ade_manager.transformationPanel.transformationOutputPanel.border"));
 		browserOutputButton.setText(Language.I18N.getString("common.button.browse"));
-		transformAndExportButton.setText("Transform");
+		transformAndExportButton.setText(Translator.I18N.getString("ade_manager.transformationPanel.button.transformAndExport"));
 	}
 
 	public void loadSettings() {
@@ -244,8 +245,9 @@ public class ADETransformationPanel extends OperationModuleView {
 	private void browserXMLschemaFile() {
 		JFileChooser chooser = new JFileChooser();
 		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-	
-		FileNameExtensionFilter filter = new FileNameExtensionFilter("XML Schema file (*.xsd)", "xsd");
+		chooser.setDialogTitle(Translator.I18N.getString("ade_manager.transformationPanel.inputFileChooser.title"));
+		
+		FileNameExtensionFilter filter = new FileNameExtensionFilter(Translator.I18N.getString("ade_manager.transformationPanel.inputFileChooser.filter.description"), "xsd");
 		chooser.addChoosableFileFilter(filter);
 		chooser.addChoosableFileFilter(chooser.getAcceptAllFileFilter());
 		chooser.setFileFilter(filter);
@@ -273,7 +275,7 @@ public class ADETransformationPanel extends OperationModuleView {
 
 	private void browseTransformationOutputDirectory() {
 		JFileChooser chooser = new JFileChooser();
-		chooser.setDialogTitle("Ouput Folder");
+		chooser.setDialogTitle(Translator.I18N.getString("ade_manager.transformationPanel.outputFileChooser.title"));
 		chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 		chooser.setCurrentDirectory(new File(browseOutputText.getText()));
 	
@@ -360,7 +362,7 @@ public class ADETransformationPanel extends OperationModuleView {
 
 	@Override
 	public String getLocalizedTitle() {
-		return "Transformation";
+		return Translator.I18N.getString("ade_manager.transformationPanel.title");
 	}
 
 	@Override

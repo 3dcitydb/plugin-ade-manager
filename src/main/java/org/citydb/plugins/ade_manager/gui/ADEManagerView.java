@@ -8,6 +8,7 @@ import javax.swing.Icon;
 import org.citydb.plugin.extension.view.View;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
+import org.citydb.plugins.ade_manager.util.Translator;
 
 public class ADEManagerView extends View {
 	private final ADEManagerPanel component;
@@ -18,7 +19,7 @@ public class ADEManagerView extends View {
 	
 	@Override
 	public String getLocalizedTitle() {
-		return "ADE Manager";
+		return Translator.I18N.getString("ade_manager.general.title");
 	}
 
 	@Override

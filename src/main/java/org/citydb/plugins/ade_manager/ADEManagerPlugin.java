@@ -2,6 +2,7 @@
 package org.citydb.plugins.ade_manager;
 
 import java.util.Locale;
+import java.util.ResourceBundle;
 
 import org.citydb.plugin.ApplicationStarter;
 import org.citydb.plugin.Plugin;
@@ -12,11 +13,13 @@ import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugin.extension.view.ViewExtension;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.gui.ADEManagerView;
+import org.citydb.plugins.ade_manager.util.Translator;
 
 public class ADEManagerPlugin implements Plugin, ViewExtension, ConfigExtension<ConfigImpl> {
 	
 	private ADEManagerView view;
 	private ConfigImpl config;
+	private Locale currentLocale;
 	
 	public static void main(String[] args) {
 		ApplicationStarter starter = new ApplicationStarter();
@@ -24,6 +27,7 @@ public class ADEManagerPlugin implements Plugin, ViewExtension, ConfigExtension<
 	}
 
 	public void init(ViewController viewController, Locale locale) {
+		Translator.I18N = ResourceBundle.getBundle("org.citydb.plugins.ade_manager.i18n.language", locale);
 		view = new ADEManagerView(viewController, this);
 		loadSettings();
 		switchLocale(locale);
@@ -33,7 +37,11 @@ public class ADEManagerPlugin implements Plugin, ViewExtension, ConfigExtension<
 		saveSettings();
 	}
 
-	public void switchLocale(Locale newLocale) {
+	public void switchLocale(Locale locale) {
+		if (locale.equals(currentLocale))
+			return;
+		Translator.I18N = ResourceBundle.getBundle("org.citydb.plugins.ade_manager.i18n.language", locale);
+		currentLocale = locale;
 		view.doTranslation();
 	}
 

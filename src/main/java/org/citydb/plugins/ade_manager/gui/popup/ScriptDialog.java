@@ -29,6 +29,7 @@ import org.citydb.gui.factory.PopupMenuDecorator;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
+import org.citydb.plugins.ade_manager.util.Translator;
 
 @SuppressWarnings("serial")
 public class ScriptDialog extends JDialog {
@@ -46,12 +47,12 @@ public class ScriptDialog extends JDialog {
 
 	private void initGUI() {
 		if (autoInstall == true)
-			this.setTitle("Installed Script");
+			this.setTitle(Translator.I18N.getString("ade_manager.scriptDialog.title.installScript"));
 		else
-			this.setTitle("Generated Script (not installed yet)");
+			this.setTitle(Translator.I18N.getString("ade_manager.scriptDialog.title.generateScript"));
 		
 		setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-		installbutton = new JButton("Install");		
+		installbutton = new JButton(Translator.I18N.getString("ade_manager.scriptDialog.button.install"));		
 		
 		setLayout(new GridBagLayout()); {
 			JPanel main = new JPanel();		
@@ -80,21 +81,21 @@ public class ScriptDialog extends JDialog {
 			JTextField browseOutputText = new JTextField();
 			JPanel OutputPanel = new JPanel();
 			OutputPanel.setLayout(new GridBagLayout());
-			OutputPanel.setBorder(BorderFactory.createTitledBorder("Save As"));
+			OutputPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.scriptDialog.outputPanel.title")));
 			OutputPanel.add(browseOutputText, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,5,5,5,5));
 			OutputPanel.add(browserOutputButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,5,5,5,5));			
 			add(OutputPanel, GuiUtil.setConstraints(0,4,1.0,0.0,GridBagConstraints.BOTH,5,5,5,5));	
 			
-			JButton saveButton = new JButton("Save Script");
+			JButton saveButton = new JButton(Translator.I18N.getString("ade_manager.scriptDialog.outputPanel.title"));
 			add(saveButton, GuiUtil.setConstraints(0,5,0.0,0.0,GridBagConstraints.NONE,5,5,5,5));
 			
 			browserOutputButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					JFileChooser chooser = new JFileChooser();
-					chooser.setDialogTitle("Ouput Folder");
+					chooser.setDialogTitle(Translator.I18N.getString("ade_manager.scriptDialog.outputFileChooser.title"));
 					chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);		
 					
-					FileNameExtensionFilter filter = new FileNameExtensionFilter("SQL File (*.sql)", "sql");
+					FileNameExtensionFilter filter = new FileNameExtensionFilter(Translator.I18N.getString("ade_manager.scriptDialog.outputFileChooser.filter.description"), "sql");
 					chooser.addChoosableFileFilter(filter);
 					chooser.addChoosableFileFilter(chooser.getAcceptAllFileFilter());
 					chooser.setFileFilter(filter);		

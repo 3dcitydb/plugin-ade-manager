@@ -37,6 +37,7 @@ import org.citydb.plugins.ade_manager.registry.ADERegistrationController;
 import org.citydb.plugins.ade_manager.registry.ADERegistrationException;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
+import org.citydb.plugins.ade_manager.util.Translator;
 
 public class ADERegistryPanel extends OperationModuleView {
 	private JPanel component;
@@ -173,7 +174,7 @@ public class ADERegistryPanel extends OperationModuleView {
 	
 	@Override
 	public String getLocalizedTitle() {
-		return "Registry";
+		return Translator.I18N.getString("ade_manager.registryPanel.title");
 	}
 
 	@Override
@@ -198,14 +199,14 @@ public class ADERegistryPanel extends OperationModuleView {
 
 	@Override
 	public void doTranslation() {
-		((TitledBorder) browseRegistryPanel.getBorder()).setTitle("Input for ADE Registry");
+		((TitledBorder) browseRegistryPanel.getBorder()).setTitle(Translator.I18N.getString("ade_manager.registryPanel.border"));
 		browseRegistryButton.setText(Language.I18N.getString("common.button.browse"));
 		
-		registerADEButton.setText("Register ADE");
-		fetchADEsButton.setText("Fetch ADEs");
-		removeADEButton.setText("Remove seleted ADE");
-		generateDeleteScriptsButton.setText("Generate Delete-Script");
-		generateEnvelopeScriptsButton.setText("Generate Envelope-Script");
+		registerADEButton.setText(Translator.I18N.getString("ade_manager.registryPanel.button.register"));
+		fetchADEsButton.setText(Translator.I18N.getString("ade_manager.registryPanel.button.fetch"));
+		removeADEButton.setText(Translator.I18N.getString("ade_manager.registryPanel.button.remove"));
+		generateDeleteScriptsButton.setText(Translator.I18N.getString("ade_manager.registryPanel.button.gen_delete_script"));
+		generateEnvelopeScriptsButton.setText(Translator.I18N.getString("ade_manager.registryPanel.button.gen_envelope_script"));
 	}
 
 	@Override
@@ -227,7 +228,7 @@ public class ADERegistryPanel extends OperationModuleView {
 	
 	private void browserRegistryInputDirectory() {
 		JFileChooser chooser = new JFileChooser();
-		chooser.setDialogTitle("Input Folder");
+		chooser.setDialogTitle(Translator.I18N.getString("ade_manager.registryPanel.inputFileChooser.title"));
 		chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 		chooser.setCurrentDirectory(new File(browseRegistryText.getText()).getParentFile());
 	
