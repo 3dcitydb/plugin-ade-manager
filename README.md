@@ -1,7 +1,13 @@
 # ADE Manager Plugin
-============================
+-------
 
 The ADE Manager is a plugin for the [3D City Database Importer/Exporter](https://github.com/3dcitydb/importer-exporter) and allows users to interactively extend a 3D City Database (3DCityDB) instance to support the high-performance storage and management of CityGML Application Domain Extensions (ADE). It is implmented based on the open-source [graph transformation tool (AGG)](http://www.user.tu-berlin.de/o.runge/agg/) for transforming the object-oriented data model from a given ADE's application schema (XSD) to a compact relational database schema (including tables, indexes, and constrains etc.). In addition, an XML-based schema-mapping file can be automatically generated which contains the relevant meta-information about the derived database schema as well as the explicit mapping relationships between the two schemas and allows developers to implement applications for managing and processing the ADE data contents in 3DCityDB. 
+
+Transformation Workflow
+-------
+<p align="center">
+<img src="resources/figure/transformation_workflow.jpg" width="800" />
+</p>
 
 License
 -------
@@ -44,7 +50,7 @@ The ADE Manager plugin has been developed by and with the support from the follo
 
 More information
 ----------------
-[OGC CityGML](http://www.opengeospatial.org/standards/citygml) is an open data model and XML-based format for the storage and exchange of semantic 3D city models. It is an application schema for the [Geography Markup Language version 3.1.1 (GML3)](http://www.opengeospatial.org/standards/gml), the extendible international standard for spatial data exchange issued by the Open Geospatial Consortium (OGC) and the ISO TC211. The aim of the development of CityGML is to reach a common definition of the basic entities, attributes, and relations of a 3D city model. Particularly, CityGML provides an extension mechanism called ìApplication 
-Domain Extension (ADE)î which allows third parties to dynamically extend the existing CityGML data models with application specific extensions for facilitating the application fields e.g. energy demand calculations, utility network analysis, facility management, noise propagation simulations etc. 
+[OGC CityGML](http://www.opengeospatial.org/standards/citygml) is an open data model and XML-based format for the storage and exchange of semantic 3D city models. It is an application schema for the [Geography Markup Language version 3.1.1 (GML3)](http://www.opengeospatial.org/standards/gml), the extendible international standard for spatial data exchange issued by the Open Geospatial Consortium (OGC) and the ISO TC211. The aim of the development of CityGML is to reach a common definition of the basic entities, attributes, and relations of a 3D city model. Particularly, CityGML provides an extension mechanism called ‚ÄúApplication 
+Domain Extension (ADE)‚Äù which allows third parties to dynamically extend the existing CityGML data models with application specific extensions for facilitating the application fields e.g. energy demand calculations, utility network analysis, facility management, noise propagation simulations etc. 
 
 CityGML is an international OGC standard and can be used free of charge.
