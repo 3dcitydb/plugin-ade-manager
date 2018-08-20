@@ -1,5 +1,5 @@
-# ADE Manager Plugin
--------
+ADE Manager Plugin
+======================================
 
 The ADE Manager is a plugin for the [3D City Database Importer/Exporter](https://github.com/3dcitydb/importer-exporter) and allows users to interactively extend a 3D City Database (3DCityDB) instance to support the high-performance storage and management of CityGML Application Domain Extensions (ADE). It is implmented based on the open-source [graph transformation tool (AGG)](http://www.user.tu-berlin.de/o.runge/agg/) for transforming the object-oriented data model from a given ADE's application schema (XSD) to a compact relational database schema (including tables, indexes, and constrains etc.). In addition, an XML-based schema-mapping file can be automatically generated which contains the relevant meta-information about the derived database schema as well as the explicit mapping relationships between the two schemas and allows developers to implement applications for managing and processing the ADE data contents in 3DCityDB. 
 
