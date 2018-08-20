@@ -22,6 +22,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.citydb.config.i18n.Language;
@@ -30,6 +31,7 @@ import org.citydb.event.Event;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
+import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
 import org.citydb.plugins.ade_manager.gui.table.ADESchemaNamespaceRow;
 import org.citydb.plugins.ade_manager.gui.table.TableModel;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
@@ -292,6 +294,17 @@ public class ADETransformationPanel extends OperationModuleView {
 		viewController.clearConsole();
 		schemaTableModel.reset();
 		
+		final StatusDialog statusDialog = new StatusDialog(viewController.getTopFrame(), 
+				"ADE-Parse",
+				"Reading and parsing ADE XML schema...");
+		
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+				statusDialog.setVisible(true);
+			}
+		});
+		
 		LOG.info("Start parsing ADE XML schema...");
 		String xmlSchemaPath = browseXMLSchemaText.getText();
 		try {			
@@ -305,6 +318,12 @@ public class ADETransformationPanel extends OperationModuleView {
 			setEnabledMetadataSettings(true);
 		} catch (TransformationException e) {
 			printErrorMessage("Failed to read and parse ADE schema", e);
+		} finally {
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					statusDialog.dispose();
+				}
+			});
 		}
 	}
 
@@ -336,14 +355,30 @@ public class ADETransformationPanel extends OperationModuleView {
 		}
 		String selectedSchemaNamespace = schemaTableModel.getColumn(selectedRowNum).getValue(0);
 	
+		final StatusDialog statusDialog = new StatusDialog(viewController.getTopFrame(), 
+				"ADE Transformation",
+				"Deriving ADE database schema...");
+		
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+				statusDialog.setVisible(true);
+			}
+		});
+		
 		try {
 			adeTransformer.doProcess(selectedSchemaNamespace);
+			LOG.info("Transformation finished");
 		} catch (TransformationException e) {
 			printErrorMessage(e);
-			return;
+		} finally {
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					statusDialog.dispose();
+				}
+			});
 		}
-	
-		LOG.info("Transformation finished");
+		
 	}
 
 	public void handleEvent(Event event) throws Exception {

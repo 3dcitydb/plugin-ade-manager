@@ -31,6 +31,7 @@ import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.gui.popup.ScriptDialog;
+import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
 import org.citydb.plugins.ade_manager.gui.table.ADEMetadataRow;
 import org.citydb.plugins.ade_manager.gui.table.TableModel;
 import org.citydb.plugins.ade_manager.registry.ADERegistrationController;
@@ -252,6 +253,17 @@ public class ADERegistryPanel extends OperationModuleView {
 			return;
 		}
 		
+		final StatusDialog statusDialog = new StatusDialog(viewController.getTopFrame(), 
+				"ADE Registration",
+				"Registering ADE into 3DCityDB...");
+		
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+				statusDialog.setVisible(true);
+			}
+		});
+		
 		boolean isComplete = false;
 		try {	
 			adeRegistor.initDBConneciton();
@@ -262,6 +274,12 @@ public class ADERegistryPanel extends OperationModuleView {
 			printErrorMessage("ADE registration aborted", e);
 		} finally {
 			adeRegistor.closeDBConnection();
+			
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					statusDialog.dispose();
+				}
+			});
 		}
 		
 		if (isComplete) {
@@ -322,6 +340,17 @@ public class ADERegistryPanel extends OperationModuleView {
 			return;
 		}
 		
+		final StatusDialog statusDialog = new StatusDialog(viewController.getTopFrame(), 
+				"ADE Deregistration",
+				"Deregistering ADE from 3DCityDB...");
+		
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+				statusDialog.setVisible(true);
+			}
+		});
+		
 		boolean isComplete = false;
 		String adeId = adeTableModel.getColumn(selectedRowNum).getValue(0);	
 		try {
@@ -333,6 +362,12 @@ public class ADERegistryPanel extends OperationModuleView {
 			printErrorMessage("ADE Deregistration aborted", e);
 		} finally {
 			adeRegistor.closeDBConnection();
+			
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					statusDialog.dispose();
+				}
+			});
 		}	
 		
 		if (isComplete) {
@@ -360,15 +395,35 @@ public class ADERegistryPanel extends OperationModuleView {
 			return;
 		}
 		
-		try {			
+		final StatusDialog statusDialog = new StatusDialog(viewController.getTopFrame(), 
+				"Script Generation",
+				"Generating Delete-Script...");
+
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+				statusDialog.setVisible(true);
+			}
+		});
+		
+		DBSQLScript deleteScript = null;
+		try {	
 			adeRegistor.initDBConneciton();
-			boolean autoInstall = false;
-			adeRegistor.createDeleteScripts(autoInstall);
+			deleteScript = adeRegistor.createDeleteScripts();
 		} catch (ADERegistrationException e) {
 			printErrorMessage("Delete-script creation aborted", e);
 		} finally {
-			adeRegistor.closeDBConnection();			
+			adeRegistor.closeDBConnection();		
+			
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					statusDialog.dispose();
+				}
+			});
 		}	
+		
+		if (deleteScript != null)
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, false, this));
 	}
 	
 	private void generateEnvelopeScripts() {
@@ -380,15 +435,35 @@ public class ADERegistryPanel extends OperationModuleView {
 			return;
 		}
 		
+		final StatusDialog statusDialog = new StatusDialog(viewController.getTopFrame(), 
+				"Script Generation",
+				"Generating Envelope-Script...");
+		
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+				statusDialog.setVisible(true);
+			}
+		});
+		
+		DBSQLScript envelopeScript = null;		
 		try {			
 			adeRegistor.initDBConneciton();
-			boolean autoInstall = false;
-			adeRegistor.createEnvelopeScripts(autoInstall);
+			envelopeScript = adeRegistor.createEnvelopeScripts();
 		} catch (ADERegistrationException e) {
 			printErrorMessage("Envelope-script creation aborted", e);
 		} finally {
-			adeRegistor.closeDBConnection();			
+			adeRegistor.closeDBConnection();	
+			
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					statusDialog.dispose();
+				}
+			});
 		}	
+		
+		if (envelopeScript != null)
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, false, this));
 	}
 
 	@Override
@@ -409,6 +484,7 @@ public class ADERegistryPanel extends OperationModuleView {
     							adeRegistor.initDBConneciton();
     							adeRegistor.installDBScript(scriptDialog.getScript());
     							adeRegistor.commitTransactions();
+    							LOG.info("Script is successfully installed into the connected database.");
     						} catch (ADERegistrationException e) {
     							adeRegistor.rollbackTransactions();
     							printErrorMessage(e);
@@ -424,7 +500,7 @@ public class ADERegistryPanel extends OperationModuleView {
     		SwingUtilities.invokeLater(new Runnable() {
     			public void run() {
     				scriptDialog.setLocationRelativeTo(parentPanel.getTopLevelAncestor());
-    				scriptDialog.setVisible(autoInstall);
+    				scriptDialog.setVisible(true);
     			}
     		});
         }		

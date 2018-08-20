@@ -72,7 +72,9 @@ public class ADERegistrationController {
 		// create and install delete-functions.
 		LOG.info("Creating and installing delete-function...");
 		try {	
-			createDeleteScripts(true);
+			DBSQLScript deleteScript = createDeleteScripts();
+			installDBScript(deleteScript);			
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, true, this));
 		} catch (ADERegistrationException e) {
 			LOG.info("Failed to create and install delete-script into database. (Skipped)");
 		} 	
@@ -80,7 +82,9 @@ public class ADERegistrationController {
 		// create and install envelope-functions.
 		LOG.info("Creating and installing envelope-function...");
 		try {	
-			createEnvelopeScripts(true);
+			DBSQLScript envelopeScript = createEnvelopeScripts();
+			installDBScript(envelopeScript);	
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, true, this));
 		} catch (ADERegistrationException e) {
 			LOG.info("Failed to create and install envelope-script into database. (Skipped)");
 		} 	
@@ -131,16 +135,19 @@ public class ADERegistrationController {
 		// Step 4: re-create and install delete-functions
 		LOG.info("Re-creating and installing delete-function...");
 		try {	
-			createDeleteScripts(true);
+			DBSQLScript deleteScript = createDeleteScripts();
+			installDBScript(deleteScript);			
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, true, this));
 		} catch (ADERegistrationException e) {
 			LOG.info("Failed to create and install delete-script into database. (Skipped)");
 		} 
 
-
 		// Step 5: re-create and install envelope-functions.
 		LOG.info("Re-Creating and installing envelope-function...");
 		try {	
-			createEnvelopeScripts(true);
+			DBSQLScript envelopeScript = createEnvelopeScripts();
+			installDBScript(envelopeScript);	
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, true, this));
 		} catch (ADERegistrationException e) {
 			LOG.info("Failed to create and install envelope-script into database. (Skipped)");
 		} 
@@ -165,7 +172,7 @@ public class ADERegistrationController {
 		return adeList;
 	}
 	
-	public void createDeleteScripts(boolean autoInstall) throws ADERegistrationException {
+	public DBSQLScript createDeleteScripts() throws ADERegistrationException {
 		ADEMetadataManager adeMetadataManager = null;
 		try {
 			adeMetadataManager = new ADEMetadataManager(connection, config);
@@ -177,21 +184,19 @@ public class ADERegistrationController {
 		DBSQLScript deleteScript = null;
 		DBScriptGenerator deleteScriptGenerator = DBScriptGeneratorFactory.getInstance().
 				createDeleteScriptGenerator(connection, config, adeMetadataManager);
+		
 		try {
 			deleteScript = deleteScriptGenerator.generateDBScript();			
-			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, autoInstall, this));
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to create delete-script for the current 3DCityDB instance", e);
 		}		
-		LOG.info("Delete-script is successfully created for the current 3DCityDB database.");
 		
-		LOG.info("Installing delete-script for the current 3DCityDB instance...");
-		if (autoInstall)
-			installDBScript(deleteScript);
-		LOG.info("Delete-script is successfully installed into the connected database.");
+		LOG.info("Delete-script is successfully created for the current 3DCityDB database.");		
+		
+		return deleteScript;
 	}
 
-	public void createEnvelopeScripts(boolean autoInstall) throws ADERegistrationException {
+	public DBSQLScript createEnvelopeScripts() throws ADERegistrationException {
 		ADEMetadataManager adeMetadataManager = null;
 		try {
 			adeMetadataManager = new ADEMetadataManager(connection, config);
@@ -205,16 +210,12 @@ public class ADERegistrationController {
 				.createEnvelopeScriptGenerator(connection, config, adeMetadataManager);
 		try {
 			envelopeScript = envelopeScriptGenerator.generateDBScript();			
-			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, autoInstall, this));
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to create envelope-script for the current 3DCityDB instance", e);
 		}		
 		LOG.info("Envelope-script is successfully created for the current 3DCityDB database.");
-		
-		LOG.info("Installing envelope-script for the current 3DCityDB instance...");
-		if (autoInstall)
-			installDBScript(envelopeScript);
-		LOG.info("envelope-script is successfully installed into the connected database.");
+				
+		return envelopeScript;
 	}
 	
 	public void installDBScript(DBSQLScript dbScript) throws ADERegistrationException {		

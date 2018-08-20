@@ -49,10 +49,6 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 		this.viewController = parentPanel.getViewController();
 	}
 	
-	private void popupErrorMessage(String title, String text) {
-        JOptionPane.showMessageDialog(viewController.getTopFrame(), text, title, JOptionPane.ERROR_MESSAGE);
-    }
-	
 	protected void printErrorMessage(Exception e) {
 		printErrorMessage("Unexpected Error", e);
 	}
@@ -84,9 +80,9 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 			int currentOracleVersion = dbPool.getConnection().getMetaData().getDatabaseMajorVersion();
 			if (currentOracleVersion < MINIMUM_REQUIRED_ORACLE_VERSION) {
 				Object[] args = new Object[]{MINIMUM_REQUIRED_ORACLE_VERSION, currentOracleVersion};
-				String errorMessage = MessageFormat.format(Translator.I18N.getString("ade_manager.db.warn.minimumDbVersionRequirement.msg"), args);
-				popupErrorMessage(Language.I18N.getString("common.dialog.warning.title"), errorMessage);
-				throw new SQLException(errorMessage);
+				String warnMessage = MessageFormat.format(Translator.I18N.getString("ade_manager.db.warn.minimumDbVersionRequirement.msg"), args);
+				viewController.warnMessage(Language.I18N.getString("common.dialog.warning.title"), warnMessage);
+				throw new SQLException(warnMessage);
 			}
 		}
 	}
