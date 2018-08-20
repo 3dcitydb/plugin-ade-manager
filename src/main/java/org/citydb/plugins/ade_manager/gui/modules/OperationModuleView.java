@@ -1,6 +1,7 @@
 package org.citydb.plugins.ade_manager.gui.modules;
 
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.swing.JButton;
@@ -20,9 +21,12 @@ import org.citydb.modules.database.gui.operations.DatabaseOperationView;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
+import org.citydb.plugins.ade_manager.util.Translator;
 import org.citydb.registry.ObjectRegistry;
 
 public abstract class OperationModuleView extends DatabaseOperationView implements EventHandler{
+	protected static final int MINIMUM_REQUIRED_ORACLE_VERSION = 11;
+	
 	protected static final int BORDER_THICKNESS = 5;
 	protected static final int MAX_TEXTFIELD_HEIGHT = 20;
 	protected static final int MAX_LABEL_WIDTH = 60;
@@ -44,6 +48,10 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 		this.config = config;
 		this.viewController = parentPanel.getViewController();
 	}
+	
+	private void popupErrorMessage(String title, String text) {
+        JOptionPane.showMessageDialog(viewController.getTopFrame(), text, title, JOptionPane.ERROR_MESSAGE);
+    }
 	
 	protected void printErrorMessage(Exception e) {
 		printErrorMessage("Unexpected Error", e);
@@ -71,7 +79,16 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 				throw new SQLException("Failed to connect to the target database", e);
 			}
 		}
-
+		
+		if (dbPool.getActiveDatabaseAdapter().getDatabaseType() == DatabaseType.ORACLE) {
+			int currentOracleVersion = dbPool.getConnection().getMetaData().getDatabaseMajorVersion();
+			if (currentOracleVersion < MINIMUM_REQUIRED_ORACLE_VERSION) {
+				Object[] args = new Object[]{MINIMUM_REQUIRED_ORACLE_VERSION, currentOracleVersion};
+				String errorMessage = MessageFormat.format(Translator.I18N.getString("ade_manager.db.warn.minimumDbVersionRequirement.msg"), args);
+				popupErrorMessage(Language.I18N.getString("common.dialog.warning.title"), errorMessage);
+				throw new SQLException(errorMessage);
+			}
+		}
 	}
 	
 }
