@@ -9,6 +9,7 @@ import javax.swing.JPanel;
 
 import org.citydb.config.i18n.Language;
 import org.citydb.config.project.database.DatabaseConfigurationException;
+import org.citydb.config.project.database.DatabaseType;
 import org.citydb.database.DatabaseController;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.database.version.DatabaseVersionException;
@@ -31,7 +32,7 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 	protected final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	protected final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();	
-	protected final ViewController viewContoller;
+	protected final ViewController viewController;
 	protected final ReentrantLock mainLock = new ReentrantLock();
 	
 	protected JPanel parentPanel;
@@ -41,7 +42,7 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 	public OperationModuleView(ADEManagerPanel parentPanel, ConfigImpl config) {
 		this.parentPanel = parentPanel;
 		this.config = config;
-		this.viewContoller = parentPanel.getViewController();
+		this.viewController = parentPanel.getViewController();
 	}
 	
 	protected void printErrorMessage(Exception e) {
@@ -70,6 +71,7 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 				throw new SQLException("Failed to connect to the target database", e);
 			}
 		}
+
 	}
 	
 }

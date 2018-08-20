@@ -318,7 +318,7 @@ public class ADERegistryPanel extends OperationModuleView {
 		
 		int selectedRowNum = adeTable.getSelectedRow();
 		if (selectedRowNum == -1) {
-			viewContoller.errorMessage("ADE Deregistration aborted", "Please select one of the listed ADEs");
+			viewController.errorMessage("ADE Deregistration aborted", "Please select one of the listed ADEs");
 			return;
 		}
 		
@@ -400,7 +400,7 @@ public class ADERegistryPanel extends OperationModuleView {
             if (autoInstall)
             	return;
             
-            final ScriptDialog scriptDialog = new ScriptDialog(viewContoller.getTopFrame(), script, autoInstall);			
+            final ScriptDialog scriptDialog = new ScriptDialog(viewController.getTopFrame(), script, autoInstall);			
     		scriptDialog.getButton().addActionListener(new ActionListener() {
     			public void actionPerformed(ActionEvent e) {
     				SwingUtilities.invokeLater(new Runnable() {

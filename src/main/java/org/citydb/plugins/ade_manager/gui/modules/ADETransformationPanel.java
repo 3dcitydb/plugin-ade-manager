@@ -289,7 +289,7 @@ public class ADETransformationPanel extends OperationModuleView {
 	}
 
 	private void parseADESchema() {
-		viewContoller.clearConsole();
+		viewController.clearConsole();
 		schemaTableModel.reset();
 		
 		LOG.info("Start parsing ADE XML schema...");
@@ -313,25 +313,25 @@ public class ADETransformationPanel extends OperationModuleView {
 	
 		String adeName = config.getAdeName();
 		if (adeName.trim().equals("")) {
-			viewContoller.errorMessage("Incomplete Information", "Please enter a name for the ADE");
+			viewController.errorMessage("Incomplete Information", "Please enter a name for the ADE");
 			return;
 		}
 		
 		String dbPrefix = config.getAdeDbPrefix();
 		if (dbPrefix.trim().equals("")) {
-			viewContoller.errorMessage("Incomplete Information", "Please enter a name for the ADE");
+			viewController.errorMessage("Incomplete Information", "Please enter a name for the ADE");
 			return;
 		}
 		
 		int initialObjectclassId = config.getInitialObjectclassId();
 		if (initialObjectclassId < ADEMetadataManager.MIN_ADE_OBJECTCLASSID) {
-			viewContoller.errorMessage("Incorrect Information", "Then initial objectclass ID must be greater than or equal to 10000");
+			viewController.errorMessage("Incorrect Information", "Then initial objectclass ID must be greater than or equal to 10000");
 			return;
 		}	
 		
 		int selectedRowNum = schemaTable.getSelectedRow();
 		if (selectedRowNum == -1) {
-			viewContoller.errorMessage("Incomplete Information", "Please select a schema namespace");
+			viewController.errorMessage("Incomplete Information", "Please select a schema namespace");
 			return;
 		}
 		String selectedSchemaNamespace = schemaTableModel.getColumn(selectedRowNum).getValue(0);
