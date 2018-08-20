@@ -397,6 +397,8 @@ public class ADERegistryPanel extends OperationModuleView {
             ScriptCreationEvent scriptCreationEvent = (ScriptCreationEvent) event;
             DBSQLScript script = scriptCreationEvent.getScript();
             boolean autoInstall = scriptCreationEvent.isAutoInstall();
+            if (autoInstall)
+            	return;
             
             final ScriptDialog scriptDialog = new ScriptDialog(viewContoller.getTopFrame(), script, autoInstall);			
     		scriptDialog.getButton().addActionListener(new ActionListener() {
@@ -422,7 +424,7 @@ public class ADERegistryPanel extends OperationModuleView {
     		SwingUtilities.invokeLater(new Runnable() {
     			public void run() {
     				scriptDialog.setLocationRelativeTo(parentPanel.getTopLevelAncestor());
-    				scriptDialog.setVisible(true);
+    				scriptDialog.setVisible(autoInstall);
     			}
     		});
         }		
