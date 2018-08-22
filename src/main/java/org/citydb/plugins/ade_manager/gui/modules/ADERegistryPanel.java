@@ -332,7 +332,13 @@ public class ADERegistryPanel extends OperationModuleView {
 	private void deregisterADE(){
 		setSettings();	
 		
-		dbPool.purge();
+		// database connection is required
+		try {
+			checkAndConnectToDB();
+		} catch (SQLException e) {
+			printErrorMessage("ADE registration aborted", e);
+			return;
+		}
 		
 		int selectedRowNum = adeTable.getSelectedRow();
 		if (selectedRowNum == -1) {
