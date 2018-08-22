@@ -12,6 +12,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.text.DecimalFormat;
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -214,12 +215,25 @@ public class ADETransformationPanel extends OperationModuleView {
 	public void doTranslation() {	
 		browseXMLSchemaPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.browseXMLSchemaPanel.border")));
 
-		namePanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.namePanel.border")));
-		descriptionPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.descriptionPanel.border")));
-		versionPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.versionPanel.border")));
-		dbPrefixPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.dbPrefixPanel.border")));
-		initObjectClassIdPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.initObjectClassIdPanel.border")));
-
+		namePanel.setBorder(BorderFactory.createTitledBorder(
+				MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.namePanel.border"),
+						new Object[] { String.valueOf(GlobalConstants.MAX_ADE_NAME_LENGTH) })));
+		
+		descriptionPanel.setBorder(BorderFactory.createTitledBorder(
+				MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.descriptionPanel.border"),
+						new Object[] { String.valueOf(GlobalConstants.MAX_ADE_DESCRIPTION_LENGTH) })));
+		
+		versionPanel.setBorder(BorderFactory.createTitledBorder(
+				MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.versionPanel.border"),
+						new Object[] { String.valueOf(GlobalConstants.MAX_ADE_VERSION_LENGTH) })));
+		
+		dbPrefixPanel.setBorder(BorderFactory.createTitledBorder(
+				MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.dbPrefixPanel.border"),
+						new Object[] { GlobalConstants.MAX_DB_PREFIX_LENGTH })));
+		initObjectClassIdPanel.setBorder(BorderFactory.createTitledBorder(
+				MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.initObjectClassIdPanel.border"),
+						new Object[] { String.valueOf(GlobalConstants.MIN_ADE_OBJECTCLASSID) })));
+		
 		browseXMLSchemaButton.setText(Language.I18N.getString("common.button.browse"));
 		readXMLSchemaButton.setText(Translator.I18N.getString("ade_manager.transformationPanel.button.readXMLSchema"));
 		((TitledBorder) transformationOutputPanel.getBorder()).setTitle(Translator.I18N.getString("ade_manager.transformationPanel.transformationOutputPanel.border"));
@@ -334,8 +348,38 @@ public class ADETransformationPanel extends OperationModuleView {
 		setSettings();
 	
 		String adeName = config.getAdeName();
-		if (adeName.trim().equals("")) {
+		if (adeName.trim().length() == 0) {
 			viewController.errorMessage("Incomplete Information", "Please enter a name for the ADE");
+			return;
+		}
+		
+		if (adeName.trim().length() > GlobalConstants.MAX_ADE_NAME_LENGTH) {
+			viewController.errorMessage("Incorrect Information",
+					"The ADE name should not exceed " + GlobalConstants.MAX_ADE_NAME_LENGTH + " characters");
+			return;
+		}
+		
+		String adeDescription = config.getAdeDescription();
+		if (adeDescription.trim().length() == 0) {
+			viewController.errorMessage("Incomplete Information", "Please enter a description for the ADE");
+			return;
+		}
+		
+		if (adeDescription.trim().length() > GlobalConstants.MAX_ADE_NAME_LENGTH) {
+			viewController.errorMessage("Incorrect Information",
+					"The ADE description should not exceed " + GlobalConstants.MAX_ADE_DESCRIPTION_LENGTH + " characters");
+			return;
+		}
+		
+		String adeVersion = config.getAdeVersion();
+		if (adeVersion.trim().length() == 0) {
+			viewController.errorMessage("Incomplete Information", "Please enter a version for the ADE");
+			return;
+		}
+		
+		if (adeVersion.trim().length() > GlobalConstants.MAX_ADE_VERSION_LENGTH) {
+			viewController.errorMessage("Incorrect Information",
+					"The ADE version should not exceed " + GlobalConstants.MAX_ADE_VERSION_LENGTH + " characters");
 			return;
 		}
 		
@@ -358,8 +402,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		if (dbPrefix.trim().length() > 4) {
 			viewController.errorMessage("Incorrect Information", "The DB_Prefix should not exceed 4 characters");
 			return;
-		}
-		
+		}		
 		
 		int initialObjectclassId = config.getInitialObjectclassId();
 		if (initialObjectclassId < GlobalConstants.MIN_ADE_OBJECTCLASSID) {

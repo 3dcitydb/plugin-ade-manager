@@ -28,11 +28,14 @@
 package org.citydb.plugins.ade_manager.util;
 
 public class GlobalConstants {
+	public static final int MAX_ADE_NAME_LENGTH = 1000;
+	public static final int MAX_ADE_DESCRIPTION_LENGTH = 4000;
+	public static final int MAX_ADE_VERSION_LENGTH = 50;
+	public static final int MAX_DB_PREFIX_LENGTH = 4;
 	public static final int MIN_ADE_OBJECTCLASSID = 10000;
+	
 	public static final int SURFACE_GEOMETRY_OBJECTCLASSID = 106;
 	public static final int IMPLICIT_GEOMETRY_OBJECTCLASSID = 59;
-	
-	public static final int MAX_DB_PREFIX_LENGTH = 4;
 	
 	public static final String INPUT_GRAPH_PATH = "/org/citydb/plugins/ade_manager/graph/Working_Graph.ggx";
 	public static final String TMP_GRAPH_FOLDER_NAME = "graph";
