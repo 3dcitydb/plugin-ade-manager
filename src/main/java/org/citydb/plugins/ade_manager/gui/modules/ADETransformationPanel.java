@@ -337,10 +337,16 @@ public class ADETransformationPanel extends OperationModuleView {
 		}
 		
 		String dbPrefix = config.getAdeDbPrefix();
-		if (dbPrefix.trim().equals("")) {
-			viewController.errorMessage("Incomplete Information", "Please enter a name for the ADE");
+		if (dbPrefix.trim().length() == 0) {
+			viewController.errorMessage("Incomplete Information", "Please enter a DB_Prefix for the ADE");
 			return;
 		}
+		
+		if (dbPrefix.trim().length() > 4) {
+			viewController.errorMessage("Incorrect Information", "The DB_Prefix should not exceed 4 characters");
+			return;
+		}
+		
 		
 		int initialObjectclassId = config.getInitialObjectclassId();
 		if (initialObjectclassId < ADEMetadataManager.MIN_ADE_OBJECTCLASSID) {
