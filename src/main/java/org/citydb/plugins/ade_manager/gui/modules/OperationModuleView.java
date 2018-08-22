@@ -66,18 +66,20 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 		String[] connectConfirm = { Language.I18N.getString("pref.kmlexport.connectDialog.line1"),
 				Language.I18N.getString("pref.kmlexport.connectDialog.line3") };
 
-		if (!dbPool.isConnected() && JOptionPane.showConfirmDialog(parentPanel.getTopLevelAncestor(), connectConfirm,
-				Language.I18N.getString("pref.kmlexport.connectDialog.title"),
-				JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-			try {
-				databaseController.connect(true);
-			} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
-				throw new SQLException("Failed to connect to the target database", e);
+		if (!dbPool.isConnected()) {
+			if (JOptionPane.showConfirmDialog(parentPanel.getTopLevelAncestor(), connectConfirm,
+					Language.I18N.getString("pref.kmlexport.connectDialog.title"),
+					JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+				try {
+					databaseController.connect(true);
+				} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
+					throw new SQLException("Failed to connect to the target database", e);
+				}
 			}
+			else
+				throw new SQLException("Database is not connected");
 		}
-		else
-			throw new SQLException("Database is not connected");
-		
+
 		if (dbPool.getActiveDatabaseAdapter().getDatabaseType() == DatabaseType.ORACLE) {
 			int currentOracleVersion = dbPool.getConnection().getMetaData().getDatabaseMajorVersion();
 			if (currentOracleVersion < MINIMUM_REQUIRED_ORACLE_VERSION) {

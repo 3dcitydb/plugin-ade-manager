@@ -11,13 +11,16 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
+import javax.swing.JFormattedTextField;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -34,8 +37,8 @@ import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
 import org.citydb.plugins.ade_manager.gui.table.ADESchemaNamespaceRow;
 import org.citydb.plugins.ade_manager.gui.table.TableModel;
-import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.transformation.TransformationException;
+import org.citydb.plugins.ade_manager.util.GlobalConstants;
 import org.citydb.plugins.ade_manager.util.Translator;
 import org.citydb.plugins.ade_manager.transformation.TransformationController;
 
@@ -56,7 +59,7 @@ public class ADETransformationPanel extends OperationModuleView {
 	private JPanel dbPrefixPanel;
 	private JTextField dbPrefixInputField = new JTextField();
 	private JPanel initObjectClassIdPanel;
-	private JTextField initObjectClassIdInputField = new JTextField();	
+	private JFormattedTextField initObjectClassIdInputField = new JFormattedTextField(new DecimalFormat("##########"));	
 	private JPanel transformationOutputPanel;
 	private JTextField browseOutputText = new JTextField();
 	private JButton browserOutputButton = new JButton();
@@ -231,7 +234,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		descriptionInputField.setText(config.getAdeDescription());
 		versionInputField.setText(config.getAdeVersion());
 		dbPrefixInputField.setText(config.getAdeDbPrefix());
-		initObjectClassIdInputField.setText(String.valueOf(config.getInitialObjectclassId()));		
+		initObjectClassIdInputField.setValue(config.getInitialObjectclassId());
 	}
 
 	public void setSettings() {
@@ -241,7 +244,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		config.setAdeDescription(descriptionInputField.getText());
 		config.setAdeVersion(versionInputField.getText());
 		config.setAdeDbPrefix(dbPrefixInputField.getText());
-		config.setInitialObjectclassId(Integer.valueOf(initObjectClassIdInputField.getText()));
+		config.setInitialObjectclassId(((Number)initObjectClassIdInputField.getValue()).intValue());
 	}
 
 	private void browserXMLschemaFile() {
@@ -342,6 +345,16 @@ public class ADETransformationPanel extends OperationModuleView {
 			return;
 		}
 		
+		if (Character.isDigit(dbPrefix.trim().charAt(0))) {
+			viewController.errorMessage("Incorrect Information", "The DB_Prefix should not start with a digit");
+			return;
+		}
+		
+		if (!Pattern.compile("[a-zA-Z0-9]*").matcher(dbPrefix.trim()).matches()) {
+			viewController.errorMessage("Incorrect Information", "The DB_Prefix should contain a special character");
+			return;
+		}
+		
 		if (dbPrefix.trim().length() > 4) {
 			viewController.errorMessage("Incorrect Information", "The DB_Prefix should not exceed 4 characters");
 			return;
@@ -349,7 +362,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		
 		
 		int initialObjectclassId = config.getInitialObjectclassId();
-		if (initialObjectclassId < ADEMetadataManager.MIN_ADE_OBJECTCLASSID) {
+		if (initialObjectclassId < GlobalConstants.MIN_ADE_OBJECTCLASSID) {
 			viewController.errorMessage("Incorrect Information", "Then initial objectclass ID must be greater than or equal to 10000");
 			return;
 		}	
