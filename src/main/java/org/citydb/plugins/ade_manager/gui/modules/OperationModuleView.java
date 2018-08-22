@@ -75,6 +75,8 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 				throw new SQLException("Failed to connect to the target database", e);
 			}
 		}
+		else
+			throw new SQLException("Database is not connected");
 		
 		if (dbPool.getActiveDatabaseAdapter().getDatabaseType() == DatabaseType.ORACLE) {
 			int currentOracleVersion = dbPool.getConnection().getMetaData().getDatabaseMajorVersion();
