@@ -34,6 +34,7 @@ import org.citydb.plugins.ade_manager.transformation.database.extension.SpatialC
 import org.citydb.plugins.ade_manager.transformation.database.extension.TimestampColumn;
 import org.citydb.plugins.ade_manager.transformation.graph.ADEschemaHelper;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
+import org.citydb.plugins.ade_manager.util.GlobalConstants;
 import org.citydb.plugins.ade_manager.util.NameShortener;
 import org.citydb.plugins.ade_manager.util.PathResolver;
 
@@ -284,23 +285,16 @@ public class DBScriptGenerator {
         }
     }
 	
-	private void shrotenDatabaseObjectName() {
-		int maxTableNameLength = 25;
-		int maxColumnNameLength = 28;
-		int maxIndexNameLength = 26;
-		int maxConstraintNameLength = 26;
-		int maxSequenceNameLength = 25;
-		
-		String prefix = config.getAdeDbPrefix();
-		
-		if (prefix.length() > 4)
-			prefix = prefix.substring(0, 4);		
+	private void shrotenDatabaseObjectName() {		
+		String prefix = config.getAdeDbPrefix();		
+		if (prefix.length() > GlobalConstants.MAX_DB_PREFIX_LENGTH)
+			prefix = prefix.substring(0, GlobalConstants.MAX_DB_PREFIX_LENGTH);		
 		int prefixLength = prefix.length();
 		
-		int maxTableNameLengthWithPrefix = maxTableNameLength - prefixLength - 1;
-		int maxIndexNameLengthWithPrefix = maxIndexNameLength - prefixLength - 1;
-		int maxConstraintNameLengthWithPrefix = maxConstraintNameLength - prefixLength - 1;
-		int maxSequenceNameLengthWithPrefix = maxSequenceNameLength - prefixLength - 1;
+		int maxTableNameLengthWithPrefix = GlobalConstants.MAX_TABLE_NAME_LENGTH - prefixLength - 1;
+		int maxIndexNameLengthWithPrefix = GlobalConstants.MAX_INDEX_NAME_LENGTH - prefixLength - 1;
+		int maxConstraintNameLengthWithPrefix = GlobalConstants.MAX_CONSTRAINT_NAME_LENGTH - prefixLength - 1;
+		int maxSequenceNameLengthWithPrefix = GlobalConstants.MAX_SEQEUNCE_NAME_LENGTH - prefixLength - 1;
 		
 		Enumeration<Type> e = this.graphGrammar.getTypes();
 		while(e.hasMoreElements()){
@@ -324,8 +318,8 @@ public class DBScriptGenerator {
 								if (arc.getType().getName().equalsIgnoreCase(GraphNodeArcType.BelongsTo)) {
 									Node columnNode = (Node) arc.getSource();
 									String columnName = (String)columnNode.getAttribute().getValueAt("name");
-									columnName = NameShortener.shortenDbObjectName(columnName, maxColumnNameLength);	
-									String processedColumnName = this.processDuplicatedDbColumnName(shortenedName, columnName, maxColumnNameLength, 0);
+									columnName = NameShortener.shortenDbObjectName(columnName, GlobalConstants.MAX_COLUMN_NAME_LENGTH);	
+									String processedColumnName = this.processDuplicatedDbColumnName(shortenedName, columnName, GlobalConstants.MAX_COLUMN_NAME_LENGTH, 0);
 									columnNode.getAttribute().setValueAt(processedColumnName, "name");								
 								}
 							}	
@@ -334,12 +328,12 @@ public class DBScriptGenerator {
 					else if (nodeTypeName.equalsIgnoreCase(GraphNodeArcType.Join)) {
 						shortenedName = NameShortener.shortenDbObjectName(originalDatabaseObjectName, maxConstraintNameLengthWithPrefix);
 						shortenedName = prefix + "_" + shortenedName;		
-						shortenedName = this.processDuplicatedDbConstraintName(shortenedName, maxConstraintNameLength, 0);
+						shortenedName = this.processDuplicatedDbConstraintName(shortenedName, GlobalConstants.MAX_CONSTRAINT_NAME_LENGTH, 0);
 					}	
 					else if (nodeTypeName.equalsIgnoreCase(GraphNodeArcType.Index)) {
 						shortenedName = NameShortener.shortenDbObjectName(originalDatabaseObjectName, maxIndexNameLengthWithPrefix);
 						shortenedName = prefix + "_" + shortenedName;		
-						shortenedName = this.processDuplicatedDbIndexName(shortenedName, maxIndexNameLength, 0);
+						shortenedName = this.processDuplicatedDbIndexName(shortenedName, GlobalConstants.MAX_INDEX_NAME_LENGTH, 0);
 					}
 					else if (nodeTypeName.equalsIgnoreCase(GraphNodeArcType.Sequence)) {
 						shortenedName = NameShortener.shortenDbObjectName(originalDatabaseObjectName, maxSequenceNameLengthWithPrefix);

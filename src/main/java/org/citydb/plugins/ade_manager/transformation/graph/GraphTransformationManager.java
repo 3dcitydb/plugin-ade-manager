@@ -10,6 +10,7 @@ import java.util.Enumeration;
 import java.util.List;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.util.GlobalConstants;
 import org.citygml4j.xml.schema.Schema;
 import org.citygml4j.xml.schema.SchemaHandler;
 
@@ -59,7 +60,7 @@ public class GraphTransformationManager {
     	convertDbObjectNameToLowercase();
     	
     	// write to file
-    	marshallingEdGraphGrammer(config.getTmpGraphDirPath() + File.separator + "Output_Graph_Tmp.ggx");
+    	marshallingEdGraphGrammer(config.getTmpGraphDirPath() + File.separator + GlobalConstants.TMP_OUTPUT_GRAPH_FILE_NAME);
     	
     	return aggGraphGrammar;
 	}
@@ -68,9 +69,9 @@ public class GraphTransformationManager {
 		// loaded predefined edGraph grammar
 		XMLHelper xmlh = new XMLHelper();
 		BufferedReader in = new BufferedReader(
-				new InputStreamReader(this.getClass().getResourceAsStream(config.getInputGraphPath())));
+				new InputStreamReader(this.getClass().getResourceAsStream(GlobalConstants.INPUT_GRAPH_PATH)));
 
-		File tmpFile = new File(config.getTmpGraphDirPath() + File.separator + "Input_Graph_Tmp.ggx");
+		File tmpFile = new File(config.getTmpGraphDirPath() + File.separator + GlobalConstants.TMP_INPUT_GRAPH_FILE_NAME);
 	    OutputStream outStream;
 		try {
 			outStream = new FileOutputStream(tmpFile);

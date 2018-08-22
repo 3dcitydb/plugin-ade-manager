@@ -53,14 +53,11 @@ import org.citydb.database.schema.mapping.TableRole;
 import org.citydb.database.schema.mapping.TreeHierarchy;
 import org.citydb.database.schema.util.SchemaMappingUtil;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.util.GlobalConstants;
 import org.citydb.plugins.ade_manager.util.PathResolver;
 import org.citydb.util.CoreConstants;
 
 public class ADEMetadataManager {	
-	public static final int MIN_ADE_OBJECTCLASSID = 10000;
-	public static final int SURFACE_GEOMETRY_OBJECTCLASSID = 106;
-	public static final int IMPLICIT_GEOMETRY_OBJECTCLASSID = 59;
-	
 	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	private final Connection connection;
 	private final ConfigImpl config;
@@ -606,7 +603,7 @@ public class ADEMetadataManager {
 		if (objectExtension != null) {
 			AbstractType<?> superType = (AbstractType<?>) objectExtension.getBase();
 			superclassId = superType.getObjectClassId();	
-			if (superclassId >= MIN_ADE_OBJECTCLASSID && !insertedObjectclasses.containsKey((long)superclassId))
+			if (superclassId >= GlobalConstants.MIN_ADE_OBJECTCLASSID && !insertedObjectclasses.containsKey((long)superclassId))
 				insertSingleObjectclass(superType, insertedObjectclasses, insertedADERowId, ps);
 		}
 		
@@ -698,13 +695,13 @@ public class ADEMetadataManager {
 		else if (property instanceof GeometryProperty) {
 			String refColumn = ((GeometryProperty) property).getRefColumn();
 			if (refColumn != null) {
-				childClassId = SURFACE_GEOMETRY_OBJECTCLASSID; // surface geometry
+				childClassId = GlobalConstants.SURFACE_GEOMETRY_OBJECTCLASSID; // surface geometry
 				relationType = RelationType.COMPOSITION;
 				join_table_or_column = refColumn;
 			}
 		}
 		else if (property instanceof ImplicitGeometryProperty) {
-			childClassId = IMPLICIT_GEOMETRY_OBJECTCLASSID; // implicit geometry
+			childClassId = GlobalConstants.IMPLICIT_GEOMETRY_OBJECTCLASSID; // implicit geometry
 			relationType = RelationType.AGGREGATION;
 			int lod = ((ImplicitGeometryProperty) property).getLod();
 			join_table_or_column = "lod" + lod + "_implicit_rep_id";

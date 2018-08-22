@@ -32,7 +32,7 @@ import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
 
 import org.citydb.config.project.plugin.PluginConfig;
-import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
+import org.citydb.plugins.ade_manager.util.GlobalConstants;
 import org.citydb.util.CoreConstants;
 
 @XmlType(name="ADEManagerType", propOrder={			
@@ -56,21 +56,16 @@ public class ConfigImpl extends PluginConfig {
 	private int initialObjectclassId;
 	private String adeRegistryInputPath;
 	@XmlTransient
-	private String inputGraphPath;
-	@XmlTransient
 	private String tmpGraphDirPath;
-
 	
-	public ConfigImpl() {
-		inputGraphPath = "/org/citydb/plugins/ade_manager/graph/Working_Graph.ggx";
-		
-		File tmp = new File(CoreConstants.IMPEXP_DATA_DIR.resolve("graph").toString());
+	public ConfigImpl() {		
+		File tmp = new File(CoreConstants.IMPEXP_DATA_DIR.resolve(GlobalConstants.TMP_GRAPH_FOLDER_NAME).toString());
 		if (!tmp.exists()) {
 			tmp.mkdirs();
 		}
 		tmpGraphDirPath = tmp.getAbsolutePath();		
 		
-		initialObjectclassId = ADEMetadataManager.MIN_ADE_OBJECTCLASSID;
+		initialObjectclassId = GlobalConstants.MIN_ADE_OBJECTCLASSID;
 	}
 
 	public String getTransformationOutputPath() {
@@ -87,10 +82,6 @@ public class ConfigImpl extends PluginConfig {
 
 	public void setXMLschemaInputPath(String xmlSchemaInputPath) {
 		this.xmlSchemaInputPath = xmlSchemaInputPath;		
-	}
-
-	public String getInputGraphPath() {
-		return inputGraphPath;
 	}
 
 	public String getAdeName() {
