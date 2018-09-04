@@ -385,7 +385,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		
 		String dbPrefix = config.getAdeDbPrefix();
 		if (dbPrefix.trim().length() == 0) {
-			viewController.errorMessage("Incomplete Information", "Please enter a DB_Prefix for the ADE");
+			viewController.errorMessage("Incomplete Information", "Please enter a DB_Prefix for the target ADE");
 			return;
 		}
 		
@@ -395,7 +395,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		}
 		
 		if (!Pattern.compile("[a-zA-Z0-9]*").matcher(dbPrefix.trim()).matches()) {
-			viewController.errorMessage("Incorrect Information", "The DB_Prefix should contain a special character");
+			viewController.errorMessage("Incorrect Information", "The DB_Prefix should not contain a special character");
 			return;
 		}
 		
@@ -406,7 +406,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		
 		int initialObjectclassId = config.getInitialObjectclassId();
 		if (initialObjectclassId < GlobalConstants.MIN_ADE_OBJECTCLASSID) {
-			viewController.errorMessage("Incorrect Information", "Then initial objectclass ID must be greater than or equal to 10000");
+			viewController.errorMessage("Incorrect Information", "Then initial objectclass ID must be larger than or equal to 10000");
 			return;
 		}	
 		
