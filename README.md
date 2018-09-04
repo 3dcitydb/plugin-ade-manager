@@ -40,6 +40,14 @@ Contributing
 * To contribute code for fixing filed issues create a pull request with the issue id.
 * To propose a new feature create a GitHub issue and open a discussion.
 
+Building
+--------
+The ADE Manager plugin uses [Gradle](https://gradle.org/) as build system. To build the plugin from source, clone the repository to your local machine and run the following command from the root of the repository.
+
+    > gradlew installDist
+    
+The build process will produce the plugin software package under `build/install`. Simply copy the contents of this folder into the `plugins` folder of your Importer/Exporter installation to use the plugin.
+
 Developers
 ----------
 The ADE Manager plugin has been developed by and with the support from the following cooperation partners:
