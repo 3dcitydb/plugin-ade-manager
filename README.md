@@ -24,7 +24,7 @@ Installation
 ------------
 The ADE Manager Plugin is shipped with the universal installer of the Importer/Exporter tool. When running the setup wizard, you can choose to install the plugin. This is the recommended and easiest way to install the plugin.
 
-Alternatively, you may download the software from the [releases section](https://github.com/3dcitydb/plugin-ade-manager/releases) and unzip it into the `plugins` folder within the installation folder of the Importer/Exporter. After a restart of the Importer/Exporter, the ADE Manager will be ready to be used.
+Alternatively, you may download the software from the [releases section](https://github.com/3dcitydb/plugin-ade-manager/releases) (or build it from source) and unzip it into the `plugins` folder within the installation folder of the Importer/Exporter. After a restart of the Importer/Exporter, the ADE Manager will be ready to be used.
 
 System requirements
 -------------------
