@@ -18,5 +18,5 @@ ext {
 
     // Importer/Exporter
     impexpName = citydbName + ' Importer/Exporter'
-    impexpVersion = '4.0.0'
+    impexpVersion = '1.0.0'
 }
