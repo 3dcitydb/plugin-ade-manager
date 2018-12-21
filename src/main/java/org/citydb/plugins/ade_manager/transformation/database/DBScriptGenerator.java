@@ -77,6 +77,8 @@ public class DBScriptGenerator {
 	
 	private List<String> dbFkConstratintNameList;
 	private List<String> dbIndexNameList;
+	private List<String> dbTableNameList;
+	private List<String> dbSeqeunceNameList;
 	private Map<String, List<String>> dbTableColumnsMap;
 	private Platform databasePlatform;
 	private ConfigImpl config;
@@ -88,6 +90,8 @@ public class DBScriptGenerator {
 		new ArrayList<String>(); 
 		this.dbFkConstratintNameList = new ArrayList<String>(); 
 		this.dbIndexNameList = new ArrayList<String>(); 
+		this.dbTableNameList = new ArrayList<String>(); 
+		this.dbSeqeunceNameList = new ArrayList<String>(); 
 		this.dbTableColumnsMap = new HashMap<String, List<String>>();
 		this.databaseTables = new HashMap<String, Table>();	
 		this.config = config;
@@ -338,7 +342,8 @@ public class DBScriptGenerator {
 					if (nodeTypeName.equalsIgnoreCase(GraphNodeArcType.DataTable) || nodeTypeName.equalsIgnoreCase(GraphNodeArcType.JoinTable)) {												
 						if (!ADEschemaHelper.CityDB_Tables.containsValue(originalDatabaseObjectName)) {
 							shortenedName = NameShortener.shortenDbObjectName(originalDatabaseObjectName, maxTableNameLengthWithPrefix);
-							shortenedName = prefix + "_" + shortenedName;							
+							shortenedName = prefix + "_" + shortenedName;		
+							shortenedName = this.processDuplicatedDbName(dbTableNameList, shortenedName, GlobalConstants.MAX_TABLE_NAME_LENGTH, 0);
 							Iterator<Arc> iter2 = databaseObjectNode.getIncomingArcs();
 							while (iter2.hasNext()) {
 								Arc arc = iter2.next();
@@ -349,22 +354,23 @@ public class DBScriptGenerator {
 									String processedColumnName = this.processDuplicatedDbColumnName(shortenedName, columnName, GlobalConstants.MAX_COLUMN_NAME_LENGTH, 0);
 									columnNode.getAttribute().setValueAt(processedColumnName, "name");								
 								}
-							}	
+							}								
 						}											
 					}
 					else if (nodeTypeName.equalsIgnoreCase(GraphNodeArcType.Join)) {
 						shortenedName = NameShortener.shortenDbObjectName(originalDatabaseObjectName, maxConstraintNameLengthWithPrefix);
 						shortenedName = prefix + "_" + shortenedName;		
-						shortenedName = this.processDuplicatedDbConstraintName(shortenedName, GlobalConstants.MAX_CONSTRAINT_NAME_LENGTH, 0);
+						shortenedName = this.processDuplicatedDbName(dbFkConstratintNameList, shortenedName, GlobalConstants.MAX_CONSTRAINT_NAME_LENGTH, 0);
 					}	
 					else if (nodeTypeName.equalsIgnoreCase(GraphNodeArcType.Index)) {
 						shortenedName = NameShortener.shortenDbObjectName(originalDatabaseObjectName, maxIndexNameLengthWithPrefix);
 						shortenedName = prefix + "_" + shortenedName;		
-						shortenedName = this.processDuplicatedDbIndexName(shortenedName, GlobalConstants.MAX_INDEX_NAME_LENGTH, 0);
+						shortenedName = this.processDuplicatedDbName(dbIndexNameList, shortenedName, GlobalConstants.MAX_INDEX_NAME_LENGTH, 0);
 					}
 					else if (nodeTypeName.equalsIgnoreCase(GraphNodeArcType.Sequence)) {
 						shortenedName = NameShortener.shortenDbObjectName(originalDatabaseObjectName, maxSequenceNameLengthWithPrefix);
 						shortenedName = prefix + "_" + shortenedName;		
+						shortenedName = this.processDuplicatedDbName(dbSeqeunceNameList, shortenedName, GlobalConstants.MAX_SEQEUNCE_NAME_LENGTH, 0);
 					}
 					
 					if (shortenedName != null) {
@@ -376,27 +382,15 @@ public class DBScriptGenerator {
 		}
 	}
 	
-	private String processDuplicatedDbConstraintName(String inputString, int maxLength, int k) {
-		if (!dbFkConstratintNameList.contains(inputString)) {
-			dbFkConstratintNameList.add(inputString);		
+	private String processDuplicatedDbName(List<String> dbNameList, String inputString, int maxLength, int k) {
+		if (!dbNameList.contains(inputString)) {
+			dbNameList.add(inputString);		
 			return inputString;
 		}
 		else {
 			k++;
 			inputString = NameShortener.shortenDbObjectName(inputString, maxLength, k);	
-			return processDuplicatedDbConstraintName(inputString, maxLength, k);
-		}
-	}
-	
-	private String processDuplicatedDbIndexName(String inputString, int maxLength, int k) {
-		if (!dbIndexNameList.contains(inputString)) {
-			dbIndexNameList.add(inputString);		
-			return inputString;
-		}
-		else {
-			k++;
-			inputString = NameShortener.shortenDbObjectName(inputString, maxLength, k);	
-			return processDuplicatedDbIndexName(inputString, maxLength, k);
+			return processDuplicatedDbName(dbNameList, inputString, maxLength, k);
 		}
 	}
 	

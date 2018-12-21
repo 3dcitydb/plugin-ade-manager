@@ -275,6 +275,9 @@ public class SchemaMappingCreator {
 			if (featureOrObjectOrComplexType != null)
 				return featureOrObjectOrComplexType;
 		}	
+		
+		if (this.getCityGMLComplexAttributeType(path) != null)
+			return null;
 		 		
 		String tableName = null;
 		Iterator<Arc> arcIter = featureObjectNode.getOutgoingArcs();		
@@ -466,51 +469,80 @@ public class SchemaMappingCreator {
 		return join;
 	}
 
-	private AbstractTypeProperty<?> generateFeatureOrObjectOrComplexTypeProperty(AbstractType<?> localType, Node featureOrObjectOrComplexTypePropertyNode, 
+	private ComplexAttributeType getCityGMLComplexAttributeType(String id) {
+		for (ComplexAttributeType attributeType : citygmlSchemaMapping.getComplexAttributeTypes()) {
+			if (attributeType.getId().equals(id))
+				return attributeType;
+		}
+
+		return null;
+	} 
+	
+	private AbstractProperty generateFeatureOrObjectOrComplexTypeProperty(AbstractType<?> localType, Node featureOrObjectOrComplexTypePropertyNode, 
 			SchemaMapping schemaMapping, AppSchema appSchema) throws SchemaMappingException {
 
-		AbstractTypeProperty<?> property = null;
+		AbstractProperty property = null;
 		Iterator<Arc> arcIter = featureOrObjectOrComplexTypePropertyNode.getOutgoingArcs();
 		while(arcIter.hasNext()) {
 			Arc arc = arcIter.next();
 
 			Node targetNode = (Node) arc.getTarget();
-			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexType)) {				
-				AbstractType<?> targetType = this.getOrCreateFeatureOrObjectOrComplexType(targetNode, schemaMapping, appSchema);
-			
-				String propertyPath = (String) featureOrObjectOrComplexTypePropertyNode.getAttribute().getValueAt("path");
+			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexType)) {
 								
-				if (targetType instanceof FeatureType) {
-					property = new FeatureProperty(propertyPath, (FeatureType) targetType, appSchema);						
-				}
-				else if (targetType instanceof ObjectType) {
-					property = new ObjectProperty(propertyPath, (ObjectType) targetType, appSchema);	
-				}
-				else if (targetType instanceof ComplexType) {
-					property = new ComplexProperty(propertyPath, appSchema);	
-					if (checkInlineType(targetNode)) {
-						((ComplexProperty)property).setInlineType((ComplexType) targetType);
-						this.processFeatureOrObjectOrComplexType(targetNode, targetType, schemaMapping, appSchema);
-					}						
-					else {
-						((ComplexProperty)property).setRefType((ComplexType) targetType);
-					}						
-				}	
+				String propertyPath = (String) featureOrObjectOrComplexTypePropertyNode.getAttribute().getValueAt("path");
 				
-				if (property instanceof AbstractRefTypeProperty)
-					setRelationTypeForRefTypeProperty(featureOrObjectOrComplexTypePropertyNode, (AbstractRefTypeProperty<?>) property);
+				String targetTypeName = (String) targetNode.getAttribute().getValueAt("name");
+				ComplexAttributeType targetAttributeType = this.getCityGMLComplexAttributeType(targetTypeName);
+				
+				if (targetAttributeType != null) {
+					ComplexAttribute complexAttribute = new ComplexAttribute(propertyPath, appSchema);
+					complexAttribute.setRefType(targetAttributeType);
+					if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.Join)) {
+						Join propertyJoin = this.createJoin(localType.getTable(), targetNode);
+						complexAttribute.setJoin(propertyJoin);
+					}
+					property = complexAttribute;
+				}
+				else {
+					AbstractType<?> targetType = this.getOrCreateFeatureOrObjectOrComplexType(targetNode, schemaMapping, appSchema);
+													
+					if (targetType instanceof FeatureType) {
+						property = new FeatureProperty(propertyPath, (FeatureType) targetType, appSchema);						
+					}
+					else if (targetType instanceof ObjectType) {
+						property = new ObjectProperty(propertyPath, (ObjectType) targetType, appSchema);	
+					}
+					else if (targetType instanceof ComplexType) {
+						property = new ComplexProperty(propertyPath, appSchema);	
+						if (checkInlineType(targetNode)) {
+							((ComplexProperty)property).setInlineType((ComplexType) targetType);
+							this.processFeatureOrObjectOrComplexType(targetNode, targetType, schemaMapping, appSchema);
+						}						
+						else {
+							((ComplexProperty)property).setRefType((ComplexType) targetType);
+						}						
+					}	
+					
+					if (property instanceof AbstractRefTypeProperty)
+						setRelationTypeForRefTypeProperty(featureOrObjectOrComplexTypePropertyNode, (AbstractRefTypeProperty<?>) property);
+				}
 
 				localType.addProperty(property);				
 			}
 			
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.Join)) {
 				Join propertyJoin = this.createJoin(localType.getTable(), targetNode);
-				property.setJoin(propertyJoin);
+				if (property instanceof ComplexAttribute)
+					((ComplexAttribute) property).setJoin(propertyJoin);
+				else
+					((AbstractTypeProperty<?>) property).setJoin(propertyJoin);
 			}
 
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.JoinTable)) {
 				JoinTable propertyJoinTable = this.createJoinTable(targetNode, localType.getTable());
-				property.setJoin(propertyJoinTable);
+				if (property instanceof AbstractTypeProperty<?>) {
+					((AbstractTypeProperty<?>) property).setJoin(propertyJoinTable);
+				}									
 			}
 		}	
 		
