@@ -59,18 +59,22 @@ public class ADEschemaElement extends ElementDecl {
 		XSType xsType = element.getType();
 		String namespace = xsType.getTargetNamespace();
 		String typeName = xsType.getName();
-		if (typeName.equalsIgnoreCase("ReferenceType") && namespace.indexOf("http://www.opengis.net/gml") > -1) {
-			return true;
-		} 
+		if (typeName != null) {
+			if (typeName.equalsIgnoreCase("ReferenceType") && namespace.indexOf("http://www.opengis.net/gml") > -1) {
+				return true;
+			} 
+		}	
 		return false;
 	}
 	
 	public boolean isCityGMLnonPorperty() {
 		XSType xsType = element.getType();
-		
-		if (ADEschemaHelper.CityDB_Tables.containsKey(new QName(xsType.getTargetNamespace(), xsType.getName()))) {
-			return true;
-		}
+		String typeName = xsType.getName();
+		if (typeName != null) {
+			if (ADEschemaHelper.CityDB_Tables.containsKey(new QName(xsType.getTargetNamespace(), xsType.getName()))) {
+				return true;
+			}
+		}	
 		
 		return false;
 	}
@@ -79,29 +83,19 @@ public class ADEschemaElement extends ElementDecl {
 		XSType xsType = element.getType();
 		String namespace = xsType.getTargetNamespace();
 		String typeName = xsType.getName();
-		if (typeName.equalsIgnoreCase("ImplicitRepresentationPropertyType") && (namespace.equalsIgnoreCase("http://www.opengis.net/citygml/1.0") || namespace.equalsIgnoreCase("http://www.opengis.net/citygml/2.0"))) {
-			return true;
-		} 
-		return false;
-	}
-	
-	public boolean isFeatureOrObjectOrComplexDataProperty() {
-		XSType xsType = element.getType();
-		String localNamespace = xsType.getTargetNamespace();
-		if (xsType.isComplexType() && (schema.getNamespaceURI().equalsIgnoreCase(localNamespace) || ADEschemaHelper.CityGML_Namespaces.contains(localNamespace))) {
-			XSContentType xsContentType = xsType.asComplexType().getContentType();
-	        XSParticle particle = xsContentType.asParticle();       
-	        if (particle != null) {
-	        	return true;
-	        }			
-		} 
+		if (typeName != null) {
+			if (typeName.equalsIgnoreCase("ImplicitRepresentationPropertyType") && (namespace.equalsIgnoreCase("http://www.opengis.net/citygml/1.0") || namespace.equalsIgnoreCase("http://www.opengis.net/citygml/2.0"))) {
+				return true;
+			}
+		}
+		
 		return false;
 	}
 	
 	public boolean isFeatureOrObjectProperty() {
 		XSType xsType = element.getType();
 		String localNamespace = xsType.getTargetNamespace();
-		if (xsType.isComplexType() && (schema.getNamespaceURI().equalsIgnoreCase(localNamespace)
+		if (xsType.getName() != null && xsType.isComplexType() && (schema.getNamespaceURI().equalsIgnoreCase(localNamespace)
 				|| ADEschemaHelper.CityGML_Namespaces.contains(localNamespace))) {
 			XSContentType xsContentType = xsType.asComplexType().getContentType();
 		    XSParticle particle = xsContentType.asParticle();       
@@ -129,7 +123,7 @@ public class ADEschemaElement extends ElementDecl {
 	public boolean isUnionProperty() {
 		XSType xsType = element.getType();
 		String localNamespace = xsType.getTargetNamespace();
-		if (xsType.isComplexType() && (schema.getNamespaceURI().equalsIgnoreCase(localNamespace)
+		if (xsType.getName() != null && xsType.isComplexType() && (schema.getNamespaceURI().equalsIgnoreCase(localNamespace)
 				|| ADEschemaHelper.CityGML_Namespaces.contains(localNamespace))) {
 			XSContentType xsContentType = xsType.asComplexType().getContentType();
 		    XSParticle particle = xsContentType.asParticle();       
@@ -157,7 +151,7 @@ public class ADEschemaElement extends ElementDecl {
 	public boolean isComplexDataProperty() {
 		XSType xsType = element.getType();
 		String localNamespace = xsType.getTargetNamespace();
-		if (xsType.isComplexType() && (schema.getNamespaceURI().equalsIgnoreCase(localNamespace) || ADEschemaHelper.CityGML_Namespaces.contains(localNamespace))) {
+		if (xsType.getName() != null && xsType.isComplexType() && (schema.getNamespaceURI().equalsIgnoreCase(localNamespace) || ADEschemaHelper.CityGML_Namespaces.contains(localNamespace))) {
 			XSContentType xsContentType = xsType.asComplexType().getContentType();
 		    XSParticle particle = xsContentType.asParticle();       
 		    if (particle != null) {
