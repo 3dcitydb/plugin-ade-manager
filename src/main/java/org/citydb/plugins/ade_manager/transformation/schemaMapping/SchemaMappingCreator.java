@@ -686,10 +686,14 @@ public class SchemaMappingCreator {
 	
 	private boolean isTopLevel(FeatureType featureType) {
 		FeatureType tempFeatureType = featureType;
+		boolean hasTopLevel = false;
 		while (tempFeatureType.getExtension() != null) {
 			FeatureTypeExtension extension = (FeatureTypeExtension) tempFeatureType.getExtension();
 			FeatureType superClass = extension.getBase();
-			if (superClass.isTopLevel()) {
+			if (superClass.isTopLevel())
+				hasTopLevel = true;
+			
+			if (hasTopLevel && !featureType.isAbstract()) {
 				return true;
 			}
 			else {
