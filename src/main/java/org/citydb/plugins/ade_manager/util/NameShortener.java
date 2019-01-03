@@ -57,6 +57,8 @@ public class NameShortener {
 	
 	public static String shortenDbObjectName(String inputName, int maximumLength, int suffix) {
 	//	inputName = splitCamelCase(inputName);
+		inputName = inputName.replace("-", "_");
+		
 		if (suffix == 1) {
 			inputName = inputName + "_" + suffix;
 		}			
