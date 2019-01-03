@@ -768,7 +768,10 @@ public class ADEMetadataManager {
 			String join_table_or_column,
 			AggregationInfoCollection insertedAggregationinfo,
 			PreparedStatement ps) throws SQLException {
-		int index = 1;			
+		int index = 1;	
+		if (childClassId < GlobalConstants.MIN_ADE_OBJECTCLASSID && parentClassId < GlobalConstants.MIN_ADE_OBJECTCLASSID)
+			return;
+		
 		ps.setInt(index++, childClassId);
 		ps.setInt(index++, parentClassId);
 		ps.setInt(index++, minOccurs);
