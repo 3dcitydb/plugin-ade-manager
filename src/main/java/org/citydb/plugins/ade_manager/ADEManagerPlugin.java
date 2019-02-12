@@ -52,13 +52,6 @@ public class ADEManagerPlugin implements Plugin, ViewExtension, ConfigExtension<
 		starter.run(args, new ADEManagerPlugin());
 	}
 
-	public void init(ViewController viewController, Locale locale) {
-		Translator.I18N = ResourceBundle.getBundle("org.citydb.plugins.ade_manager.i18n.language", locale);
-		view = new ADEManagerView(viewController, this);
-		loadSettings();
-		switchLocale(locale);
-	}
-
 	public void shutdown() {
 		saveSettings();
 	}
@@ -113,6 +106,14 @@ public class ADEManagerPlugin implements Plugin, ViewExtension, ConfigExtension<
 			saveSettings();
 			break;
 		}
+	}
+
+	@Override
+	public void initViewExtension(ViewController viewController, Locale locale) {
+		Translator.I18N = ResourceBundle.getBundle("org.citydb.plugins.ade_manager.i18n.language", locale);
+		view = new ADEManagerView(viewController, this);
+		loadSettings();
+		switchLocale(locale);
 	}
 	
 }
