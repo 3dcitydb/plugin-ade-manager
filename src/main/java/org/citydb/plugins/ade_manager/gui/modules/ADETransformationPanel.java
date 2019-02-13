@@ -442,6 +442,12 @@ public class ADETransformationPanel extends OperationModuleView {
 			return;
 		}
 		String selectedSchemaNamespace = schemaTableModel.getColumn(selectedRowNum).getValue(0);
+		
+		File outputFile = new File(config.getTransformationOutputPath().trim());
+		if (!(outputFile.isDirectory() && outputFile.exists())) {
+			viewController.errorMessage("Incomplete Information", "Please select a valid output folder for transformation");
+			return;
+		}	
 	
 		final StatusDialog statusDialog = new StatusDialog(viewController.getTopFrame(), 
 				"ADE Transformation",
