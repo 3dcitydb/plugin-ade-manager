@@ -16,7 +16,7 @@ The ADE Manager Plugin is licensed under the [Apache License, Version 2.0](http:
 
 Latest release
 --------------
-The latest stable release of the ADE Manager Plugin is 1.1.0.
+The latest stable release of the ADE Manager Plugin is 1.1.1.
 
 Download the software [here](https://github.com/3dcitydb/plugin-ade-manager/releases/download/v1.1.0/plugin-ade-manager-1.1.0.zip). Previous releases are available from the [releases section](https://github.com/3dcitydb/plugin-ade-manager/releases).
 
