@@ -340,7 +340,8 @@ public class DBScriptGenerator {
 					String originalDatabaseObjectName = (String) attr.getValueAt("name");
 					String shortenedName = null;
 					if (nodeTypeName.equalsIgnoreCase(GraphNodeArcType.DataTable) || nodeTypeName.equalsIgnoreCase(GraphNodeArcType.JoinTable)) {												
-						if (!ADEschemaHelper.CityDB_Tables.containsValue(originalDatabaseObjectName)) {
+						boolean isADETable = (boolean) attr.getValueAt("isADE");
+						if (isADETable) {
 							shortenedName = NameShortener.shortenDbObjectName(originalDatabaseObjectName, maxTableNameLengthWithPrefix);
 							shortenedName = prefix + "_" + shortenedName;		
 							shortenedName = this.processDuplicatedDbName(dbTableNameList, shortenedName, GlobalConstants.MAX_TABLE_NAME_LENGTH, 0);

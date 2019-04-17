@@ -597,7 +597,9 @@ public class GraphCreator {
 
 		ValueMember attr1 = (ValueMember) valueTuple.getValueMemberAt("name");
 		attr1.setExprAsObject(ADEschemaHelper.CityDB_Tables.get(new QName(citygmlNamespaceUri, className)));
-
+		ValueMember attr2 = (ValueMember) valueTuple.getValueMemberAt("isADE");
+		attr2.setExprAsObject(false);
+		
 		// create a primary key column linking with the class table
 		Node pkColumnNode = this.createNode(GraphNodeArcType.PrimaryKeyColumn);
 		this.createArc(GraphNodeArcType.BelongsTo, pkColumnNode, tableNode);
