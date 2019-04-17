@@ -6,7 +6,7 @@ plugins {
 }
 
 group 'org.citydb.plugins'
-version '1.1.1'
+version '1.1.2'
 
 apply from: 'properties.gradle'
 
@@ -23,7 +23,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.citydb:impexp-client:4.2.0'
+    compile 'org.citydb:impexp-client:4.2.1'
 	compile fileTree(dir: 'lib', include: '*.jar')
 	compile fileTree(dir: 'lib/shared', include: '*.jar')
 }
