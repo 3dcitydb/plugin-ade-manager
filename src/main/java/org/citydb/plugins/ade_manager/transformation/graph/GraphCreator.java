@@ -46,6 +46,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
 import com.sun.xml.xsom.XSAnnotation;
+import com.sun.xml.xsom.XSComplexType;
 import com.sun.xml.xsom.XSElementDecl;
 import com.sun.xml.xsom.XSModelGroup;
 import com.sun.xml.xsom.XSParticle;
@@ -67,6 +68,7 @@ public class GraphCreator {
 	private SchemaHandler schemaHandler;
 	private Schema schema;
 	private Map<String, Node> globalClassNodes;
+	private Map<String, ADEschemaElement> xsTypeElementMap;
 	private Node hostSchemaNode;
 	private ConfigImpl config;
 	private final Logger LOG = Logger.getInstance();
@@ -89,11 +91,22 @@ public class GraphCreator {
 		attr = (ValueMember) valueTuple.getValueMemberAt("namespaceUri");		
 		attr.setExprAsObject(namespaceUri);
 
+		Map<String, XSElementDecl> xsElementDecls = schema.getXSSchema().getElementDecls();
+		Map<String, XSComplexType> xsComplexTypes = schema.getXSSchema().getComplexTypes();
+		xsTypeElementMap = new HashMap<>();
+		for (XSElementDecl decl : xsElementDecls.values()) {
+			XSType elementType = decl.getType();
+			ADEschemaElement adeElement = new ADEschemaElement(decl, schema);
+			if (!adeElement.isADEHookElement() && 
+					elementType.isComplexType() && 
+					xsComplexTypes.containsKey(elementType.getName())) {
+				xsTypeElementMap.put(elementType.getName(), adeElement);
+			}
+		}
+		
 		// Create class Nodes and put them into a internal map
 		globalClassNodes = new HashMap<String, Node>();
-		Map<String, XSElementDecl> elementDecls = schema.getXSSchema().getElementDecls();
-
-		Iterator<Entry<String, XSElementDecl>> iter = elementDecls.entrySet().iterator();		
+		Iterator<Entry<String, XSElementDecl>> iter = xsElementDecls.entrySet().iterator();		
 		while (iter.hasNext()) {
 			Entry<String, XSElementDecl> elementDeclEntry = (Entry<String, XSElementDecl>) iter.next();
 			XSElementDecl xsElementDecl = elementDeclEntry.getValue();
@@ -224,6 +237,9 @@ public class GraphCreator {
 		ADEschemaElement propertyDecl = new ADEschemaElement(propertyXSElementDecl, schema);
 
 		String nameAndPath = propertyDecl.getLocalName();
+		if (nameAndPath.startsWith("_GenericApplicationPropertyOf"))
+			return;
+		
 		String namespace = propertyDecl.getNamespaceURI();		
 		boolean isForeign = !schema.getNamespaceURI().equalsIgnoreCase(namespace);		
 
@@ -273,11 +289,16 @@ public class GraphCreator {
 		else if (propertyDecl.isFeatureOrObjectProperty() || propertyDecl.isUnionProperty() || propertyDecl.isComplexDataProperty()) {
 			propertyNode = this.createPropertyNode(GraphNodeArcType.ComplexTypeProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace);
 			this.setNodeAttributeValue(propertyNode, "relationType", relationType);
-			this.processComplexTypePropertyNode(propertyNode, propertyDecl);                 		
+			this.processComplexTypePropertyNode(propertyNode, propertyDecl, true);                 		
 		} 
 		else if (propertyDecl.isComplexAttribute()) {
 			propertyNode = this.createPropertyNode(GraphNodeArcType.ComplexAttribute, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace);
 			this.processComplexAttributeNode(propertyNode, propertyDecl);
+		}
+		else if (propertyDecl.isComplexDataType()) {
+			propertyNode = this.createPropertyNode(GraphNodeArcType.ComplexTypeProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace);
+			this.setNodeAttributeValue(propertyNode, "relationType", relationType);
+			this.processComplexTypePropertyNode(propertyNode, propertyDecl, false);    
 		}
 		else {
 			String propertyTypeName = propertyDecl.getXSElementDecl().getType().getName();
@@ -492,7 +513,7 @@ public class GraphCreator {
 		}
 	}
 
-	private void processComplexTypePropertyNode (Node propertyNode, ADEschemaElement decl) {
+	private void processComplexTypePropertyNode (Node propertyNode, ADEschemaElement decl, boolean isRefElement) {
 		XSAnnotation xsAnnotation = decl.getXSElementDecl().getAnnotation();
 		String reversePropertyName = null;
 		if (xsAnnotation != null) {
@@ -516,41 +537,50 @@ public class GraphCreator {
 
 		final String reversePropertyName2 = reversePropertyName;
 		// parse target featureType of this featureProperty		
-		decl.getXSElementDecl().visit(new SchemaVisitor() {
-			@Override
-			public void modelGroup(XSModelGroup modelGroup) {
-				for (XSParticle p : modelGroup.getChildren()) {
-					XSTerm pterm = p.getTerm();
-					if (pterm.isElementDecl()) {							 
-						XSElementDecl childElementDecl = (XSElementDecl) pterm;
-						ADEschemaElement childDecl = new ADEschemaElement(childElementDecl, schemaHandler.getSchema(childElementDecl.getTargetNamespace()));	                   	                        
-						Node childNode = getOrCreateElementTypeNode(childDecl);     
-						createArc(GraphNodeArcType.TargetType, propertyNode, childNode);
+		
+		if (isRefElement) {
+			decl.getXSElementDecl().visit(new SchemaVisitor() {
+				@Override
+				public void modelGroup(XSModelGroup modelGroup) {
+					for (XSParticle p : modelGroup.getChildren()) {
+						XSTerm pterm = p.getTerm();
+						if (pterm.isElementDecl()) {							 
+							XSElementDecl childElementDecl = (XSElementDecl) pterm;
+							ADEschemaElement childDecl = new ADEschemaElement(childElementDecl, schemaHandler.getSchema(childElementDecl.getTargetNamespace()));	                   	                        
+							Node childNode = getOrCreateElementTypeNode(childDecl);     
+							createArc(GraphNodeArcType.TargetType, propertyNode, childNode);
 
-						// searching reverse property node in the target class node		
-						if (reversePropertyName2 != null) {
-							if (childNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexType)) {
-								Iterator<Arc> iter = childNode.getOutgoingArcs();
-								while (iter.hasNext()) {
-									Arc arc = iter.next();
-									if (arc.getType().getName().equalsIgnoreCase(GraphNodeArcType.Contains)) {
-										Node reversePropertyNode = (Node) arc.getTarget();	        							
-										if (reversePropertyNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexTypeProperty)) {
-											String propertyName = (String)reversePropertyNode.getAttribute().getValueAt("name");
-											if (propertyName.equalsIgnoreCase(reversePropertyName2)) {
-												createArc(GraphNodeArcType.ReverseProperty, propertyNode, reversePropertyNode);
-												createArc(GraphNodeArcType.ReverseProperty, reversePropertyNode, propertyNode);
+							// searching reverse property node in the target class node		
+							if (reversePropertyName2 != null) {
+								if (childNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexType)) {
+									Iterator<Arc> iter = childNode.getOutgoingArcs();
+									while (iter.hasNext()) {
+										Arc arc = iter.next();
+										if (arc.getType().getName().equalsIgnoreCase(GraphNodeArcType.Contains)) {
+											Node reversePropertyNode = (Node) arc.getTarget();	        							
+											if (reversePropertyNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexTypeProperty)) {
+												String propertyName = (String)reversePropertyNode.getAttribute().getValueAt("name");
+												if (propertyName.equalsIgnoreCase(reversePropertyName2)) {
+													createArc(GraphNodeArcType.ReverseProperty, propertyNode, reversePropertyNode);
+													createArc(GraphNodeArcType.ReverseProperty, reversePropertyNode, propertyNode);
+												}
 											}
 										}
 									}
 								}
-							}
-						}	        					                
-					}
-				}						
-			}	
-		});			
-
+							}	        					                
+						}
+					}						
+				}	
+			});				
+		} else {
+			String typeName = decl.getXSElementDecl().getType().getName();
+			ADEschemaElement adeElement = this.xsTypeElementMap.get(typeName);
+			if (adeElement != null) {	                   	                        		
+				Node childNode = this.getOrCreateElementTypeNode(adeElement);	    
+				createArc(GraphNodeArcType.TargetType, propertyNode, childNode);				
+			}
+		}
 	}
 
 	private void processComplexAttributeNode(Node propertyNode, ADEschemaElement decl) {
