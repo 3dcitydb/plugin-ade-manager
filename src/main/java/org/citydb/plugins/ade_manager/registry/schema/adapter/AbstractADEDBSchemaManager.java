@@ -34,8 +34,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.citydb.citygml.deleter.concurrent.DBDeleteWorker;
 import org.citydb.citygml.deleter.util.BundledDBConnection;
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
@@ -109,11 +107,10 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		
 		int totalWorkNumber = deleteWorks.size();
 		DBDeleteWorker deleteWorker = null;
-		BundledDBConnection transaction = new BundledDBConnection(true);
-		final ReentrantLock lock = new ReentrantLock();		
+		BundledDBConnection bundledDBConnection = new BundledDBConnection(true);		
 		try {			
 			
-			deleteWorker = new DBDeleteWorker(ObjectRegistry.getInstance().getEventDispatcher(), transaction);
+			deleteWorker = new DBDeleteWorker(ObjectRegistry.getInstance().getEventDispatcher(), bundledDBConnection);
 			for (DBSplittingResult work: deleteWorks) {
 				deleteWorker.doWork(work);	
 				LOG.info("Remaining number of ADE objects going to be deleted: " + (--totalWorkNumber));
@@ -121,8 +118,7 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		} finally {
 			if (deleteWorker != null)
 				deleteWorker.shutdown();		
-			transaction.close();
-			lock.lock();			
+			bundledDBConnection.close();			
 		}
 	}
 
