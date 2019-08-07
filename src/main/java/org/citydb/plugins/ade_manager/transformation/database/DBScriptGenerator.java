@@ -59,7 +59,6 @@ import org.citydb.plugins.ade_manager.transformation.database.extension.Restrict
 import org.citydb.plugins.ade_manager.transformation.database.extension.IndexedColumn;
 import org.citydb.plugins.ade_manager.transformation.database.extension.SpatialColumn;
 import org.citydb.plugins.ade_manager.transformation.database.extension.TimestampColumn;
-import org.citydb.plugins.ade_manager.transformation.graph.ADEschemaHelper;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
 import org.citydb.plugins.ade_manager.util.GlobalConstants;
 import org.citydb.plugins.ade_manager.util.NameShortener;
@@ -103,19 +102,23 @@ public class DBScriptGenerator {
 
 		// create database tables
 		List<Node> tableNodes = getTableNodes();
-		Iterator<Node> iter = tableNodes.iterator();
-		while (iter.hasNext()) {
-			Node tableNode = iter.next();
-			this.createDatabaseTable(tableNode);			
-		}
+		if (tableNodes != null) {
+			Iterator<Node> iter = tableNodes.iterator();
+			while (iter.hasNext()) {
+				Node tableNode = iter.next();
+				this.createDatabaseTable(tableNode);			
+			}
+		}		
 		
 		// create foreign key constraints
 		List<Node> joinNodes = getJoinNodes();
-		iter = joinNodes.iterator();
-		while (iter.hasNext()) {
-			Node joinNode = iter.next();
-			this.createForeignKeyContraint(joinNode);			
-		}
+		if (joinNodes != null) {
+			Iterator<Node> iter = joinNodes.iterator();
+			while (iter.hasNext()) {
+				Node joinNode = iter.next();
+				this.createForeignKeyContraint(joinNode);			
+			}
+		}	
 		
 		Database database = new Database();	
 		List<Table> list = new ArrayList<Table>(databaseTables.values());
@@ -331,7 +334,10 @@ public class DBScriptGenerator {
 		while(e.hasMoreElements()){
 			Type nodeType = e.nextElement();
 			if (nodeType.getName().equalsIgnoreCase(GraphNodeArcType.DatabaseObject)) {
-				List<Node> nodes = this.graphGrammar.getGraph().getNodes(nodeType);
+				List<Node> nodes = this.graphGrammar.getGraph().getNodes(nodeType);				
+				if (nodes == null)
+					continue;
+				
 				Iterator<Node> iter = nodes.iterator();
 				while (iter.hasNext()) {
 					Node databaseObjectNode = iter.next();					
