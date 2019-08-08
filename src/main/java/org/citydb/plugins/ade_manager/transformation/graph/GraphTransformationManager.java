@@ -38,7 +38,6 @@ import java.util.List;
 
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.util.GlobalConstants;
-import org.citygml4j.xml.schema.Schema;
 import org.citygml4j.xml.schema.SchemaHandler;
 
 import agg.attribute.AttrInstance;
@@ -54,14 +53,14 @@ import agg.xt_basis.Node;
 import agg.xt_basis.Type;
 
 public class GraphTransformationManager {
-	private Schema schema;
+	private List<String> namespaces;
 	private SchemaHandler schemaHandler;	
 	
 	private EdGraGra edGraphGrammar; 	
 	private ConfigImpl config;
 
-	public GraphTransformationManager(SchemaHandler schemaHandler, Schema schema, ConfigImpl config) {		
-		this.schema = schema;
+	public GraphTransformationManager(SchemaHandler schemaHandler, List<String> namespaces, ConfigImpl config) {		
+		this.namespaces = namespaces;
 		this.schemaHandler = schemaHandler;	
 		this.config = config;
 	}
@@ -117,7 +116,7 @@ public class GraphTransformationManager {
 			xmlh.enrichObject(this.edGraphGrammar);			
 		}
 		
-		GraphCreator aggGraphCreator = new GraphCreator(schema, schemaHandler, edGraphGrammar.getBasisGraGra(), config);
+		GraphCreator aggGraphCreator = new GraphCreator(namespaces, schemaHandler, edGraphGrammar.getBasisGraGra());
 		aggGraphCreator.createGraph();	
 	}
 	
@@ -133,6 +132,9 @@ public class GraphTransformationManager {
 			Type nodeType = e.nextElement();
 			if (nodeType.getName().equalsIgnoreCase(GraphNodeArcType.DatabaseObject)) {
 				List<Node> nodes = edGraphGrammar.getBasisGraGra().getGraph().getNodes(nodeType);
+				if (nodes == null)
+					continue;
+				
 				for (Node node: nodes) {					
 					AttrInstance attrInstance = node.getAttribute();
 					String name = (String)attrInstance.getValueAt("name");

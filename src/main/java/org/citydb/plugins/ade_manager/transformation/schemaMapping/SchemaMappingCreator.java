@@ -29,9 +29,11 @@ package org.citydb.plugins.ade_manager.transformation.schemaMapping;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.xml.namespace.QName;
 
@@ -108,14 +110,15 @@ public class SchemaMappingCreator {
 		initialObjectclassId = config.getInitialObjectclassId();
 		
 		citygmlSchemaMapping = SchemaMappingUtil.getInstance().unmarshal(CoreConstants.CITYDB_SCHEMA_MAPPING_FILE);
-				
+
 		adeSchemaMapping = new SchemaMapping();
 		adeSchemaMapping.setMetadata(this.generateMetadata());
-		
-		AppSchema appSchema = generateApplicationSchema();			
-		adeSchemaMapping.addSchema(appSchema);
-		this.generateComplexTypeMapping(adeSchemaMapping, appSchema);
-		
+		generateApplicationSchema(adeSchemaMapping);	
+		for (AppSchema appSchema : adeSchemaMapping.getSchemas()) {
+			adeSchemaMapping.addSchema(appSchema);
+			this.generateComplexTypeMapping(adeSchemaMapping, appSchema);
+		}
+
 		processTopLevelFeatures(adeSchemaMapping);
 		
 		String outputFolderPath = config.getTransformationOutputPath();
@@ -139,37 +142,41 @@ public class SchemaMappingCreator {
 		return metadata;
 	}
 	
-	private AppSchema generateApplicationSchema(){		
-		Node schemaNode = this.getSchemaNode();		
-		AttrInstance attrInstance = schemaNode.getAttribute();		
-		String namespaceUri = (String) attrInstance.getValueAt("namespaceUri");		
-		String dbPrefix = config.getAdeDbPrefix();
-		
-		AppSchema appSchema = new AppSchema(dbPrefix, adeSchemaMapping);		
-		Namespace namespace = new Namespace(namespaceUri, CityGMLContext.CITYGML_2_0);		
-		appSchema.addNamespace(namespace);		
-		appSchema.setIsADERoot(true);
-		
-		return appSchema;
+	private void generateApplicationSchema(SchemaMapping adeSchemaMapping) throws SchemaMappingException{	
+		List<Node> schemaNodes = this.getSchemaNode();			
+		for (int i = 0; i < schemaNodes.size(); i++) {
+			Node schemaNode = schemaNodes.get(i);
+			AttrInstance attrInstance = schemaNode.getAttribute();		
+			String namespaceUri = (String) attrInstance.getValueAt("namespaceUri");		
+			String dbPrefix = config.getAdeDbPrefix();	
+			String schemaId = null;
+			if (schemaNodes.size() > 1)
+				schemaId = dbPrefix + "_" + i;
+			else
+				schemaId = dbPrefix; // legacy
+			AppSchema appSchema = new AppSchema(schemaId, adeSchemaMapping);		
+			Namespace namespace = new Namespace(namespaceUri, CityGMLContext.CITYGML_2_0);		
+			appSchema.addNamespace(namespace);	
+			appSchema.setIsADERoot(true);
+			adeSchemaMapping.addSchema(appSchema);
+		}
 	}
 	
-	private Node getSchemaNode() {
+	private List<Node> getSchemaNode() {
 		Enumeration<Type> e = this.graphGrammar.getTypes();
 		
 		while(e.hasMoreElements()){
 			Type nodeType = e.nextElement();
 			if (nodeType.getName().equalsIgnoreCase(GraphNodeArcType.Schema)) {
-				List<Node> nodes = this.graphGrammar.getGraph().getNodes(nodeType);
-				if (!nodes.isEmpty())
-					return nodes.get(0);				
+				return this.graphGrammar.getGraph().getNodes(nodeType);			
 			};
 		}
 		
-		return null;
+		return new ArrayList<>();
 	}
 	
 	private void generateComplexTypeMapping(SchemaMapping schemaMapping, AppSchema appSchema) throws SchemaMappingException{
-		List<Node> nodeList = getFeautreOrObjectOrComplexTypeNodes();
+		List<Node> nodeList = getFeautreOrObjectOrComplexTypeNodes(appSchema);
 		Iterator<Node> iter = nodeList.iterator();
 
 		while (iter.hasNext()) {
@@ -289,7 +296,7 @@ public class SchemaMappingCreator {
 			}		
 		}		
 		
-		String featureOrObjectId = config.getAdeDbPrefix() + "_" + (String) featureObjectNode.getAttribute().getValueAt("name");
+		String featureOrObjectId = appSchema.getId() + "_" + (String) featureObjectNode.getAttribute().getValueAt("name");
 		boolean isAbstract = (boolean) featureObjectNode.getAttribute().getValueAt("isAbstract");			
 		String derivedFrom = (String) featureObjectNode.getAttribute().getValueAt("derivedFrom");			
 						
@@ -320,18 +327,23 @@ public class SchemaMappingCreator {
 		return featureOrObjectOrComplexType;
 	}
 	
-	private List<Node> getFeautreOrObjectOrComplexTypeNodes() {
+	private List<Node> getFeautreOrObjectOrComplexTypeNodes(AppSchema appSchema) {
+		List<Node> result = new ArrayList<>();
 		Enumeration<Type> e = this.graphGrammar.getTypes();
+		String namespace = appSchema.getNamespaces().get(0).getURI();
 		
 		while(e.hasMoreElements()){
 			Type nodeType = e.nextElement();				
 			if (nodeType.getName().equalsIgnoreCase(GraphNodeArcType.ComplexType)) {
 				List<Node> nodes = this.graphGrammar.getGraph().getNodes(nodeType);
-				return nodes;
+				result = nodes.stream()
+						.filter(node -> namespace.equalsIgnoreCase((String) node.getAttribute().getValueAt("namespaceUri")))
+						.collect(Collectors.toList()); 
+				return result;
 			};
 		}
 		
-		return null;
+		return result;
 	}
 	
 	private void generateExtension(AbstractType<?> subType, Node extensionNode, SchemaMapping schemaMapping, AppSchema appSchema) throws SchemaMappingException{

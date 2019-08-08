@@ -39,6 +39,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -435,13 +436,17 @@ public class ADETransformationPanel extends OperationModuleView {
 			viewController.errorMessage("Incorrect Information", "Then initial objectclass ID must be larger than or equal to 10000");
 			return;
 		}	
-		
-		int selectedRowNum = schemaTable.getSelectedRow();
-		if (selectedRowNum == -1) {
+
+		int[] selectedRowNums = schemaTable.getSelectedRows();
+		if (selectedRowNums.length == 0) {
 			viewController.errorMessage("Incomplete Information", "Please select a schema namespace");
 			return;
 		}
-		String selectedSchemaNamespace = schemaTableModel.getColumn(selectedRowNum).getValue(0);
+		
+		List<String> namespaces = new ArrayList<>();
+		for (int rowNum : selectedRowNums) {
+			namespaces.add(schemaTableModel.getColumn(rowNum).getValue(0));
+		}
 		
 		File outputFile = new File(config.getTransformationOutputPath().trim());
 		if (!(outputFile.isDirectory() && outputFile.exists())) {
@@ -461,7 +466,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		});
 		
 		try {
-			adeTransformer.doProcess(selectedSchemaNamespace);
+			adeTransformer.doProcess(namespaces);
 			LOG.info("Transformation finished");
 		} catch (TransformationException e) {
 			printErrorMessage(e);

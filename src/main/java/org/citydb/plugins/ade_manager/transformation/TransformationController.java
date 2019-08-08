@@ -40,7 +40,6 @@ import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.transformation.database.DBScriptGenerator;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphTransformationManager;
 import org.citydb.plugins.ade_manager.transformation.schemaMapping.SchemaMappingCreator;
-import org.citygml4j.xml.schema.Schema;
 import org.citygml4j.xml.schema.SchemaHandler;
 import org.xml.sax.SAXException;
 
@@ -60,13 +59,12 @@ public class TransformationController implements EventHandler {
 		this.config = config;
     }
 	
-	public void doProcess(String adeNamespace) throws TransformationException { 	
+	public void doProcess(List<String> adeNamespaces) throws TransformationException { 	
 		if (schemaHandler == null)
 			throw new TransformationException("SchemaHnadler has failed to initialize. ADE transformation cannot be started");
 				
 		LOG.info("Transforming ADE's XML schema to relational database schema...");
-		Schema adeXmlSchema = schemaHandler.getSchema(adeNamespace);
-		GraphTransformationManager aggGraphTransformationManager = new GraphTransformationManager(schemaHandler, adeXmlSchema, config);
+		GraphTransformationManager aggGraphTransformationManager = new GraphTransformationManager(schemaHandler, adeNamespaces, config);
 		adeGraph = aggGraphTransformationManager.executeGraphTransformation();
 
     	LOG.info("Generating SQL-DDL for the database schema...");
@@ -92,7 +90,7 @@ public class TransformationController implements EventHandler {
 		} catch (SAXException e) {
 			throw new TransformationException("Failed to parse ADE XML schema", e);
 		}
-		
+
 		for (String schemaNamespace : schemaHandler.getTargetNamespaces()) {
 			if (!schemaNamespace.startsWith("http://www.w3.org") && 
 					!schemaNamespace.startsWith("http://www.citygml.org/citygml4j") && 
