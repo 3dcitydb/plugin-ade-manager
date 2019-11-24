@@ -27,6 +27,23 @@
  */
 package org.citydb.plugins.ade_manager.registry.schema.adapter;
 
+import org.citydb.citygml.deleter.concurrent.DBDeleteWorkerFactory;
+import org.citydb.citygml.deleter.database.BundledConnection;
+import org.citydb.citygml.exporter.database.content.DBSplittingResult;
+import org.citydb.concurrent.PoolSizeAdaptationStrategy;
+import org.citydb.concurrent.WorkerPool;
+import org.citydb.config.Config;
+import org.citydb.database.connection.DatabaseConnectionPool;
+import org.citydb.database.schema.mapping.AbstractObjectType;
+import org.citydb.database.schema.mapping.SchemaMapping;
+import org.citydb.event.EventDispatcher;
+import org.citydb.log.Logger;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
+import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
+import org.citydb.plugins.ade_manager.registry.schema.SQLScriptRunner;
+import org.citydb.registry.ObjectRegistry;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -34,18 +51,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import org.citydb.citygml.deleter.concurrent.DBDeleteWorker;
-import org.citydb.citygml.deleter.util.BundledDBConnection;
-import org.citydb.citygml.exporter.database.content.DBSplittingResult;
-import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.database.schema.mapping.AbstractObjectType;
-import org.citydb.database.schema.mapping.SchemaMapping;
-import org.citydb.log.Logger;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
-import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
-import org.citydb.plugins.ade_manager.registry.schema.SQLScriptRunner;
-import org.citydb.registry.ObjectRegistry;
 
 public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 	protected final Logger LOG = Logger.getInstance();
@@ -106,19 +111,51 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		}	
 		
 		int totalWorkNumber = deleteWorks.size();
-		DBDeleteWorker deleteWorker = null;
-		BundledDBConnection bundledDBConnection = new BundledDBConnection(true);		
-		try {			
-			
-			deleteWorker = new DBDeleteWorker(ObjectRegistry.getInstance().getEventDispatcher(), bundledDBConnection);
+		int minThreads = 2;
+		int maxThreads = Math.max(minThreads, Runtime.getRuntime().availableProcessors());
+		WorkerPool<DBSplittingResult> dbWorkerPool = null;
+		EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
+		BundledConnection bundledConnection = new BundledConnection();
+		try {
+			dbWorkerPool = new WorkerPool<>(
+					"db_deleter_pool",
+					minThreads,
+					maxThreads,
+					PoolSizeAdaptationStrategy.AGGRESSIVE,
+					new DBDeleteWorkerFactory(bundledConnection, new Config(), eventDispatcher),
+					300,
+					false);
+
+			dbWorkerPool.prestartCoreWorkers();
+			if (dbWorkerPool.getPoolSize() == 0)
+				throw new SQLException("Failed to start database delete worker pool. Check the database connection pool settings.");
+
 			for (DBSplittingResult work: deleteWorks) {
-				deleteWorker.doWork(work);	
+				dbWorkerPool.addWork(work);
 				LOG.info("Remaining number of ADE objects going to be deleted: " + (--totalWorkNumber));
-			}							
+			}
+
+			try {
+				dbWorkerPool.shutdownAndWait();
+			} catch (InterruptedException e) {
+				throw new SQLException("Failed to shutdown worker pools.", e);
+			}
 		} finally {
-			if (deleteWorker != null)
-				deleteWorker.shutdown();		
-			bundledDBConnection.close();			
+			try {
+				bundledConnection.close();
+			} catch (SQLException e) {
+				//
+			}
+
+			// clean up
+			if (dbWorkerPool != null)
+				dbWorkerPool.shutdownNow();
+
+			try {
+				eventDispatcher.flushEvents();
+			} catch (InterruptedException e) {
+				//
+			}
 		}
 	}
 
