@@ -30,7 +30,7 @@ package org.citydb.plugins.ade_manager.registry.schema.adapter;
 import org.citydb.citygml.deleter.concurrent.DBDeleteWorkerFactory;
 import org.citydb.citygml.deleter.database.BundledConnection;
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
-import org.citydb.concurrent.PoolSizeAdaptationStrategy;
+import org.citydb.concurrent.SingleWorkerPool;
 import org.citydb.concurrent.WorkerPool;
 import org.citydb.config.Config;
 import org.citydb.database.connection.DatabaseConnectionPool;
@@ -111,17 +111,12 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		}	
 		
 		int totalWorkNumber = deleteWorks.size();
-		int minThreads = 2;
-		int maxThreads = Math.max(minThreads, Runtime.getRuntime().availableProcessors());
 		WorkerPool<DBSplittingResult> dbWorkerPool = null;
 		EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
 		BundledConnection bundledConnection = new BundledConnection();
 		try {
-			dbWorkerPool = new WorkerPool<>(
+			dbWorkerPool = new SingleWorkerPool<>(
 					"db_deleter_pool",
-					minThreads,
-					maxThreads,
-					PoolSizeAdaptationStrategy.AGGRESSIVE,
 					new DBDeleteWorkerFactory(bundledConnection, new Config(), eventDispatcher),
 					300,
 					false);
