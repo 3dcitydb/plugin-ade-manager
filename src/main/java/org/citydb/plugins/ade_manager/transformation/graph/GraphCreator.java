@@ -150,7 +150,10 @@ public class GraphCreator {
 									int minOccurs = p.getMinOccurs().intValue();
 									int maxOccurs = p.getMaxOccurs().intValue();
 									XSElementDecl propertyDecl = pterm.asElementDecl();
-									parseLocalPropertyElement(propertyDecl, classNode, minOccurs, maxOccurs);
+									String ignoreStr = getTaggedValueFromXMLAnnotation(propertyDecl, "ignore");
+									if (!"true".equalsIgnoreCase(ignoreStr)) {
+										parseLocalPropertyElement(propertyDecl, classNode, minOccurs, maxOccurs);
+									}
 								}
 							}						
 						}				
