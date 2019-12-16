@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
 import org.citydb.database.schema.mapping.GeometryType;
 import org.citydb.database.schema.mapping.SimpleType;
@@ -492,7 +493,7 @@ public class GraphCreator {
 	private void processGMLreferencePropertyNode(Node propertyNode, ADEschemaElement decl) {
 		Element annotationElement = (Element) decl.getXSElementDecl().getAnnotation().getAnnotation();       	
 		if (annotationElement != null) {   		
-			org.w3c.dom.Node targetElementDOMNode = (org.w3c.dom.Node) annotationElement.getElementsByTagName("appinfo").item(0).getFirstChild().getNextSibling().getFirstChild(); 
+			org.w3c.dom.Node targetElementDOMNode = (org.w3c.dom.Node) annotationElement.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "appinfo").item(0).getFirstChild().getNextSibling().getFirstChild();
 			String[] strArray = targetElementDOMNode.getNodeValue().split(":");
 			String classPrefix = strArray[0];
 			String childClassName = strArray[1];
@@ -509,8 +510,8 @@ public class GraphCreator {
 		String reversePropertyName = null;
 		if (xsAnnotation != null) {
 			Element annotationElement = (Element) xsAnnotation.getAnnotation();       	
-			if (annotationElement != null) {   
-				org.w3c.dom.Node appinfoItem = (org.w3c.dom.Node) annotationElement.getElementsByTagName("appinfo").item(0);
+			if (annotationElement != null) {
+				org.w3c.dom.Node appinfoItem = (org.w3c.dom.Node) annotationElement.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "appinfo").item(0);
 				if (appinfoItem != null) {
 					NodeList nodeList = appinfoItem.getChildNodes();
 					for (int i = 0; i < nodeList.getLength(); i++) {
@@ -661,7 +662,7 @@ public class GraphCreator {
 		if (annotation != null) {
 			Element annotationElement = (Element) annotation.getAnnotation();       	
 			if (annotationElement != null) {
-				NodeList appInfoNodeList = annotationElement.getElementsByTagName("appinfo");
+				NodeList appInfoNodeList = annotationElement.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "appinfo");
 				if (appInfoNodeList.getLength() > 0) {
 					for (int j = 0; j < appInfoNodeList.getLength(); j++) {
 						NodeList taggedValueNodeList = appInfoNodeList.item(j).getChildNodes();
