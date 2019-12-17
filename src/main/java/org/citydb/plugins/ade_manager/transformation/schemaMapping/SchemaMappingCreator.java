@@ -181,12 +181,12 @@ public class SchemaMappingCreator {
 
 		while (iter.hasNext()) {
 			Node objectNode = iter.next();
-			AbstractType<?> featureOrObjectOrComplexType = this.getOrCreateFeatureOrObjectOrComplexType(objectNode, schemaMapping, appSchema);	
+			AbstractType<?> featureOrObjectOrComplexType = this.getOrCreateFeatureOrObjectOrComplexType(objectNode, schemaMapping);
 			
 			if (featureOrObjectOrComplexType == null)
 				continue;
 			
-			processFeatureOrObjectOrComplexType(objectNode, featureOrObjectOrComplexType, schemaMapping, appSchema);	
+			processFeatureOrObjectOrComplexType(objectNode, featureOrObjectOrComplexType, schemaMapping);
 			
 			if (checkADEHookClass(objectNode)){ 
 				AbstractExtension<?> extension = featureOrObjectOrComplexType.getExtension();
@@ -208,7 +208,7 @@ public class SchemaMappingCreator {
 		}		
 	}
 	
-	private void processFeatureOrObjectOrComplexType(Node objectNode, AbstractType<?> featureOrObjectOrComplexType, SchemaMapping schemaMapping, AppSchema appSchema) throws SchemaMappingException {
+	private void processFeatureOrObjectOrComplexType(Node objectNode, AbstractType<?> featureOrObjectOrComplexType, SchemaMapping schemaMapping) throws SchemaMappingException {
 		Iterator<Arc> arcIter = objectNode.getOutgoingArcs();
 		
 		while(arcIter.hasNext()) {
@@ -217,32 +217,32 @@ public class SchemaMappingCreator {
 			AbstractProperty property = null;
 			// process extension
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.Extension)) {
-				this.generateExtension(featureOrObjectOrComplexType, targetNode, schemaMapping, appSchema);
+				this.generateExtension(featureOrObjectOrComplexType, targetNode, schemaMapping);
 			}	
 			// process featureOrObjectOrDataProperty
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexTypeProperty)) {
-				property = this.generateFeatureOrObjectOrComplexTypeProperty(featureOrObjectOrComplexType, targetNode, schemaMapping, appSchema);
+				property = this.generateFeatureOrObjectOrComplexTypeProperty(featureOrObjectOrComplexType, targetNode, schemaMapping);
 			}	
 			// process simple attribute
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.GenericAttribute) || 
 					targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.SimpleAttribute) || 
 					targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.EnumerationProperty)) {
-				property = this.generateSimpleAttribute(targetNode, appSchema);
+				property = this.generateSimpleAttribute(targetNode);
 				featureOrObjectOrComplexType.addProperty(property);
 			}	
 			// process complex basic data property
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexAttribute)) {
-				property = this.generateComplexAttribute(featureOrObjectOrComplexType, targetNode, appSchema);
+				property = this.generateComplexAttribute(featureOrObjectOrComplexType, targetNode);
 			}	
 			// process geometry property
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.BrepGeometryProperty) 
 					|| targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.PointOrLineGeometryProperty) 
 						|| targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.HybridGeometryProperty)) {
-				property = this.generateGeometryProperty(featureOrObjectOrComplexType, targetNode, appSchema);
+				property = this.generateGeometryProperty(featureOrObjectOrComplexType, targetNode);
 			}
 			// process implicit geometry property
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ImplicitGeometryProperty)) {
-				property = this.generateImplicitGeometryProperty(featureOrObjectOrComplexType, targetNode, appSchema);
+				property = this.generateImplicitGeometryProperty(featureOrObjectOrComplexType, targetNode);
 			}
 			
 			if (property != null) {
@@ -255,12 +255,13 @@ public class SchemaMappingCreator {
 		}		
 	}
 	
-	private AbstractType<?> getOrCreateFeatureOrObjectOrComplexType(Node featureObjectNode, SchemaMapping schemaMapping, AppSchema appSchema) throws SchemaMappingException{
+	private AbstractType<?> getOrCreateFeatureOrObjectOrComplexType(Node featureObjectNode, SchemaMapping schemaMapping) throws SchemaMappingException{
 		String path = (String) featureObjectNode.getAttribute().getValueAt("path");	
-		String namespaceUri = (String) featureObjectNode.getAttribute().getValueAt("namespaceUri");		
+		String namespaceUri = (String) featureObjectNode.getAttribute().getValueAt("namespaceUri");
+		AppSchema appSchema = getAppSchema(namespaceUri);
 		
 		if (checkInlineType(featureObjectNode)) 
-			return new ComplexType(path, appSchema, schemaMapping);
+			return new ComplexType(path, getAppSchema(namespaceUri), schemaMapping);
 					
 		AbstractType<?> featureOrObjectOrComplexType = citygmlSchemaMapping.getAbstractObjectType(new QName(namespaceUri, path));
 		
@@ -346,7 +347,7 @@ public class SchemaMappingCreator {
 		return result;
 	}
 	
-	private void generateExtension(AbstractType<?> subType, Node extensionNode, SchemaMapping schemaMapping, AppSchema appSchema) throws SchemaMappingException{
+	private void generateExtension(AbstractType<?> subType, Node extensionNode, SchemaMapping schemaMapping) throws SchemaMappingException{
 		Iterator<Arc> arcIter = extensionNode.getOutgoingArcs();
 		AbstractExtension<?> extension = null;
 		
@@ -355,7 +356,7 @@ public class SchemaMappingCreator {
 			Node targetNode = (Node) arc.getTarget();
 	
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexType)) {
-				AbstractType<?> superType = this.getOrCreateFeatureOrObjectOrComplexType(targetNode, schemaMapping, appSchema);
+				AbstractType<?> superType = this.getOrCreateFeatureOrObjectOrComplexType(targetNode, schemaMapping);
 				if (subType instanceof FeatureType) {
 					FeatureTypeExtension featureTypeExtension = new FeatureTypeExtension((FeatureType) superType);	
 					((FeatureType) subType).setExtension(featureTypeExtension);
@@ -491,7 +492,7 @@ public class SchemaMappingCreator {
 	} 
 	
 	private AbstractProperty generateFeatureOrObjectOrComplexTypeProperty(AbstractType<?> localType, Node featureOrObjectOrComplexTypePropertyNode, 
-			SchemaMapping schemaMapping, AppSchema appSchema) throws SchemaMappingException {
+			SchemaMapping schemaMapping) throws SchemaMappingException {
 
 		AbstractProperty property = null;
 		Iterator<Arc> arcIter = featureOrObjectOrComplexTypePropertyNode.getOutgoingArcs();
@@ -502,7 +503,9 @@ public class SchemaMappingCreator {
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexType)) {
 								
 				String propertyPath = (String) featureOrObjectOrComplexTypePropertyNode.getAttribute().getValueAt("path");
-				
+				String namespaceUri = (String) featureOrObjectOrComplexTypePropertyNode.getAttribute().getValueAt("namespaceUri");
+				AppSchema appSchema = getAppSchema(namespaceUri);
+
 				String targetTypeName = (String) targetNode.getAttribute().getValueAt("name");
 				ComplexAttributeType targetAttributeType = this.getCityGMLComplexAttributeType(targetTypeName);
 				
@@ -516,7 +519,7 @@ public class SchemaMappingCreator {
 					property = complexAttribute;
 				}
 				else {
-					AbstractType<?> targetType = this.getOrCreateFeatureOrObjectOrComplexType(targetNode, schemaMapping, appSchema);
+					AbstractType<?> targetType = this.getOrCreateFeatureOrObjectOrComplexType(targetNode, schemaMapping);
 													
 					if (targetType instanceof FeatureType) {
 						property = new FeatureProperty(propertyPath, (FeatureType) targetType, appSchema);						
@@ -528,7 +531,7 @@ public class SchemaMappingCreator {
 						property = new ComplexProperty(propertyPath, appSchema);	
 						if (checkInlineType(targetNode)) {
 							((ComplexProperty)property).setInlineType((ComplexType) targetType);
-							this.processFeatureOrObjectOrComplexType(targetNode, targetType, schemaMapping, appSchema);
+							this.processFeatureOrObjectOrComplexType(targetNode, targetType, schemaMapping);
 						}						
 						else {
 							((ComplexProperty)property).setRefType((ComplexType) targetType);
@@ -605,9 +608,11 @@ public class SchemaMappingCreator {
 		return derivedFrom.equalsIgnoreCase("HookClass");
 	}
 	
-	private SimpleAttribute generateSimpleAttribute(Node simpleAttributeNode, AppSchema appSchema) {		
+	private SimpleAttribute generateSimpleAttribute(Node simpleAttributeNode) {
 		String path = (String) simpleAttributeNode.getAttribute().getValueAt("path");
 		String typeName = (String) simpleAttributeNode.getAttribute().getValueAt("primitiveDataType");
+		String namespaceUri = (String) simpleAttributeNode.getAttribute().getValueAt("namespaceUri");
+		AppSchema appSchema = getAppSchema(namespaceUri);
 
 		Iterator<Arc> arcIter = simpleAttributeNode.getOutgoingArcs();
 		
@@ -629,8 +634,9 @@ public class SchemaMappingCreator {
 		return null;
 	}	
 	
-	private ComplexAttribute generateComplexAttribute(AbstractType<?> localType, Node complexAttributeNode, AppSchema appSchema) {		
+	private ComplexAttribute generateComplexAttribute(AbstractType<?> localType, Node complexAttributeNode) {
 		String propertyPath = (String) complexAttributeNode.getAttribute().getValueAt("path");
+		String namespaceUri = (String) complexAttributeNode.getAttribute().getValueAt("namespaceUri");
 		ComplexAttributeType attributeType = new ComplexAttributeType(adeSchemaMapping);
 		Iterator<Arc> arcIter = complexAttributeNode.getOutgoingArcs();
 		
@@ -638,24 +644,25 @@ public class SchemaMappingCreator {
 			Arc arc = arcIter.next();
 			Node targetNode = (Node) arc.getTarget();
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.SimpleAttribute)) {
-				SimpleAttribute simpleAttribute = this.generateSimpleAttribute(targetNode, appSchema);
+				SimpleAttribute simpleAttribute = this.generateSimpleAttribute(targetNode);
 				attributeType.addAttribute(simpleAttribute);
 			}
 		}
 		
-		ComplexAttribute complexAttribute = new ComplexAttribute(propertyPath, appSchema);
+		ComplexAttribute complexAttribute = new ComplexAttribute(propertyPath, getAppSchema(namespaceUri));
 		complexAttribute.setInlineType(attributeType);
 		localType.addProperty(complexAttribute);	
 		
 		return complexAttribute;
 	}
 	
-	private GeometryProperty generateGeometryProperty(AbstractType<?> localType, Node geometryPropertyNode, AppSchema appSchema) {		
+	private GeometryProperty generateGeometryProperty(AbstractType<?> localType, Node geometryPropertyNode) {
 		String propertyPath = (String) geometryPropertyNode.getAttribute().getValueAt("path");
 		String geometryTypeName = (String) geometryPropertyNode.getAttribute().getValueAt("geometryType");
+		String namespaceUri = (String) geometryPropertyNode.getAttribute().getValueAt("namespaceUri");
 		GeometryType geometryType = GeometryType.fromValue(geometryTypeName);
 		
-		GeometryProperty geometryProperty = new GeometryProperty(propertyPath, geometryType, appSchema);
+		GeometryProperty geometryProperty = new GeometryProperty(propertyPath, geometryType, getAppSchema(namespaceUri));
 		Iterator<Arc> arcIter = geometryPropertyNode.getOutgoingArcs();
 		
 		while(arcIter.hasNext()) {
@@ -675,10 +682,11 @@ public class SchemaMappingCreator {
 		return geometryProperty;
 	}
 	
-	private ImplicitGeometryProperty generateImplicitGeometryProperty(AbstractType<?> localType, Node geometryPropertyNode, AppSchema appSchema) {		
+	private ImplicitGeometryProperty generateImplicitGeometryProperty(AbstractType<?> localType, Node geometryPropertyNode) {
 		String propertyPath = (String) geometryPropertyNode.getAttribute().getValueAt("path");
+		String namespaceUri = (String) geometryPropertyNode.getAttribute().getValueAt("namespaceUri");
 		int lod = Integer.valueOf(propertyPath.replaceAll("[^0-9]", "")); 
-		ImplicitGeometryProperty implicitGeometryProperty = new ImplicitGeometryProperty(propertyPath, lod, appSchema);		
+		ImplicitGeometryProperty implicitGeometryProperty = new ImplicitGeometryProperty(propertyPath, lod, getAppSchema(namespaceUri));
 		localType.addProperty(implicitGeometryProperty);
 		
 		return implicitGeometryProperty;
@@ -817,5 +825,13 @@ public class SchemaMappingCreator {
 		
 		return injectedProperty;
 	}
-	
+
+	private AppSchema getAppSchema(String namespaceUri) {
+		AppSchema appSchema = adeSchemaMapping.getSchema(namespaceUri);
+		if (appSchema == null) {
+			appSchema = citygmlSchemaMapping.getSchema(namespaceUri);
+		}
+		return appSchema;
+	}
+
 }

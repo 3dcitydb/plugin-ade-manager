@@ -594,7 +594,12 @@ public class GraphCreator {
 				path = "." + simpleAttribute.getPropertyName();
 
 			String namespaceUri = simpleAttribute.getNamespaceUri();
-			boolean isForeign = !schema.getNamespaceURI().equalsIgnoreCase(namespaceUri);
+
+			boolean isForeign = false;
+			if (namespaceUri == null)
+				namespaceUri = schema.getNamespaceURI();
+			else
+			    isForeign = !schema.getNamespaceURI().equalsIgnoreCase(namespaceUri);
 
 			String name = null;
 			if (simpleAttribute.isXMLAttribute())

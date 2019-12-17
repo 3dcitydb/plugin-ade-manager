@@ -131,43 +131,43 @@ public class ADEschemaHelper {
 	public static final  Map<String, ComplexAttributeType> ComplexAttributeTypes = new HashMap<String, ComplexAttributeType>() {
 		{
 			put("CodeType", new ComplexAttributeType("CodeType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("codespace", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "string", false, "http://www.opengis.net/gml")))));
+					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("codespace", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "string", false, null)))));
 			
 			put("VectorType", new ComplexAttributeType("VectorType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
+					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, null)))));
 			
 			put("LengthType", new ComplexAttributeType("LengthType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
+					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, null)))));
 			
 			put("AngleType", new ComplexAttributeType("AngleType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
+					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, null)))));
 			
 			put("SpeedType", new ComplexAttributeType("SpeedType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
+					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, null)))));
 
 			put("ScaleType", new ComplexAttributeType("ScaleType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
+					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, null)))));
 			
 			put("AreaType", new ComplexAttributeType("AreaType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
+					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, null)))));
 			
 			put("VolumeType", new ComplexAttributeType("VolumeType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
+					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, null)))));
 			
 			put("MeasureType", new ComplexAttributeType("MeasureType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
+					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, null)))));
 					
 			put("QuantityExtentType", new ComplexAttributeType("QuantityExtentType",
-					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
+					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("uom", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, null)))));
 			
 			//GML temporal
 			put("TimePositionType", new ComplexAttributeType("TimePositionType",
 					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("frame", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("calendarEraName", "string", true, "http://www.opengis.net/gml"),
-							new SimpleAttribute("indeterminatePosition", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "string", false, "http://www.opengis.net/gml")))));
+							new SimpleAttribute("indeterminatePosition", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "string", false, null)))));
 			
 			put("TimeIntervalLengthType", new ComplexAttributeType("TimeIntervalLengthType",
 					new ArrayList<SimpleAttribute>(Arrays.asList(new SimpleAttribute("unit", "string", true, "http://www.opengis.net/gml"), new SimpleAttribute("radix", "integer", true, "http://www.opengis.net/gml"),
-							new SimpleAttribute("factor", "integer", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, "http://www.opengis.net/gml")))));
+							new SimpleAttribute("factor", "integer", true, "http://www.opengis.net/gml"), new SimpleAttribute("", "double", false, null)))));
 		}
 	};
 	
