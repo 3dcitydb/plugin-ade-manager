@@ -678,17 +678,25 @@ public class SchemaMappingCreator {
 		}		
 		
 		localType.addProperty(geometryProperty);
-		
+
+		int lod = getLodFromPropertyName(propertyPath);
+		Object lodObject = geometryPropertyNode.getAttribute().getValueAt("lod");
+		if (lodObject != null) {
+			lod = (int)lodObject;
+		}
+		if (lod >= 0 && lod <= 4)
+			geometryProperty.setLod(lod);
+
 		return geometryProperty;
 	}
 	
 	private ImplicitGeometryProperty generateImplicitGeometryProperty(AbstractType<?> localType, Node geometryPropertyNode) {
 		String propertyPath = (String) geometryPropertyNode.getAttribute().getValueAt("path");
 		String namespaceUri = (String) geometryPropertyNode.getAttribute().getValueAt("namespaceUri");
-		int lod = Integer.valueOf(propertyPath.replaceAll("[^0-9]", "")); 
+		int lod = getLodFromPropertyName(propertyPath);
 		ImplicitGeometryProperty implicitGeometryProperty = new ImplicitGeometryProperty(propertyPath, lod, getAppSchema(namespaceUri));
 		localType.addProperty(implicitGeometryProperty);
-		
+
 		return implicitGeometryProperty;
 	}
 	
@@ -832,6 +840,15 @@ public class SchemaMappingCreator {
 			appSchema = citygmlSchemaMapping.getSchema(namespaceUri);
 		}
 		return appSchema;
+	}
+
+	private int getLodFromPropertyName(String propertyName) {
+		for (int i = 0; i <= 4; i++) {
+			if (propertyName.toLowerCase().indexOf("lod" + i) == 0) {
+				return i;
+			}
+		}
+		return -1;
 	}
 
 }

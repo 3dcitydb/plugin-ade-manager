@@ -257,19 +257,19 @@ public class GraphCreator {
 			propertyNode = this.createSimpleAttributeNode(propertyNodeType, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, primitiveDataType);
 		} 		
 		else if (propertyDecl.isImplicitGeometryProperty()) {
-			propertyNode = this.createGeometryPropertyNode(GraphNodeArcType.ImplicitGeometryProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, GeometryType.ABSTRACT_GEOMETRY.value());
+			propertyNode = this.createGeometryPropertyNode(GraphNodeArcType.ImplicitGeometryProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, GeometryType.ABSTRACT_GEOMETRY.value(), propertyXSElementDecl);
 		}
 		else if (propertyDecl.isBrepGeometryProperty()) {    
 			String geometryType = ADEschemaHelper.BrepGeometryPropertyTypes.get(propertyDecl.getXSElementDecl().getType().getName()).value();
-			propertyNode = this.createGeometryPropertyNode(GraphNodeArcType.BrepGeometryProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, geometryType);
+			propertyNode = this.createGeometryPropertyNode(GraphNodeArcType.BrepGeometryProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, geometryType, propertyXSElementDecl);
 		}
 		else if (propertyDecl.isPointOrLineGeometryProperty()) {    	                		
 			String geometryType = ADEschemaHelper.PointOrLineGeometryPropertyTypes.get(propertyDecl.getXSElementDecl().getType().getName()).value();
-			propertyNode = this.createGeometryPropertyNode(GraphNodeArcType.PointOrLineGeometryProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, geometryType);
+			propertyNode = this.createGeometryPropertyNode(GraphNodeArcType.PointOrLineGeometryProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, geometryType, propertyXSElementDecl);
 		}
 		else if (propertyDecl.isHybridGeometryProperty()) {    	                			 
 			String geometryType = ADEschemaHelper.HybridGeometryPropertyTypes.get(propertyDecl.getXSElementDecl().getType().getName()).value();
-			propertyNode = this.createGeometryPropertyNode(GraphNodeArcType.HybridGeometryProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, geometryType);
+			propertyNode = this.createGeometryPropertyNode(GraphNodeArcType.HybridGeometryProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace, geometryType, propertyXSElementDecl);
 		}
 		else if (propertyDecl.isCityGMLnonPorperty()) {
 			propertyNode = this.createPropertyNode(GraphNodeArcType.ComplexTypeProperty, nameAndPath, isForeign, nameAndPath, minOccurs, maxOccurs, namespace);
@@ -435,12 +435,23 @@ public class GraphCreator {
 		return propertyNode;
 	}
 
-	private Node createGeometryPropertyNode (String nodeType, String path, boolean isForeign, String name, int minOccurs, int maxOccurs, String namespace, String geometryType) {
+	private Node createGeometryPropertyNode (String nodeType, String path, boolean isForeign, String name, int minOccurs, int maxOccurs, String namespace, String geometryType, XSElementDecl propertyElement) {
 		Node propertyNode = this.createPropertyNode(nodeType, path, isForeign, name, minOccurs, maxOccurs, namespace);
 		AttrInstance attrInstance = propertyNode.getAttribute();
 		ValueTuple valueTuple = (ValueTuple) attrInstance;
 		ValueMember attr = (ValueMember) valueTuple.getValueMemberAt("geometryType");
 		attr.setExprAsObject(geometryType);
+
+		String lodStr = getTaggedValueFromXMLAnnotation(propertyElement, "lod");
+		if (lodStr != null) {
+			try {
+				attr = (ValueMember) valueTuple.getValueMemberAt("lod");
+				attr.setExprAsObject(Integer.parseInt(lodStr));
+			} catch (NumberFormatException nfe) {
+				LOG.warn("The property '" + propertyElement.getName() + "' has an invalid tagged value for its lod: '" + lodStr + "'; It must be between 0 and 4.");
+			}
+		}
+
 		return propertyNode;
 	}
 
