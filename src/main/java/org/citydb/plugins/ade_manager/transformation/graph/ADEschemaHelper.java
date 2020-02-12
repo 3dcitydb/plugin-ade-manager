@@ -407,6 +407,8 @@ public class ADEschemaHelper {
 			put(new QName("http://www.opengis.net/citygml/transportation/2.0", "TrafficAreaType"), "traffic_area");
 			put(new QName("http://www.opengis.net/citygml/transportation/1.0", "AuxiliaryTrafficAreaType"), "traffic_area");
 			put(new QName("http://www.opengis.net/citygml/transportation/2.0", "AuxiliaryTrafficAreaType"), "traffic_area");
+			put(new QName("http://www.opengis.net/citygml/vegetation/1.0", "AbstractVegetationObjectType"), "cityobject");
+			put(new QName("http://www.opengis.net/citygml/vegetation/2.0", "AbstractVegetationObjectType"), "cityobject");
 			put(new QName("http://www.opengis.net/citygml/vegetation/1.0", "SolitaryVegetationObjectType"), "solitary_vegetat_object");
 			put(new QName("http://www.opengis.net/citygml/vegetation/2.0", "SolitaryVegetationObjectType"), "solitary_vegetat_object");
 			put(new QName("http://www.opengis.net/citygml/vegetation/1.0", "PlantCoverType"), "plant_cover");
