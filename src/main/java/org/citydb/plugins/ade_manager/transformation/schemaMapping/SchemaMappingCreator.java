@@ -829,6 +829,9 @@ public class SchemaMappingCreator {
 			((InjectedGeometryProperty)injectedProperty).setMinOccurs(minOccurs);
 			if (maxOccurs != null)
 				((InjectedGeometryProperty)injectedProperty).setMaxOccurs(maxOccurs);
+
+			if (((GeometryProperty) property).isSetLod())
+				((InjectedGeometryProperty)injectedProperty).setLod(((GeometryProperty) property).getLod());
 		}
 		
 		return injectedProperty;
