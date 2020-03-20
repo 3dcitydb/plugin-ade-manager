@@ -33,7 +33,7 @@ Each version of the ADE Manager plugin is built against a specific version of th
 
 Documentation
 -------------
-A complete and comprehensive documentation on the ADE Manager Plugin is installed with the [3D City Database Importer/Exporter](https://github.com/3dcitydb/importer-exporter) and is available [online](https://www.3dcitydb.org/3dcitydb/documentation/).
+A complete and comprehensive documentation on the ADE Manager Plugin is available [online](https://3dcitydb-docs.readthedocs.io/en/release-v4.2.3/impexp/plugins/ade-manager.html).
 
 Contributing
 ------------
