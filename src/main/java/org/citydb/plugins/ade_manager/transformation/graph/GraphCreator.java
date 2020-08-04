@@ -27,10 +27,7 @@
  */
 package org.citydb.plugins.ade_manager.transformation.graph;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import javax.xml.XMLConstants;
@@ -154,8 +151,18 @@ public class GraphCreator {
 									if (!"true".equalsIgnoreCase(ignoreStr)) {
 										parseLocalPropertyElement(propertyDecl, classNode, minOccurs, maxOccurs);
 									}
+								} else if (pterm.isModelGroup() && pterm.asModelGroup().getCompositor() == XSModelGroup.CHOICE) {
+									for (XSParticle particle : pterm.asModelGroup().getChildren()) {
+										if (particle.getTerm().isElementDecl()) {
+											XSElementDecl propertyDecl = particle.getTerm().asElementDecl();
+											String ignoreStr = getTaggedValueFromXMLAnnotation(propertyDecl, "ignore");
+											if (!"true".equalsIgnoreCase(ignoreStr)) {
+												parseLocalPropertyElement(propertyDecl, classNode, 0, 1);
+											}
+										}
+									}
 								}
-							}						
+							}
 						}				
 					});
 				}	
