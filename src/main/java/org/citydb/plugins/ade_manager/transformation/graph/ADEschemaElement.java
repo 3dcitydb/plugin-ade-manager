@@ -251,17 +251,17 @@ public class ADEschemaElement extends ElementDecl {
 	
 	public boolean isBrepGeometryProperty() {
 		XSType xsType = element.getType();
-		return ADEschemaHelper.BrepGeometryPropertyTypes.containsKey(xsType.getName());
+		return ADEschemaHelper.BrepGeometryPropertyTypes.containsKey(xsType.getName()) && xsType.getTargetNamespace().equalsIgnoreCase("http://www.opengis.net/gml");
 	}
 	
 	public boolean isPointOrLineGeometryProperty() {
 		XSType xsType = element.getType();
-		return ADEschemaHelper.PointOrLineGeometryPropertyTypes.containsKey(xsType.getName());
+		return ADEschemaHelper.PointOrLineGeometryPropertyTypes.containsKey(xsType.getName()) && xsType.getTargetNamespace().equalsIgnoreCase("http://www.opengis.net/gml");
 	}
 	
 	public boolean isHybridGeometryProperty() {
 		XSType xsType = element.getType();
-		return ADEschemaHelper.HybridGeometryPropertyTypes.containsKey(xsType.getName());
+		return ADEschemaHelper.HybridGeometryPropertyTypes.containsKey(xsType.getName()) && xsType.getTargetNamespace().equalsIgnoreCase("http://www.opengis.net/gml");
 	}
 
 	public String getCitydbTableName() {
