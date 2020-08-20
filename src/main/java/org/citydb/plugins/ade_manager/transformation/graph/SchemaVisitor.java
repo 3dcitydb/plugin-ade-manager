@@ -109,13 +109,14 @@ public abstract class SchemaVisitor implements XSVisitor {
 
 	@Override
 	public void complexType(XSComplexType type) {
-		XSContentType contentType = type.getContentType();
-		if (contentType != null)
-			particle(contentType.asParticle());
-		
 		XSContentType explictContentType = type.getExplicitContent();
-		if (explictContentType != null)
-			particle(explictContentType.asParticle());		
+		if (explictContentType != null) {
+			particle(explictContentType.asParticle());
+		} else {
+			XSContentType contentType = type.getContentType();
+			if (contentType != null)
+				particle(contentType.asParticle());
+		}
 	}
 
 	@Override
