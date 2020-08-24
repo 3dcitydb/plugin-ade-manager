@@ -27,20 +27,17 @@
  */
 package org.citydb.plugins.ade_manager.registry.schema.adapter.postgis;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.citydb.config.project.database.DatabaseType;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.schema.adapter.AbstractADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.util.PathResolver;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 
@@ -48,11 +45,36 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
 		super(connection, config);
 	}
 
+	public void createADEDatabaseSchema() throws SQLException {
+		super.createADEDatabaseSchema();
+
+		// update SRID for geometry columns of cityGML core and ADE tables
+		String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
+		int srid = dbPool.getActiveDatabaseAdapter().getUtil().getDatabaseInfo(schema).getReferenceSystem().getSrid();
+		try (PreparedStatement preparedStatement = connection.prepareStatement(
+				"select f_table_schema, f_table_name, f_geometry_column from geometry_columns where f_table_schema=? " +
+						"AND f_geometry_column <> 'implicit_geometry' " +
+						"AND f_geometry_column <> 'relative_other_geom'" +
+						"AND f_geometry_column <> 'texture_coordinates'")) {
+			preparedStatement.setString(1, schema);
+			ResultSet rs = preparedStatement.executeQuery();
+			while (rs.next()) {
+				try (CallableStatement callableStatement = connection.prepareCall("{call UpdateGeometrySRID(?, ?, ?, ?)}")) {
+					callableStatement.setString(1, rs.getString((1)));
+					callableStatement.setString(2, rs.getString((2)));
+					callableStatement.setString(3, rs.getString((3)));
+					callableStatement.setInt(4, srid);
+					callableStatement.execute();
+				}
+			}
+		}
+	}
+
 	@Override
 	protected String readCreateADEDBScript() throws IOException {
 		String adeRegistryInputpath = config.getAdeRegistryInputPath();
 		String createDBscriptPath = PathResolver.get_create_ade_db_filepath(adeRegistryInputpath, DatabaseType.POSTGIS);	
-		
+
 		return new String(Files.readAllBytes(Paths.get(createDBscriptPath)));
 	}
 	
