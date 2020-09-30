@@ -501,7 +501,9 @@ public class GraphCreator {
 		String derivedFrom = "_Object";				
 		Node childNode = this.getOrCreateComplexTypeNode (className, true, className, propertyTypeNamespaceUri, isAbstract, derivedFrom);    		
 		this.createArc(GraphNodeArcType.TargetType, propertyNode, childNode);
-		this.createTableForCityGMLClass(propertyTypeNamespaceUri, className, childNode);
+		if (childNode.getNumberOfOutgoingArcs() == 0) {
+			this.createTableForCityGMLClass(propertyTypeNamespaceUri, className, childNode);
+		}
 	}
 
 	/** Example illustrating the XML annotation structure 
