@@ -27,32 +27,10 @@
  */
 package org.citydb.plugins.ade_manager.gui.modules;
 
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.sql.SQLException;
-import java.util.List;
-
-import javax.swing.BorderFactory;
-import javax.swing.Icon;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.border.TitledBorder;
-
 import org.citydb.config.i18n.Language;
-import org.citydb.config.project.database.DBOperationType;
-import org.citydb.config.project.database.DatabaseConfigurationException;
-import org.citydb.database.version.DatabaseVersionException;
+import org.citydb.config.project.database.DatabaseOperationType;
 import org.citydb.event.Event;
+import org.citydb.gui.components.common.TitledPanel;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
@@ -67,27 +45,31 @@ import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.util.Translator;
 
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
+import java.sql.SQLException;
+import java.util.List;
+
 public class ADERegistryPanel extends OperationModuleView {
 	private JPanel component;
-	private JPanel browseRegistryPanel;
-	private JTextField browseRegistryText = new JTextField();
-	private JButton browseRegistryButton = new JButton();		
-	private JPanel adeButtonsPanel;
-	private JButton registerADEButton = new JButton();	
-	private JButton fetchADEsButton = new JButton();	
-	private JButton removeADEButton = new JButton();
-	private JButton generateDeleteScriptsButton = new JButton();
-	private JButton generateEnvelopeScriptsButton = new JButton();
-	private JScrollPane adeTableScrollPanel;
+	private TitledPanel browseRegistryPanel;
+	private final JTextField browseRegistryText = new JTextField();
+	private final JButton browseRegistryButton = new JButton();
+	private final JButton registerADEButton = new JButton();
+	private final JButton fetchADEsButton = new JButton();
+	private final JButton removeADEButton = new JButton();
+	private final JButton generateDeleteScriptsButton = new JButton();
+	private final JButton generateEnvelopeScriptsButton = new JButton();
 	private JTable adeTable;
-	private TableModel<ADEMetadataRow> adeTableModel = new TableModel<ADEMetadataRow>(ADEMetadataRow.getColumnNames());
-	private int standardButtonHeight = (new JButton("D")).getPreferredSize().height;
+	private final TableModel<ADEMetadataRow> adeTableModel = new TableModel<>(ADEMetadataRow.getColumnNames());
+	private final int standardButtonHeight = (new JButton("D")).getPreferredSize().height;
 
-	private ADERegistrationController adeRegistor;	
+	private final ADERegistrationController adeRegistrationController;
 	
 	public ADERegistryPanel(ADEManagerPanel parentPanel, ConfigImpl config) {
 		super(parentPanel, config);
-		this.adeRegistor = new ADERegistrationController(config);
+		this.adeRegistrationController = new ADERegistrationController(config);
 		eventDispatcher.addEventHandler(org.citydb.plugins.ade_manager.event.EventType.SCRIPT_CREATION_EVENT, this);		
 		initGui();
 	}
@@ -105,99 +87,74 @@ public class ADERegistryPanel extends OperationModuleView {
 		// ADE table panel
 		adeTable = new JTable(adeTableModel);
 		adeTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+		adeTable.setShowVerticalLines(true);
+		adeTable.setShowHorizontalLines(true);
 		adeTable.setCellSelectionEnabled(false);
 		adeTable.setColumnSelectionAllowed(false);
 		adeTable.setRowSelectionAllowed(true);
-		adeTable.setRowHeight(20);		
-		adeTableScrollPanel = new JScrollPane(adeTable);
-		adeTableScrollPanel.setPreferredSize(new Dimension(adeTable.getPreferredSize().width, 150));
-		adeTableScrollPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(), BorderFactory.createEmptyBorder(0, 0, 4, 4)));
+		adeTable.setRowHeight(20);
+		JScrollPane adeTableScrollPanel = new JScrollPane(adeTable);
+		adeTableScrollPanel.setPreferredSize(new Dimension(adeTable.getPreferredSize().width, 120));
 
-		browseRegistryPanel = new JPanel();
-		browseRegistryPanel.setLayout(new GridBagLayout());
-		browseRegistryPanel.setBorder(BorderFactory.createTitledBorder(""));
-		browseRegistryPanel.add(browseRegistryText, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		browseRegistryPanel.add(browseRegistryButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));	
-		
+		browseRegistryPanel = new TitledPanel().withMargin(new Insets(BORDER_THICKNESS,0,BORDER_THICKNESS,0));
+		JPanel browseRegistryContentPanel = new JPanel();
+		browseRegistryContentPanel.setLayout(new GridBagLayout());
+		browseRegistryContentPanel.add(browseRegistryText, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,0,BORDER_THICKNESS,BORDER_THICKNESS));
+		browseRegistryContentPanel.add(browseRegistryButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,0));
+		browseRegistryPanel.build(browseRegistryContentPanel);
+		browseRegistryPanel.remove(browseRegistryContentPanel);
+		browseRegistryPanel.add(browseRegistryContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+
 		int index = 0;
-		adeButtonsPanel = new JPanel();
+		JPanel adeButtonsPanel = new JPanel();
 		adeButtonsPanel.setLayout(new GridBagLayout());
-		adeButtonsPanel.add(fetchADEsButton, GuiUtil.setConstraints(index++,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		adeButtonsPanel.add(registerADEButton, GuiUtil.setConstraints(index++,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
-		adeButtonsPanel.add(removeADEButton, GuiUtil.setConstraints(index++,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		adeButtonsPanel.add(generateDeleteScriptsButton, GuiUtil.setConstraints(index++,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
-		adeButtonsPanel.add(generateEnvelopeScriptsButton, GuiUtil.setConstraints(index++,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
-		
+		adeButtonsPanel.add(fetchADEsButton, GuiUtil.setConstraints(index++,0,0,0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+		adeButtonsPanel.add(removeADEButton, GuiUtil.setConstraints(index++,0,0,0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS,BORDER_THICKNESS));
+		adeButtonsPanel.add(generateDeleteScriptsButton, GuiUtil.setConstraints(index++,0,0,0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS,BORDER_THICKNESS));
+		adeButtonsPanel.add(generateEnvelopeScriptsButton, GuiUtil.setConstraints(index++,0,0,0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS,BORDER_THICKNESS));
+
 		index = 0;
-		component.add(adeTableScrollPanel, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
-		component.add(browseRegistryPanel, GuiUtil.setConstraints(0,index++,1.0,0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));		
+		JPanel registerButtonPanel = new JPanel();
+		registerButtonPanel.setLayout(new GridBagLayout());
+		registerButtonPanel.add(registerADEButton, GuiUtil.setConstraints(index++,0,0,0,GridBagConstraints.NONE,BORDER_THICKNESS*3,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+
+		index = 0;
+		component.add(adeTableScrollPanel, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS*2,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
 		component.add(adeButtonsPanel, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+		component.add(browseRegistryPanel, GuiUtil.setConstraints(0,index++,1.0,0,GridBagConstraints.BOTH,BORDER_THICKNESS*3,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+		component.add(registerButtonPanel, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
 			
-		fetchADEsButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						showRegisteredADEs();						
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
+		fetchADEsButton.addActionListener(e -> {
+			Thread thread = new Thread(() -> showRegisteredADEs());
+			thread.setDaemon(true);
+			thread.start();
 		});
 		
-		registerADEButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						registerADE();
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
+		registerADEButton.addActionListener(e -> {
+			Thread thread = new Thread(() -> registerADE());
+			thread.setDaemon(true);
+			thread.start();
 		});
 		
-		removeADEButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						deregisterADE();
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
+		removeADEButton.addActionListener(e -> {
+			Thread thread = new Thread(() -> deregisterADE());
+			thread.setDaemon(true);
+			thread.start();
 		});
 		
-		generateDeleteScriptsButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						generateDeleteScripts();
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
+		generateDeleteScriptsButton.addActionListener(e -> {
+			Thread thread = new Thread(() -> generateDeleteScripts());
+			thread.setDaemon(true);
+			thread.start();
 		});
 		
-		generateEnvelopeScriptsButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						generateEnvelopeScripts();
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
+		generateEnvelopeScriptsButton.addActionListener(e -> {
+			Thread thread = new Thread(() -> generateEnvelopeScripts());
+			thread.setDaemon(true);
+			thread.start();
 		});
 		
-		browseRegistryButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				browserRegistryInputDirectory();
-			}
-		});
+		browseRegistryButton.addActionListener(e -> browserRegistryInputDirectory());
 	}
 	
 	@Override
@@ -221,15 +178,14 @@ public class ADERegistryPanel extends OperationModuleView {
 	}
 
 	@Override
-	public DBOperationType getType() {
+	public DatabaseOperationType getType() {
 		return null;
 	}
 
 	@Override
 	public void doTranslation() {
-		((TitledBorder) browseRegistryPanel.getBorder()).setTitle(Translator.I18N.getString("ade_manager.registryPanel.border"));
+		browseRegistryPanel.setTitle(Translator.I18N.getString("ade_manager.registryPanel.border"));
 		browseRegistryButton.setText(Language.I18N.getString("common.button.browse"));
-		
 		registerADEButton.setText(Translator.I18N.getString("ade_manager.registryPanel.button.register"));
 		fetchADEsButton.setText(Translator.I18N.getString("ade_manager.registryPanel.button.fetch"));
 		removeADEButton.setText(Translator.I18N.getString("ade_manager.registryPanel.button.remove"));
@@ -239,8 +195,7 @@ public class ADERegistryPanel extends OperationModuleView {
 
 	@Override
 	public void setEnabled(boolean enable) {
-		// 
-		
+		//
 	}
 
 	@Override
@@ -250,8 +205,7 @@ public class ADERegistryPanel extends OperationModuleView {
 
 	@Override
 	public void setSettings() {
-		config.setAdeRegistryInputPath(browseRegistryText.getText()); 
-		
+		config.setAdeRegistryInputPath(browseRegistryText.getText());
 	}
 	
 	private void browserRegistryInputDirectory() {
@@ -284,29 +238,23 @@ public class ADERegistryPanel extends OperationModuleView {
 				"ADE Registration",
 				"Registering ADE into 3DCityDB...");
 		
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
-				statusDialog.setVisible(true);
-			}
+		SwingUtilities.invokeLater(() -> {
+			statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+			statusDialog.setVisible(true);
 		});
 		
 		boolean isComplete = false;
 		try {	
-			adeRegistor.initDBConneciton();
-			isComplete = adeRegistor.registerADE();
-			adeRegistor.commitTransactions();
+			adeRegistrationController.initDBConneciton();
+			isComplete = adeRegistrationController.registerADE();
+			adeRegistrationController.commitTransactions();
 		} catch (ADERegistrationException e) {
-			adeRegistor.rollbackTransactions();
+			adeRegistrationController.rollbackTransactions();
 			printErrorMessage("ADE registration aborted", e);
 		} finally {
-			adeRegistor.closeDBConnection();
+			adeRegistrationController.closeDBConnection();
 			
-			SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					statusDialog.dispose();
-				}
-			});
+			SwingUtilities.invokeLater(() -> statusDialog.dispose());
 		}
 		
 		if (isComplete) {
@@ -314,12 +262,8 @@ public class ADERegistryPanel extends OperationModuleView {
 			LOG.info("ADE registration is completed and will take effect after reconnecting to the database.");	
 			if (dbPool.isConnected()) {
 				dbPool.disconnect();
-				try {
-					databaseController.connect(true);
-				} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
-					printErrorMessage("Failed to reconnect to the database", e);
-				}
-			}	
+				databaseController.connect(true);
+			}
 			// update the ADE list table by querying the ADE again
 			showRegisteredADEs();
 		}
@@ -338,8 +282,8 @@ public class ADERegistryPanel extends OperationModuleView {
 		}
 		
 		try {	
-			adeRegistor.initDBConneciton();
-			List<ADEMetadataInfo> adeList = adeRegistor.queryRegisteredADEs();
+			adeRegistrationController.initDBConneciton();
+			List<ADEMetadataInfo> adeList = adeRegistrationController.queryRegisteredADEs();
 			if (adeList.size() == 0) 
 				LOG.info("Status: No ADEs are registered in the connected database");
 			
@@ -352,7 +296,7 @@ public class ADERegistryPanel extends OperationModuleView {
 		} catch (ADERegistrationException e) {
 			printErrorMessage(e);
 		} finally {
-			adeRegistor.closeDBConnection();
+			adeRegistrationController.closeDBConnection();
 		}
 	}
 	
@@ -377,24 +321,22 @@ public class ADERegistryPanel extends OperationModuleView {
 				"ADE Deregistration",
 				"Deregistering ADE from 3DCityDB...");
 		
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
-				statusDialog.setVisible(true);
-			}
+		SwingUtilities.invokeLater(() -> {
+			statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+			statusDialog.setVisible(true);
 		});
 		
 		boolean isComplete = false;
 		String adeId = adeTableModel.getColumn(selectedRowNum).getValue(0);	
 		try {
-			adeRegistor.initDBConneciton();
-			isComplete = adeRegistor.deregisterADE(adeId);
-			adeRegistor.commitTransactions();
+			adeRegistrationController.initDBConneciton();
+			isComplete = adeRegistrationController.deregisterADE(adeId);
+			adeRegistrationController.commitTransactions();
 		} catch (ADERegistrationException e) {
-			adeRegistor.rollbackTransactions();
+			adeRegistrationController.rollbackTransactions();
 			printErrorMessage("ADE Deregistration aborted", e);
 		} finally {
-			adeRegistor.closeDBConnection();
+			adeRegistrationController.closeDBConnection();
 			
 			SwingUtilities.invokeLater(new Runnable() {
 				public void run() {
@@ -408,11 +350,7 @@ public class ADERegistryPanel extends OperationModuleView {
 			LOG.info("ADE Deregistration is completed and will take effect after reconnecting to the database.");
 			if (dbPool.isConnected()) {
 				dbPool.disconnect();
-				try {
-					databaseController.connect(true);
-				} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
-					printErrorMessage("Failed to reconnect to the database", e);
-				}
+				databaseController.connect(true);
 			}
 			// update the ADE list table by querying the ADE again
 			showRegisteredADEs();
@@ -432,27 +370,21 @@ public class ADERegistryPanel extends OperationModuleView {
 				"Script Generation",
 				"Generating Delete-Script...");
 
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
-				statusDialog.setVisible(true);
-			}
+		SwingUtilities.invokeLater(() -> {
+			statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+			statusDialog.setVisible(true);
 		});
 		
 		DBSQLScript deleteScript = null;
 		try {	
-			adeRegistor.initDBConneciton();
-			deleteScript = adeRegistor.createDeleteScripts();
+			adeRegistrationController.initDBConneciton();
+			deleteScript = adeRegistrationController.createDeleteScripts();
 		} catch (ADERegistrationException e) {
 			printErrorMessage("Delete-script creation aborted", e);
 		} finally {
-			adeRegistor.closeDBConnection();		
+			adeRegistrationController.closeDBConnection();
 			
-			SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					statusDialog.dispose();
-				}
-			});
+			SwingUtilities.invokeLater(() -> statusDialog.dispose());
 		}	
 		
 		if (deleteScript != null)
@@ -481,18 +413,14 @@ public class ADERegistryPanel extends OperationModuleView {
 		
 		DBSQLScript envelopeScript = null;		
 		try {			
-			adeRegistor.initDBConneciton();
-			envelopeScript = adeRegistor.createEnvelopeScripts();
+			adeRegistrationController.initDBConneciton();
+			envelopeScript = adeRegistrationController.createEnvelopeScripts();
 		} catch (ADERegistrationException e) {
 			printErrorMessage("Envelope-script creation aborted", e);
 		} finally {
-			adeRegistor.closeDBConnection();	
+			adeRegistrationController.closeDBConnection();
 			
-			SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					statusDialog.dispose();
-				}
-			});
+			SwingUtilities.invokeLater(() -> statusDialog.dispose());
 		}	
 		
 		if (envelopeScript != null)
@@ -509,35 +437,26 @@ public class ADERegistryPanel extends OperationModuleView {
             	return;
             
             final ScriptDialog scriptDialog = new ScriptDialog(viewController.getTopFrame(), script, autoInstall);			
-    		scriptDialog.getButton().addActionListener(new ActionListener() {
-    			public void actionPerformed(ActionEvent e) {
-    				SwingUtilities.invokeLater(new Runnable() {
-    					public void run() {
-    						try {
-    							adeRegistor.initDBConneciton();
-    							adeRegistor.installDBScript(scriptDialog.getScript());
-    							adeRegistor.commitTransactions();
-    							LOG.info("Script is successfully installed into the connected database.");
-    						} catch (ADERegistrationException e) {
-    							adeRegistor.rollbackTransactions();
-    							printErrorMessage(e);
-    						} finally {
-    							adeRegistor.closeDBConnection();
-    							scriptDialog.dispose();
-    						}  						
-    					}
-    				});
-    			}
-    		});
+    		scriptDialog.getButton().addActionListener(e -> SwingUtilities.invokeLater(() -> {
+			    try {
+				    adeRegistrationController.initDBConneciton();
+				    adeRegistrationController.installDBScript(scriptDialog.getScript());
+				    adeRegistrationController.commitTransactions();
+				    LOG.info("Script is successfully installed into the connected database.");
+			    } catch (ADERegistrationException e1) {
+				    adeRegistrationController.rollbackTransactions();
+				    printErrorMessage(e1);
+			    } finally {
+				    adeRegistrationController.closeDBConnection();
+				    scriptDialog.dispose();
+			    }
+		    }));
 
-    		SwingUtilities.invokeLater(new Runnable() {
-    			public void run() {
-    				scriptDialog.setLocationRelativeTo(parentPanel.getTopLevelAncestor());
-    				scriptDialog.setVisible(true);
-    			}
-    		});
-        }		
-	
+    		SwingUtilities.invokeLater(() -> {
+			    scriptDialog.setLocationRelativeTo(parentPanel.getTopLevelAncestor());
+			    scriptDialog.setVisible(true);
+		    });
+        }
 	}
 
 }

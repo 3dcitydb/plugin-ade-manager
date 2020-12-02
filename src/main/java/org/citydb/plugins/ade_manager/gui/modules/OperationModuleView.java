@@ -27,45 +27,35 @@
  */
 package org.citydb.plugins.ade_manager.gui.modules;
 
-import java.sql.SQLException;
-import java.text.MessageFormat;
-import java.util.concurrent.locks.ReentrantLock;
-
-import javax.swing.JButton;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-
 import org.citydb.config.i18n.Language;
-import org.citydb.config.project.database.DatabaseConfigurationException;
 import org.citydb.config.project.database.DatabaseType;
 import org.citydb.database.DatabaseController;
 import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.database.version.DatabaseVersionException;
 import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
+import org.citydb.gui.modules.database.operations.DatabaseOperationView;
 import org.citydb.log.Logger;
-import org.citydb.modules.database.gui.operations.DatabaseOperationView;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.util.Translator;
 import org.citydb.registry.ObjectRegistry;
 
+import javax.swing.*;
+import java.sql.SQLException;
+import java.text.MessageFormat;
+
 public abstract class OperationModuleView extends DatabaseOperationView implements EventHandler{
+	protected static final int BORDER_THICKNESS = 2;
+	protected static final int BUTTON_WIDTH = 170;
 	protected static final int MINIMUM_REQUIRED_ORACLE_VERSION = 11;
-	
-	protected static final int BORDER_THICKNESS = 5;
-	protected static final int MAX_TEXTFIELD_HEIGHT = 20;
-	protected static final int MAX_LABEL_WIDTH = 60;
-	protected static final int BUTTON_WIDTH = 155;
-	
+
 	protected final Logger LOG = Logger.getInstance();	
 	protected final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	protected final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();	
 	protected final ViewController viewController;
-	protected final ReentrantLock mainLock = new ReentrantLock();
-	
+
 	protected JPanel parentPanel;
 	protected final ConfigImpl config;
 	protected int standardButtonHeight = (new JButton("D")).getPreferredSize().height;
@@ -97,11 +87,7 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 			if (JOptionPane.showConfirmDialog(parentPanel.getTopLevelAncestor(), connectConfirm,
 					Language.I18N.getString("pref.kmlexport.connectDialog.title"),
 					JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-				try {
-					databaseController.connect(true);
-				} catch (DatabaseConfigurationException | DatabaseVersionException | SQLException e) {
-					throw new SQLException("Failed to connect to the target database", e);
-				}
+				databaseController.connect(true);
 			}
 			else
 				throw new SQLException("Database is not connected");

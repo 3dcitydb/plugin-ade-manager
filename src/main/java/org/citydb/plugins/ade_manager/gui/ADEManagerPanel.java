@@ -48,14 +48,11 @@ import org.citydb.plugins.ade_manager.gui.modules.ADETransformationPanel;
 import org.citydb.plugins.ade_manager.gui.modules.OperationModuleView;
 
 @SuppressWarnings("serial")
-public class ADEManagerPanel extends JPanel implements EventHandler {	
-	private final int BORDER_THICKNESS = 5;
-
+public class ADEManagerPanel extends JPanel implements EventHandler {
 	private JTabbedPane subModuleTab;
 	private OperationModuleView[] subModulePanels;
-	private ViewController viewController;	
-
-	private ConfigImpl config;
+	private final ViewController viewController;
+	private final ConfigImpl config;
 	
 	public ADEManagerPanel(ViewController viewController, ADEManagerPlugin plugin) {	
 		this.config = plugin.getConfig();		
@@ -79,27 +76,26 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		for (int i = 0; i < subModulePanels.length - 1; ++i)
 			subModuleTab.insertTab(null, subModulePanels[i].getIcon(), null, subModulePanels[i].getToolTip(), i);
 
-		subModuleTab.addChangeListener(new ChangeListener() {
-			public void stateChanged(ChangeEvent e) {			
-				int index = subModuleTab.getSelectedIndex();
-				for (int i = 0; i < subModuleTab.getTabCount(); ++i)
-					subModuleTab.setComponentAt(i, index == i ? subModulePanels[index].getViewComponent() : null);
-			}
+		subModuleTab.addChangeListener(e -> {
+			int index = subModuleTab.getSelectedIndex();
+			for (int i = 0; i < subModuleTab.getTabCount(); ++i)
+				subModuleTab.setComponentAt(i, index == i ? subModulePanels[index].getViewComponent() : null);
 		});
 
 		JPanel mainScrollView = new JPanel();
 		mainScrollView.setLayout(new GridBagLayout());
 		
-		int index = 0;		
-		mainScrollView.add(registryPanel.getViewComponent(), GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,0,0,0,0));		
-		mainScrollView.add(subModuleTab, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS,0,0,0));		
+		int index = 0;
+		int BORDER_THICKNESS = 4;
+		mainScrollView.add(registryPanel.getViewComponent(), GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH, BORDER_THICKNESS, BORDER_THICKNESS, 0, BORDER_THICKNESS));
+		mainScrollView.add(subModuleTab, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH, 0, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS));
 		mainScrollView.add(Box.createVerticalGlue(), GuiUtil.setConstraints(0,index++,1.0,1.0,GridBagConstraints.BOTH,0,0,0,0));
 
 		JScrollPane mainScrollPanel = new JScrollPane(mainScrollView);
 		mainScrollPanel.setBorder(BorderFactory.createEmptyBorder());
 		mainScrollPanel.setViewportBorder(BorderFactory.createEmptyBorder());
 		this.setLayout(new GridBagLayout());	
-		this.add(mainScrollPanel, GuiUtil.setConstraints(0,1,1.0,1.0,GridBagConstraints.BOTH,5,0,0,0));
+		this.add(mainScrollPanel, GuiUtil.setConstraints(0,1,1.0,1.0,GridBagConstraints.BOTH, BORDER_THICKNESS *2, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS));
 	}
 
 	// localized Labels and Strings
@@ -110,7 +106,6 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		for (int i = 0; i < subModuleTab.getTabCount(); ++i) {
 			subModuleTab.setTitleAt(i, subModulePanels[i].getLocalizedTitle());			
 		}
-		
 	}
 
 	public void loadSettings() {
