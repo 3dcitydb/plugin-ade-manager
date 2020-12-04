@@ -27,10 +27,16 @@
  */
 package org.citydb.plugins.ade_manager.gui.modules;
 
+import org.citydb.ade.ADEExtensionManager;
 import org.citydb.config.i18n.Language;
 import org.citydb.config.project.database.DatabaseOperationType;
+import org.citydb.database.schema.mapping.SchemaMapping;
+import org.citydb.database.schema.mapping.SchemaMappingException;
+import org.citydb.database.schema.mapping.SchemaMappingValidationException;
 import org.citydb.event.Event;
 import org.citydb.gui.components.common.TitledPanel;
+import org.citydb.gui.modules.database.util.ADEInfoDialog;
+import org.citydb.gui.modules.database.util.ADEInfoRow;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
@@ -44,9 +50,13 @@ import org.citydb.plugins.ade_manager.registry.ADERegistrationException;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.util.Translator;
+import org.citydb.registry.ObjectRegistry;
 
 import javax.swing.*;
+import javax.xml.bind.JAXBException;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.sql.SQLException;
 import java.util.List;
@@ -123,7 +133,17 @@ public class ADERegistryPanel extends OperationModuleView {
 		component.add(adeButtonsPanel, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
 		component.add(browseRegistryPanel, GuiUtil.setConstraints(0,index++,1.0,0,GridBagConstraints.BOTH,BORDER_THICKNESS*3,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
 		component.add(registerButtonPanel, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-			
+
+		adeTable.addMouseListener(new MouseAdapter() {
+			public void mousePressed(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					Thread thread = new Thread(() -> showADEInfoDialog());
+					thread.setDaemon(true);
+					thread.start();
+				}
+			}
+		});
+
 		fetchADEsButton.addActionListener(e -> {
 			Thread thread = new Thread(() -> showRegisteredADEs());
 			thread.setDaemon(true);
@@ -221,6 +241,36 @@ public class ADERegistryPanel extends OperationModuleView {
 		String browseString = chooser.getSelectedFile().toString();
 		if (!browseString.isEmpty())
 			browseRegistryText.setText(browseString);
+	}
+
+	private void showADEInfoDialog() {
+		try {
+			checkAndConnectToDB();
+		} catch (SQLException e) {
+			printErrorMessage("Querying ADE Information aborted", e);
+			return;
+		}
+		String adeId = adeTableModel.getColumn(adeTable.getSelectedRow()).getValue(0);
+		String adeName = adeTableModel.getColumn(adeTable.getSelectedRow()).getValue(1);
+		String adeVersion = adeTableModel.getColumn(adeTable.getSelectedRow()).getValue(3);
+		SchemaMapping rootSchema = ObjectRegistry.getInstance().getSchemaMapping();
+		SchemaMapping adeSchema;
+		try {
+			adeSchema = databaseController.getActiveDatabaseAdapter().getUtil().getADESchemaMapping(adeId, rootSchema);
+		} catch (SQLException | JAXBException | SchemaMappingException | SchemaMappingValidationException e) {
+			printErrorMessage("Failed to retrieve ADE information for '" + adeName + "'.", e);
+			return;
+		}
+
+		if (adeSchema != null) {
+			boolean hasImpExpSupport = ADEExtensionManager.getInstance().getExtensionById(adeId) != null;
+			ADEInfoRow adeInfoRow = new ADEInfoRow(adeId, adeName, adeVersion, true, hasImpExpSupport);
+			ADEInfoDialog dialog = new ADEInfoDialog(adeInfoRow, adeSchema, rootSchema, viewController.getTopFrame());
+			SwingUtilities.invokeLater(() -> {
+				dialog.setLocationRelativeTo(viewController.getTopFrame());
+				dialog.setVisible(true);
+			});
+		}
 	}
 	
 	private void registerADE() {
