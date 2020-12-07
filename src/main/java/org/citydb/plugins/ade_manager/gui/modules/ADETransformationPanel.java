@@ -27,15 +27,24 @@
  */
 package org.citydb.plugins.ade_manager.gui.modules;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import org.citydb.config.i18n.Language;
+import org.citydb.config.project.database.DatabaseOperationType;
+import org.citydb.event.Event;
+import org.citydb.gui.components.common.TitledPanel;
+import org.citydb.gui.util.GuiUtil;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
+import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
+import org.citydb.plugins.ade_manager.gui.table.ADESchemaNamespaceRow;
+import org.citydb.plugins.ade_manager.gui.table.TableModel;
+import org.citydb.plugins.ade_manager.transformation.TransformationController;
+import org.citydb.plugins.ade_manager.transformation.TransformationException;
+import org.citydb.plugins.ade_manager.util.GlobalConstants;
+import org.citydb.plugins.ade_manager.util.Translator;
+
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
 import java.io.File;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
@@ -43,58 +52,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.Icon;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JFormattedTextField;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.border.TitledBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import org.citydb.config.i18n.Language;
-import org.citydb.config.project.database.DBOperationType;
-import org.citydb.event.Event;
-import org.citydb.gui.util.GuiUtil;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
-import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
-import org.citydb.plugins.ade_manager.gui.table.ADESchemaNamespaceRow;
-import org.citydb.plugins.ade_manager.gui.table.TableModel;
-import org.citydb.plugins.ade_manager.transformation.TransformationException;
-import org.citydb.plugins.ade_manager.util.GlobalConstants;
-import org.citydb.plugins.ade_manager.util.Translator;
-import org.citydb.plugins.ade_manager.transformation.TransformationController;
-
 public class ADETransformationPanel extends OperationModuleView {	
 	private JPanel component;	
-	private JPanel browseXMLSchemaPanel;
-	private JTextField browseXMLSchemaText = new JTextField();
-	private JButton browseXMLSchemaButton = new JButton();
-	private JButton readXMLSchemaButton = new JButton();	
+	private TitledPanel browseXMLSchemaPanel;
+	private final JTextField browseXMLSchemaText = new JTextField();
+	private final JButton browseXMLSchemaButton = new JButton();
+	private final JButton readXMLSchemaButton = new JButton();
 	private JTable schemaTable;
-	private JScrollPane schemaPanel;	
-	private JPanel namePanel;
-	private JTextField nameInputField = new JTextField();	
-	private JPanel descriptionPanel;
-	private JTextField descriptionInputField = new JTextField();
-	private JPanel versionPanel;
-	private JTextField versionInputField = new JTextField();
-	private JPanel dbPrefixPanel;
-	private JTextField dbPrefixInputField = new JTextField();
-	private JPanel initObjectClassIdPanel;
-	private JFormattedTextField initObjectClassIdInputField = new JFormattedTextField(new DecimalFormat("##########"));	
-	private JPanel transformationOutputPanel;
-	private JTextField browseOutputText = new JTextField();
-	private JButton browserOutputButton = new JButton();
-	private JButton transformAndExportButton = new JButton();
-	private TableModel<ADESchemaNamespaceRow> schemaTableModel = new TableModel<ADESchemaNamespaceRow>(ADESchemaNamespaceRow.getColumnNames());	
+	private TitledPanel namePanel;
+	private final JTextField nameInputField = new JTextField();
+	private TitledPanel descriptionPanel;
+	private final JTextField descriptionInputField = new JTextField();
+	private TitledPanel versionPanel;
+	private final JTextField versionInputField = new JTextField();
+	private TitledPanel dbPrefixPanel;
+	private final JTextField dbPrefixInputField = new JTextField();
+	private TitledPanel initObjectClassIdPanel;
+	private final JFormattedTextField initObjectClassIdInputField = new JFormattedTextField(new DecimalFormat("##########"));
+	private TitledPanel transformationOutputPanel;
+	private final JTextField browseOutputText = new JTextField();
+	private final JButton browserOutputButton = new JButton();
+	private final JButton transformAndExportButton = new JButton();
+	private final TableModel<ADESchemaNamespaceRow> schemaTableModel = new TableModel<>(ADESchemaNamespaceRow.getColumnNames());
 
-	private TransformationController adeTransformer;
+	private final TransformationController adeTransformer;
 
 	public ADETransformationPanel(ADEManagerPanel parentPanel, ConfigImpl config) {
 		super(parentPanel, config);		
@@ -107,48 +88,71 @@ public class ADETransformationPanel extends OperationModuleView {
 		transformAndExportButton.setPreferredSize(new Dimension(BUTTON_WIDTH, standardButtonHeight));
 	
 		// Input panel
-		browseXMLSchemaPanel = new JPanel();
-		browseXMLSchemaPanel.setLayout(new GridBagLayout());
-		browseXMLSchemaPanel.add(browseXMLSchemaText, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		browseXMLSchemaPanel.add(browseXMLSchemaButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));	
-				
+		browseXMLSchemaPanel = new TitledPanel().withMargin(new Insets(BORDER_THICKNESS,0,BORDER_THICKNESS,0));
+		JPanel browseXMLSchemaContentPanel = new JPanel();
+		browseXMLSchemaContentPanel.setLayout(new GridBagLayout());
+		browseXMLSchemaContentPanel.add(browseXMLSchemaText, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,0,BORDER_THICKNESS,BORDER_THICKNESS));
+		browseXMLSchemaContentPanel.add(browseXMLSchemaButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,0));
+		browseXMLSchemaPanel.build(browseXMLSchemaContentPanel);
+		browseXMLSchemaPanel.remove(browseXMLSchemaContentPanel);
+		browseXMLSchemaPanel.add(browseXMLSchemaContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+
 		// Schema table panel
 		schemaTable = new JTable(schemaTableModel);
 		schemaTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		schemaTable.setCellSelectionEnabled(false);
 		schemaTable.setColumnSelectionAllowed(false);
 		schemaTable.setRowSelectionAllowed(true);
-		schemaTable.setRowHeight(25);		
-		schemaPanel = new JScrollPane(schemaTable);
+		schemaTable.setRowHeight(20);
+		JScrollPane schemaPanel = new JScrollPane(schemaTable);
 		schemaPanel.setPreferredSize(new Dimension(browseXMLSchemaText.getPreferredSize().width, 200));
-		schemaPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(), BorderFactory.createEmptyBorder(0, 0, 0, 0)));
-		
-		// metadata parameters
-		namePanel = new JPanel();
-		namePanel.setLayout(new GridBagLayout());
-		namePanel.add(nameInputField, GuiUtil.setConstraints(0, 0, 1.0, 1.0, GridBagConstraints.HORIZONTAL, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS));
-		nameInputField.setColumns(10);
 
-		descriptionPanel = new JPanel();
-		descriptionPanel.setLayout(new GridBagLayout());
-		descriptionPanel.add(descriptionInputField, GuiUtil.setConstraints(0, 0, 1.0, 1.0, GridBagConstraints.HORIZONTAL, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS));
+		// metadata parameters
+		namePanel = new TitledPanel().withMargin(new Insets(0,BORDER_THICKNESS,BORDER_THICKNESS,0));
+		JPanel nameContentPanel = new JPanel();
+		nameContentPanel.setLayout(new GridBagLayout());
+		nameContentPanel.add(nameInputField, GuiUtil.setConstraints(0, 0, 1.0, 1.0, GridBagConstraints.HORIZONTAL, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS, 0));
+		nameInputField.setColumns(10);
+		namePanel.build(nameContentPanel);
+		namePanel.remove(nameContentPanel);
+		namePanel.add(nameContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+
+		descriptionPanel = new TitledPanel().withMargin(new Insets(0,BORDER_THICKNESS,BORDER_THICKNESS,0));
+		JPanel descriptionContentPanel = new JPanel();
+		descriptionContentPanel.setLayout(new GridBagLayout());
+		descriptionContentPanel.add(descriptionInputField, GuiUtil.setConstraints(0, 0, 1.0, 1.0, GridBagConstraints.HORIZONTAL, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS, 0));
 		descriptionInputField.setColumns(10);
+		descriptionPanel.build(descriptionContentPanel);
+		descriptionPanel.remove(descriptionContentPanel);
+		descriptionPanel.add(descriptionContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 		
-		versionPanel = new JPanel();
-		versionPanel.setLayout(new GridBagLayout());
-		versionPanel.add(versionInputField, GuiUtil.setConstraints(0, 0, 1.0, 1.0, GridBagConstraints.HORIZONTAL, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS));
+		versionPanel = new TitledPanel().withMargin(new Insets(0,BORDER_THICKNESS,BORDER_THICKNESS,0));
+		JPanel versionContentPanel = new JPanel();
+		versionContentPanel.setLayout(new GridBagLayout());
+		versionContentPanel.add(versionInputField, GuiUtil.setConstraints(0, 0, 1.0, 1.0, GridBagConstraints.HORIZONTAL, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS, 0));
 		versionInputField.setColumns(10);
+		versionPanel.build(versionContentPanel);
+		versionPanel.remove(versionContentPanel);
+		versionPanel.add(versionContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 		
-		dbPrefixPanel = new JPanel();
-		dbPrefixPanel.setLayout(new GridBagLayout());
-		dbPrefixPanel.add(dbPrefixInputField, GuiUtil.setConstraints(0, 0, 1.0, 1.0, GridBagConstraints.HORIZONTAL, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS));
+		dbPrefixPanel = new TitledPanel().withMargin(new Insets(0,BORDER_THICKNESS,BORDER_THICKNESS,0));
+		JPanel dbPrefixContentPanel = new JPanel();
+		dbPrefixContentPanel.setLayout(new GridBagLayout());
+		dbPrefixContentPanel.add(dbPrefixInputField, GuiUtil.setConstraints(0, 0, 1.0, 1.0, GridBagConstraints.HORIZONTAL, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS, 0));
 		dbPrefixInputField.setColumns(10);
-		
-		initObjectClassIdPanel = new JPanel();
-		initObjectClassIdPanel.setLayout(new GridBagLayout());
-		initObjectClassIdPanel.add(initObjectClassIdInputField, GuiUtil.setConstraints(0, 0, 1.0, 1.0, GridBagConstraints.HORIZONTAL, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS));
+		dbPrefixPanel.build(dbPrefixContentPanel);
+		dbPrefixPanel.remove(dbPrefixContentPanel);
+		dbPrefixPanel.add(dbPrefixContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+
+		initObjectClassIdPanel = new TitledPanel().withMargin(new Insets(0,BORDER_THICKNESS,BORDER_THICKNESS,0));
+		JPanel initObjectClassIdContentPanel = new JPanel();
+		initObjectClassIdContentPanel.setLayout(new GridBagLayout());
+		initObjectClassIdContentPanel.add(initObjectClassIdInputField, GuiUtil.setConstraints(0, 0, 1.0, 1.0, GridBagConstraints.HORIZONTAL, BORDER_THICKNESS, BORDER_THICKNESS, BORDER_THICKNESS, 0));
 		initObjectClassIdInputField.setColumns(10);
-		
+		initObjectClassIdPanel.build(initObjectClassIdContentPanel);
+		initObjectClassIdPanel.remove(initObjectClassIdContentPanel);
+		initObjectClassIdPanel.add(initObjectClassIdContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+
 		Box box = Box.createVerticalBox();	
 		box.add(namePanel);
 		box.add(descriptionPanel);
@@ -161,109 +165,75 @@ public class ADETransformationPanel extends OperationModuleView {
 		
 		JPanel schemaAndMetadataPanel = new JPanel();
 		schemaAndMetadataPanel.setLayout(new GridBagLayout());
-		schemaAndMetadataPanel.add(schemaPanel, GuiUtil.setConstraints(0,0,0.7,0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		schemaAndMetadataPanel.add(Box.createRigidArea(new Dimension(BORDER_THICKNESS, 0)), GuiUtil.setConstraints(1,0,0,0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		schemaAndMetadataPanel.add(metadataInputPanel, GuiUtil.setConstraints(2,0,0.3,0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+		schemaAndMetadataPanel.add(schemaPanel, GuiUtil.setConstraints(0,0,0.8,0,GridBagConstraints.BOTH,BORDER_THICKNESS,0,BORDER_THICKNESS,BORDER_THICKNESS));
+		schemaAndMetadataPanel.add(metadataInputPanel, GuiUtil.setConstraints(2,0,0.2,0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,0));
 	
 		// Export panel
-		transformationOutputPanel = new JPanel();
-		transformationOutputPanel.setLayout(new GridBagLayout());
-		transformationOutputPanel.setBorder(BorderFactory.createTitledBorder(""));
-		transformationOutputPanel.add(browseOutputText, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
-		transformationOutputPanel.add(browserOutputButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS));
+		transformationOutputPanel = new TitledPanel().withMargin(new Insets(BORDER_THICKNESS,0,BORDER_THICKNESS,0));
+		JPanel transformationOutputContentPanel = new JPanel();
+		transformationOutputContentPanel.setLayout(new GridBagLayout());
+		transformationOutputContentPanel.add(browseOutputText, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,BORDER_THICKNESS,0,BORDER_THICKNESS,BORDER_THICKNESS));
+		transformationOutputContentPanel.add(browserOutputButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,0));
+		transformationOutputPanel.build(transformationOutputContentPanel);
+		transformationOutputPanel.remove(transformationOutputContentPanel);
+		transformationOutputPanel.add(transformationOutputContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 
 		component = new JPanel();
 		component.setLayout(new GridBagLayout());
 		
 		int index = 0;		
-		component.add(browseXMLSchemaPanel, GuiUtil.setConstraints(0,index++,0.0,0,GridBagConstraints.BOTH,BORDER_THICKNESS*2,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
-		component.add(readXMLSchemaButton, GuiUtil.setConstraints(0,index++,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS*2,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
-		component.add(schemaAndMetadataPanel, GuiUtil.setConstraints(0,index++,0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS*2,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));		
-		component.add(transformationOutputPanel, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS*2,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
-		component.add(transformAndExportButton, GuiUtil.setConstraints(0,index++,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS*2,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
-	
+		component.add(browseXMLSchemaPanel, GuiUtil.setConstraints(0,index++,0.0,0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
+		component.add(readXMLSchemaButton, GuiUtil.setConstraints(0,index++,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
+		component.add(schemaAndMetadataPanel, GuiUtil.setConstraints(0,index++,0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS*3,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
+		component.add(transformationOutputPanel, GuiUtil.setConstraints(0,index++,1.0,0.0,GridBagConstraints.BOTH,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
+		component.add(transformAndExportButton, GuiUtil.setConstraints(0,index++,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS*3,BORDER_THICKNESS,BORDER_THICKNESS*2,BORDER_THICKNESS));
 
-		browseXMLSchemaButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				browserXMLschemaFile();
-			}
+		browseXMLSchemaButton.addActionListener(e -> browserXMLSchemaFile());
+		
+		readXMLSchemaButton.addActionListener(e -> {
+			Thread thread = new Thread(() -> parseADESchema());
+			thread.setDaemon(true);
+			thread.start();
 		});
 		
-		readXMLSchemaButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						parseADESchema();						
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
-		});
-	
-		schemaTable.addMouseListener(new MouseAdapter()
-		{
-		    public void mouseClicked(MouseEvent e)
-		    {
-		        if (e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 2) {	
-		        	Thread thread = new Thread() {
-						public void run() { 							
-				        //	dummyFunc();
-						}
-					};
-					thread.setDaemon(true);
-					thread.start();
-		        }
-		    }
-		});
-		
-		browserOutputButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				browseTransformationOutputDirectory();
-			}
-		});
+		browserOutputButton.addActionListener(e -> browseTransformationOutputDirectory());
 				
-		transformAndExportButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thread = new Thread() {
-					public void run() {
-						transformADESchema();						
-					}
-				};
-				thread.setDaemon(true);
-				thread.start();
-			}
-		});	
+		transformAndExportButton.addActionListener(e -> {
+			Thread thread = new Thread(() -> transformADESchema());
+			thread.setDaemon(true);
+			thread.start();
+		});
 		
-		setEnabledMetadataSettings(false);	
+		setEnabledMetadataSettings(false);
 	}
 
 	// localized Labels and Strings
 	public void doTranslation() {	
-		browseXMLSchemaPanel.setBorder(BorderFactory.createTitledBorder(Translator.I18N.getString("ade_manager.transformationPanel.browseXMLSchemaPanel.border")));
+		browseXMLSchemaPanel.setTitle(Translator.I18N.getString("ade_manager.transformationPanel.browseXMLSchemaPanel.border"));
 
-		namePanel.setBorder(BorderFactory.createTitledBorder(
+		namePanel.setTitle(
 				MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.namePanel.border"),
-						new Object[] { String.valueOf(GlobalConstants.MAX_ADE_NAME_LENGTH) })));
-		
-		descriptionPanel.setBorder(BorderFactory.createTitledBorder(
+				new Object[] { String.valueOf(GlobalConstants.MAX_ADE_NAME_LENGTH) }));
+
+		descriptionPanel.setTitle(
 				MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.descriptionPanel.border"),
-						new Object[] { String.valueOf(GlobalConstants.MAX_ADE_DESCRIPTION_LENGTH) })));
-		
-		versionPanel.setBorder(BorderFactory.createTitledBorder(
+						new Object[] { String.valueOf(GlobalConstants.MAX_ADE_DESCRIPTION_LENGTH) }));
+
+		versionPanel.setTitle(
 				MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.versionPanel.border"),
-						new Object[] { String.valueOf(GlobalConstants.MAX_ADE_VERSION_LENGTH) })));
+						new Object[] { String.valueOf(GlobalConstants.MAX_ADE_VERSION_LENGTH) }));
 		
-		dbPrefixPanel.setBorder(BorderFactory.createTitledBorder(
+		dbPrefixPanel.setTitle(
 				MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.dbPrefixPanel.border"),
-						new Object[] { GlobalConstants.MAX_DB_PREFIX_LENGTH })));
-		initObjectClassIdPanel.setBorder(BorderFactory.createTitledBorder(
+						new Object[] { GlobalConstants.MAX_DB_PREFIX_LENGTH }));
+
+		initObjectClassIdPanel.setTitle(
 				MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.initObjectClassIdPanel.border"),
-						new Object[] { String.valueOf(GlobalConstants.MIN_ADE_OBJECTCLASSID) })));
+						new Object[] { String.valueOf(GlobalConstants.MIN_ADE_OBJECTCLASSID) }));
 		
 		browseXMLSchemaButton.setText(Language.I18N.getString("common.button.browse"));
 		readXMLSchemaButton.setText(Translator.I18N.getString("ade_manager.transformationPanel.button.readXMLSchema"));
-		((TitledBorder) transformationOutputPanel.getBorder()).setTitle(Translator.I18N.getString("ade_manager.transformationPanel.transformationOutputPanel.border"));
+		transformationOutputPanel.setTitle(Translator.I18N.getString("ade_manager.transformationPanel.transformationOutputPanel.border"));
 		browserOutputButton.setText(Language.I18N.getString("common.button.browse"));
 		transformAndExportButton.setText(Translator.I18N.getString("ade_manager.transformationPanel.button.transformAndExport"));
 	}
@@ -288,7 +258,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		config.setInitialObjectclassId(((Number)initObjectClassIdInputField.getValue()).intValue());
 	}
 
-	private void browserXMLschemaFile() {
+	private void browserXMLSchemaFile() {
 		JFileChooser chooser = new JFileChooser();
 		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 		chooser.setDialogTitle(Translator.I18N.getString("ade_manager.transformationPanel.inputFileChooser.title"));
@@ -342,11 +312,9 @@ public class ADETransformationPanel extends OperationModuleView {
 				"ADE-Parse",
 				"Reading and parsing ADE XML schema...");
 		
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
-				statusDialog.setVisible(true);
-			}
+		SwingUtilities.invokeLater(() -> {
+			statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+			statusDialog.setVisible(true);
 		});
 		
 		LOG.info("Start parsing ADE XML schema...");
@@ -363,11 +331,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		} catch (TransformationException e) {
 			printErrorMessage("Failed to read and parse ADE schema", e);
 		} finally {
-			SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					statusDialog.dispose();
-				}
-			});
+			SwingUtilities.invokeLater(() -> statusDialog.dispose());
 		}
 	}
 
@@ -431,8 +395,8 @@ public class ADETransformationPanel extends OperationModuleView {
 			return;
 		}		
 		
-		int initialObjectclassId = config.getInitialObjectclassId();
-		if (initialObjectclassId < GlobalConstants.MIN_ADE_OBJECTCLASSID) {
+		int initialObjectClassId = config.getInitialObjectclassId();
+		if (initialObjectClassId < GlobalConstants.MIN_ADE_OBJECTCLASSID) {
 			viewController.errorMessage("Incorrect Information", "Then initial objectclass ID must be larger than or equal to 10000");
 			return;
 		}	
@@ -458,11 +422,9 @@ public class ADETransformationPanel extends OperationModuleView {
 				"ADE Transformation",
 				"Deriving ADE database schema...");
 		
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				statusDialog.setLocationRelativeTo(viewController.getTopFrame());
-				statusDialog.setVisible(true);
-			}
+		SwingUtilities.invokeLater(() -> {
+			statusDialog.setLocationRelativeTo(viewController.getTopFrame());
+			statusDialog.setVisible(true);
 		});
 		
 		try {
@@ -471,13 +433,8 @@ public class ADETransformationPanel extends OperationModuleView {
 		} catch (TransformationException e) {
 			printErrorMessage(e);
 		} finally {
-			SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					statusDialog.dispose();
-				}
-			});
+			SwingUtilities.invokeLater(() -> statusDialog.dispose());
 		}
-		
 	}
 
 	public void handleEvent(Event event) throws Exception {
@@ -485,7 +442,7 @@ public class ADETransformationPanel extends OperationModuleView {
 	}
 
 	@Override
-	public DBOperationType getType() {
+	public DatabaseOperationType getType() {
 		return null;
 	}
 

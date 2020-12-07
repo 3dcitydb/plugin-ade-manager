@@ -27,9 +27,7 @@
  */
 package org.citydb.plugins.ade_manager.gui.popup;
 
-import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -40,28 +38,24 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.citydb.config.i18n.Language;
 import org.citydb.gui.factory.PopupMenuDecorator;
+import org.citydb.gui.factory.RSyntaxTextAreaHelper;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.log.Logger;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.util.Translator;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.fife.ui.rtextarea.RTextScrollPane;
 
 @SuppressWarnings("serial")
 public class ScriptDialog extends JDialog {
 	private final DBSQLScript script;
-	private JButton installbutton;
+	private JButton installButton;
 	private boolean autoInstall;
 	private final Logger LOG = Logger.getInstance();
 	
@@ -79,30 +73,29 @@ public class ScriptDialog extends JDialog {
 			this.setTitle(Translator.I18N.getString("ade_manager.scriptDialog.title.generateScript"));
 		
 		setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-		installbutton = new JButton(Translator.I18N.getString("ade_manager.scriptDialog.button.install"));		
+		installButton = new JButton(Translator.I18N.getString("ade_manager.scriptDialog.button.install"));
 		
 		setLayout(new GridBagLayout()); {
 			JPanel main = new JPanel();		
 			add(main, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,5,5,5,5));
-			JTextArea scriptArea = new JTextArea();
+			RSyntaxTextArea scriptArea = new RSyntaxTextArea();
+			RSyntaxTextAreaHelper.installDefaultTheme(scriptArea);
+
 			main.setLayout(new GridBagLayout());
 			{
-				scriptArea.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));				
-				scriptArea.setEditable(false);
-				scriptArea.setBackground(Color.WHITE);
-				scriptArea.setFont(new Font(Font.MONOSPACED, 0, 11));
-				scriptArea.setText(script.toString());	
-				scriptArea.setCaretPosition(0);					
+				scriptArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
+				scriptArea.setAutoIndentEnabled(true);
+				scriptArea.setHighlightCurrentLine(true);
+				scriptArea.setTabSize(2);
+				scriptArea.setText(script.toString());
 				PopupMenuDecorator.getInstance().decorate(scriptArea);
-				
-				JScrollPane scroll = new JScrollPane(scriptArea);
-				scroll.setAutoscrolls(true);
-				scroll.setBorder(BorderFactory.createEtchedBorder());
+
+				RTextScrollPane scroll = new RTextScrollPane(scriptArea);
 				main.add(scroll, GuiUtil.setConstraints(0,0,1.0,1.0,GridBagConstraints.BOTH,2,0,0,0));
 			}
-			installbutton.setMargin(new Insets(installbutton.getMargin().top, 25, installbutton.getMargin().bottom, 25));	
+			installButton.setMargin(new Insets(installButton.getMargin().top, 25, installButton.getMargin().bottom, 25));
 			if (!autoInstall)
-				add(installbutton, GuiUtil.setConstraints(0,3,0.0,0.0,GridBagConstraints.NONE,5,5,5,5));
+				add(installButton, GuiUtil.setConstraints(0,3,0.0,0.0,GridBagConstraints.NONE,5,5,5,5));
 						
 			JButton browserOutputButton = new JButton(Language.I18N.getString("common.button.browse"));
 			JTextField browseOutputText = new JTextField();
@@ -114,7 +107,7 @@ public class ScriptDialog extends JDialog {
 			add(OutputPanel, GuiUtil.setConstraints(0,4,1.0,0.0,GridBagConstraints.BOTH,5,5,5,5));	
 			
 			JButton saveButton = new JButton(Translator.I18N.getString("ade_manager.scriptDialog.outputPanel.title"));
-			add(saveButton, GuiUtil.setConstraints(0,5,0.0,0.0,GridBagConstraints.NONE,5,5,5,5));
+			add(saveButton, GuiUtil.setConstraints(0,5,0.0,0.0,GridBagConstraints.NONE,5,5,15,5));
 			
 			browserOutputButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
@@ -167,13 +160,13 @@ public class ScriptDialog extends JDialog {
 			});
 		}
 
-		setPreferredSize(new Dimension(900, 900));
+		setPreferredSize(new Dimension(800, 800));
 		setResizable(true);
 		pack();		
 	}
 	
 	public JButton getButton() {
-		return this.installbutton;
+		return this.installButton;
 	}
 	
 	public DBSQLScript getScript() {
