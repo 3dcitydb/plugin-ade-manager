@@ -29,6 +29,7 @@ package org.citydb.plugins.ade_manager.registry.schema.adapter;
 
 import org.citydb.citygml.deleter.concurrent.DBDeleteWorkerFactory;
 import org.citydb.citygml.deleter.database.BundledConnection;
+import org.citydb.citygml.deleter.util.InternalConfig;
 import org.citydb.citygml.exporter.database.content.DBSplittingResult;
 import org.citydb.concurrent.SingleWorkerPool;
 import org.citydb.concurrent.WorkerPool;
@@ -117,7 +118,7 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		try {
 			dbWorkerPool = new SingleWorkerPool<>(
 					"db_deleter_pool",
-					new DBDeleteWorkerFactory(bundledConnection, new Config(), eventDispatcher),
+					new DBDeleteWorkerFactory(bundledConnection, new InternalConfig(), new Config(), eventDispatcher),
 					300,
 					false);
 
