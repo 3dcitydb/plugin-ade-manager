@@ -113,7 +113,7 @@ public class ADERegistryPanel extends OperationModuleView {
 		browseRegistryContentPanel.add(browseRegistryButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,0));
 		browseRegistryPanel.build(browseRegistryContentPanel);
 		browseRegistryPanel.remove(browseRegistryContentPanel);
-		browseRegistryPanel.add(browseRegistryContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+		browseRegistryPanel.add(browseRegistryContentPanel, GuiUtil.setConstraints(0, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 
 		int index = 0;
 		JPanel adeButtonsPanel = new JPanel();

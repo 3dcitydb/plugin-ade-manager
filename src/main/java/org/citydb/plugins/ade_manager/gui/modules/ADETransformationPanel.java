@@ -95,7 +95,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		browseXMLSchemaContentPanel.add(browseXMLSchemaButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,0));
 		browseXMLSchemaPanel.build(browseXMLSchemaContentPanel);
 		browseXMLSchemaPanel.remove(browseXMLSchemaContentPanel);
-		browseXMLSchemaPanel.add(browseXMLSchemaContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+		browseXMLSchemaPanel.add(browseXMLSchemaContentPanel, GuiUtil.setConstraints(0, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 
 		// Schema table panel
 		schemaTable = new JTable(schemaTableModel);
@@ -115,7 +115,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		nameInputField.setColumns(10);
 		namePanel.build(nameContentPanel);
 		namePanel.remove(nameContentPanel);
-		namePanel.add(nameContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+		namePanel.add(nameContentPanel, GuiUtil.setConstraints(0, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 
 		descriptionPanel = new TitledPanel().withMargin(new Insets(0,BORDER_THICKNESS,BORDER_THICKNESS,0));
 		JPanel descriptionContentPanel = new JPanel();
@@ -124,7 +124,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		descriptionInputField.setColumns(10);
 		descriptionPanel.build(descriptionContentPanel);
 		descriptionPanel.remove(descriptionContentPanel);
-		descriptionPanel.add(descriptionContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+		descriptionPanel.add(descriptionContentPanel, GuiUtil.setConstraints(0, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 		
 		versionPanel = new TitledPanel().withMargin(new Insets(0,BORDER_THICKNESS,BORDER_THICKNESS,0));
 		JPanel versionContentPanel = new JPanel();
@@ -133,7 +133,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		versionInputField.setColumns(10);
 		versionPanel.build(versionContentPanel);
 		versionPanel.remove(versionContentPanel);
-		versionPanel.add(versionContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+		versionPanel.add(versionContentPanel, GuiUtil.setConstraints(0, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 		
 		dbPrefixPanel = new TitledPanel().withMargin(new Insets(0,BORDER_THICKNESS,BORDER_THICKNESS,0));
 		JPanel dbPrefixContentPanel = new JPanel();
@@ -142,7 +142,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		dbPrefixInputField.setColumns(10);
 		dbPrefixPanel.build(dbPrefixContentPanel);
 		dbPrefixPanel.remove(dbPrefixContentPanel);
-		dbPrefixPanel.add(dbPrefixContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+		dbPrefixPanel.add(dbPrefixContentPanel, GuiUtil.setConstraints(0, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 
 		initObjectClassIdPanel = new TitledPanel().withMargin(new Insets(0,BORDER_THICKNESS,BORDER_THICKNESS,0));
 		JPanel initObjectClassIdContentPanel = new JPanel();
@@ -151,7 +151,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		initObjectClassIdInputField.setColumns(10);
 		initObjectClassIdPanel.build(initObjectClassIdContentPanel);
 		initObjectClassIdPanel.remove(initObjectClassIdContentPanel);
-		initObjectClassIdPanel.add(initObjectClassIdContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+		initObjectClassIdPanel.add(initObjectClassIdContentPanel, GuiUtil.setConstraints(0, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 
 		Box box = Box.createVerticalBox();	
 		box.add(namePanel);
@@ -176,7 +176,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		transformationOutputContentPanel.add(browserOutputButton, GuiUtil.setConstraints(1,0,0.0,0.0,GridBagConstraints.NONE,BORDER_THICKNESS,BORDER_THICKNESS,BORDER_THICKNESS,0));
 		transformationOutputPanel.build(transformationOutputContentPanel);
 		transformationOutputPanel.remove(transformationOutputContentPanel);
-		transformationOutputPanel.add(transformationOutputContentPanel, GuiUtil.setConstraints(1, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
+		transformationOutputPanel.add(transformationOutputContentPanel, GuiUtil.setConstraints(0, 1, 1, 1, GridBagConstraints.BOTH, 0, 0, BORDER_THICKNESS, 0));
 
 		component = new JPanel();
 		component.setLayout(new GridBagLayout());
