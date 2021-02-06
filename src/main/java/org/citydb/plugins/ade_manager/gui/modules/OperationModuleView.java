@@ -33,7 +33,6 @@ import org.citydb.database.DatabaseController;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
-import org.citydb.gui.modules.database.operations.DatabaseOperationView;
 import org.citydb.log.Logger;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
@@ -42,10 +41,11 @@ import org.citydb.plugins.ade_manager.util.Translator;
 import org.citydb.registry.ObjectRegistry;
 
 import javax.swing.*;
+import java.awt.*;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 
-public abstract class OperationModuleView extends DatabaseOperationView implements EventHandler{
+public abstract class OperationModuleView implements EventHandler {
 	protected static final int BORDER_THICKNESS = 5;
 	protected static final int MINIMUM_REQUIRED_ORACLE_VERSION = 11;
 
@@ -63,6 +63,11 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 		this.config = config;
 		this.viewController = parentPanel.getViewController();
 	}
+
+	public abstract Component getViewComponent();
+	public abstract void doTranslation();
+	public abstract void loadSettings();
+	public abstract void setSettings();
 	
 	protected void printErrorMessage(Exception e) {
 		printErrorMessage("An unexpected error occurred.", e);

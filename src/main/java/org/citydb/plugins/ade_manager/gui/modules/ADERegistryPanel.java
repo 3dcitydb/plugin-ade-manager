@@ -29,11 +29,12 @@ package org.citydb.plugins.ade_manager.gui.modules;
 
 import org.citydb.ade.ADEExtensionManager;
 import org.citydb.config.i18n.Language;
-import org.citydb.config.project.database.DatabaseOperationType;
 import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.database.schema.mapping.SchemaMappingException;
 import org.citydb.database.schema.mapping.SchemaMappingValidationException;
 import org.citydb.event.Event;
+import org.citydb.event.global.DatabaseConnectionStateEvent;
+import org.citydb.event.global.EventType;
 import org.citydb.gui.components.common.TitledPanel;
 import org.citydb.gui.factory.PopupMenuDecorator;
 import org.citydb.gui.modules.database.util.ADEInfoDialog;
@@ -82,7 +83,8 @@ public class ADERegistryPanel extends OperationModuleView {
 	public ADERegistryPanel(ADEManagerPanel parentPanel, ConfigImpl config) {
 		super(parentPanel, config);
 		this.adeRegistrationController = new ADERegistrationController(config);
-		eventDispatcher.addEventHandler(org.citydb.plugins.ade_manager.event.EventType.SCRIPT_CREATION_EVENT, this);		
+		eventDispatcher.addEventHandler(org.citydb.plugins.ade_manager.event.EventType.SCRIPT_CREATION_EVENT, this);
+		eventDispatcher.addEventHandler(EventType.DATABASE_CONNECTION_STATE, this);
 		initGui();
 	}
 	
@@ -92,13 +94,9 @@ public class ADERegistryPanel extends OperationModuleView {
 
 		// ADE table panel
 		adeTable = new JTable(adeTableModel);
+		adeTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		adeTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		adeTable.setShowVerticalLines(true);
-		adeTable.setShowHorizontalLines(true);
-		adeTable.setCellSelectionEnabled(false);
-		adeTable.setColumnSelectionAllowed(false);
-		adeTable.setRowSelectionAllowed(true);
-		adeTable.setRowHeight(20);
 		JScrollPane adeTableScrollPanel = new JScrollPane(adeTable);
 		adeTableScrollPanel.setPreferredSize(new Dimension(adeTable.getPreferredSize().width, 120));
 
@@ -178,31 +176,6 @@ public class ADERegistryPanel extends OperationModuleView {
 		
 		browseRegistryButton.addActionListener(e -> browserRegistryInputDirectory());
 	}
-	
-	@Override
-	public String getLocalizedTitle() {
-		return Translator.I18N.getString("ade_manager.registryPanel.title");
-	}
-
-	@Override
-	public Component getViewComponent() {
-		return component;
-	}
-
-	@Override
-	public String getToolTip() {
-		return null;
-	}
-
-	@Override
-	public Icon getIcon() {
-		return null;
-	}
-
-	@Override
-	public DatabaseOperationType getType() {
-		return null;
-	}
 
 	@Override
 	public void doTranslation() {
@@ -221,11 +194,6 @@ public class ADERegistryPanel extends OperationModuleView {
 		removeADEButton.setText(Translator.I18N.getString("ade_manager.operationsPanel.button.remove"));
 		generateDeleteScriptsButton.setText(Translator.I18N.getString("ade_manager.operationsPanel.button.gen_delete_script"));
 		generateEnvelopeScriptsButton.setText(Translator.I18N.getString("ade_manager.operationsPanel.button.gen_envelope_script"));
-	}
-
-	@Override
-	public void setEnabled(boolean enable) {
-		// nothing to do
 	}
 
 	@Override
@@ -513,7 +481,15 @@ public class ADERegistryPanel extends OperationModuleView {
 			    scriptDialog.setLocationRelativeTo(parentPanel.getTopLevelAncestor());
 			    scriptDialog.setVisible(true);
 		    });
-        }
+        } else if (event.getEventType() == EventType.DATABASE_CONNECTION_STATE) {
+			if (!((DatabaseConnectionStateEvent) event).isConnected()) {
+				adeTableModel.reset();
+			}
+		}
 	}
 
+	@Override
+	public Component getViewComponent() {
+		return component;
+	}
 }

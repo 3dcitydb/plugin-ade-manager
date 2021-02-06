@@ -28,8 +28,8 @@
 package org.citydb.plugins.ade_manager.gui.modules;
 
 import org.citydb.config.i18n.Language;
-import org.citydb.config.project.database.DatabaseOperationType;
 import org.citydb.event.Event;
+import org.citydb.gui.components.common.TitledPanel;
 import org.citydb.gui.factory.PopupMenuDecorator;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
@@ -54,7 +54,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 public class ADETransformationPanel extends OperationModuleView {	
-	private JPanel component;
+	private TitledPanel component;
 	private final JLabel browseXMLSchemaLabel = new JLabel();
 	private final JTextField browseXMLSchemaText = new JTextField();
 	private final JButton browseXMLSchemaButton = new JButton();
@@ -96,10 +96,6 @@ public class ADETransformationPanel extends OperationModuleView {
 		// Schema table panel
 		schemaTable = new JTable(schemaTableModel);
 		schemaTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-		schemaTable.setCellSelectionEnabled(false);
-		schemaTable.setColumnSelectionAllowed(false);
-		schemaTable.setRowSelectionAllowed(true);
-		schemaTable.setRowHeight(20);
 
 		schemaTable.getTableHeader().setDefaultRenderer(new TableCellRenderer(schemaTable.getTableHeader().getDefaultRenderer()));
 		for (int i = 0; i < schemaTable.getColumnModel().getColumnCount(); i++) {
@@ -144,11 +140,13 @@ public class ADETransformationPanel extends OperationModuleView {
 		transformationOutputPanel.add(browserOutputButton, GuiUtil.setConstraints(2, 0, 0, 0, GridBagConstraints.NONE, 0, BORDER_THICKNESS, 0, 0));
 		transformationOutputPanel.add(transformAndExportButton, GuiUtil.setConstraints(0, 1, 3, 1, 1, 0, GridBagConstraints.NONE, BORDER_THICKNESS * 3, 0, 0, 0));
 
-		component = new JPanel();
-		component.setLayout(new GridBagLayout());
-		component.add(browseXMLSchemaPanel, GuiUtil.setConstraints(0, 0, 1, 0, GridBagConstraints.BOTH, 0, 0, 0, 0));
-		component.add(schemaAndMetadataPanel, GuiUtil.setConstraints(0, 1, 1, 0, GridBagConstraints.BOTH, BORDER_THICKNESS * 5, 0, 0, 0));
-		component.add(transformationOutputPanel, GuiUtil.setConstraints(0, 2, 1, 0, GridBagConstraints.BOTH, BORDER_THICKNESS * 5, 0, 0, 0));
+		JPanel content = new JPanel();
+		content.setLayout(new GridBagLayout());
+		content.add(browseXMLSchemaPanel, GuiUtil.setConstraints(0, 0, 1, 0, GridBagConstraints.BOTH, 0, 0, 0, 0));
+		content.add(schemaAndMetadataPanel, GuiUtil.setConstraints(0, 1, 1, 0, GridBagConstraints.BOTH, BORDER_THICKNESS * 5, 0, 0, 0));
+		content.add(transformationOutputPanel, GuiUtil.setConstraints(0, 2, 1, 0, GridBagConstraints.BOTH, BORDER_THICKNESS * 5, 0, 0, 0));
+
+		component = new TitledPanel().build(content);
 
 		PopupMenuDecorator.getInstance().decorate(browseXMLSchemaText, browseOutputText, nameInputField,
 				descriptionInputField, versionInputField, dbPrefixInputField, initObjectClassIdInputField);
@@ -195,6 +193,8 @@ public class ADETransformationPanel extends OperationModuleView {
 		browseOutputLabel.setText(Translator.I18N.getString("ade_manager.transformationPanel.transformationOutputPanel.label"));
 		browserOutputButton.setText(Language.I18N.getString("common.button.browse"));
 		transformAndExportButton.setText(Translator.I18N.getString("ade_manager.transformationPanel.button.transformAndExport"));
+
+		component.setTitle(Translator.I18N.getString("ade_manager.transformationPanel.title"));
 	}
 
 	public void loadSettings() {
@@ -444,33 +444,7 @@ public class ADETransformationPanel extends OperationModuleView {
 	}
 
 	@Override
-	public DatabaseOperationType getType() {
-		return null;
-	}
-
-	@Override
-	public void setEnabled(boolean enable) {
-		// nothing to do
-	}
-
-	@Override
-	public String getLocalizedTitle() {
-		return Translator.I18N.getString("ade_manager.transformationPanel.title");
-	}
-
-	@Override
 	public Component getViewComponent() {
 		return component;
 	}
-
-	@Override
-	public String getToolTip() {
-		return null;
-	}
-
-	@Override
-	public Icon getIcon() {
-		return null;
-	}
-
 }

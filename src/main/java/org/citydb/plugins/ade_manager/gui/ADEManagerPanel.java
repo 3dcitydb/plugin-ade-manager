@@ -27,10 +27,6 @@
  */
 package org.citydb.plugins.ade_manager.gui;
 
-import org.citydb.event.Event;
-import org.citydb.event.EventHandler;
-import org.citydb.event.global.DatabaseConnectionStateEvent;
-import org.citydb.gui.components.common.TitledPanel;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
@@ -42,10 +38,9 @@ import org.citydb.plugins.ade_manager.gui.modules.OperationModuleView;
 import javax.swing.*;
 import java.awt.*;
 
-public class ADEManagerPanel extends JPanel implements EventHandler {
+public class ADEManagerPanel extends JPanel {
 	private OperationModuleView registryModule;
 	private OperationModuleView transformationModule;
-	private TitledPanel transformationPanel;
 	private final ViewController viewController;
 	private final ConfigImpl config;
 	
@@ -62,13 +57,12 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 	private void initGui() {
 		transformationModule = new ADETransformationPanel(this, config);
 		registryModule = new ADERegistryPanel(this, config);
-		transformationPanel = new TitledPanel().build(transformationModule.getViewComponent());
 
 		JPanel mainScrollView = new JPanel();
 		mainScrollView.setLayout(new GridBagLayout());
 
 		mainScrollView.add(registryModule.getViewComponent(), GuiUtil.setConstraints(0, 0, 1, 0, GridBagConstraints.BOTH, 0, 10, 0, 10));
-		mainScrollView.add(transformationPanel, GuiUtil.setConstraints(0, 1, 1, 0, GridBagConstraints.BOTH, 0, 10, 0, 10));
+		mainScrollView.add(transformationModule.getViewComponent(), GuiUtil.setConstraints(0, 1, 1, 0, GridBagConstraints.BOTH, 0, 10, 0, 10));
 		mainScrollView.add(Box.createVerticalGlue(), GuiUtil.setConstraints(0, 2, 1, 1, GridBagConstraints.BOTH, 0, 10, 0, 10));
 
 		JScrollPane mainScrollPanel = new JScrollPane(mainScrollView);
@@ -83,7 +77,6 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 	public void doTranslation() {
 		registryModule.doTranslation();
 		transformationModule.doTranslation();
-		transformationPanel.setTitle(transformationModule.getLocalizedTitle());
 	}
 
 	public void loadSettings() {
@@ -95,11 +88,4 @@ public class ADEManagerPanel extends JPanel implements EventHandler {
 		registryModule.setSettings();
 		transformationModule.setSettings();
 	}
-
-	public void handleEvent(Event event) throws Exception {
-		DatabaseConnectionStateEvent state = (DatabaseConnectionStateEvent)event;
-		registryModule.handleDatabaseConnectionStateEvent(state);
-		transformationModule.handleDatabaseConnectionStateEvent(state);
-	}
-
 }
