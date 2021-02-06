@@ -34,10 +34,8 @@ import java.util.List;
 
 import javax.swing.table.AbstractTableModel;
 
-@SuppressWarnings("serial")
 public class TableModel<T extends TableRowDefaultImpl> extends AbstractTableModel {
-
-	private String[] columnNames = null;
+	private final String[] columnNames;
 	private List<T> rows = new ArrayList<T>();
 
 	public TableModel(String[] columnNames) {
@@ -85,8 +83,9 @@ public class TableModel<T extends TableRowDefaultImpl> extends AbstractTableMode
 	}
 
 	public void removeRow(int[] index) {
-		if (index == null || index.length < 0)
+		if (index == null)
 			return;
+
 		Arrays.sort(index);
 		for (int j = index.length - 1; j >= 0; j--) {
 			if (index[j] < rows.size()) {

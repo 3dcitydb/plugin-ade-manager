@@ -45,7 +45,7 @@ import org.citydb.plugins.ade_manager.registry.query.Querier;
 
 public abstract class DefaultDBScriptGenerator implements DBScriptGenerator {
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();	
-	protected final Logger LOG = Logger.getInstance();	
+	protected final Logger log = Logger.getInstance();
 	protected final String br = System.lineSeparator();
 	protected final String commentPrefix = "-- ";
 	protected final String separatorLine = "------------------------------------------";
