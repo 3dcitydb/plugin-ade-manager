@@ -273,17 +273,15 @@ public class ADETransformationPanel extends OperationModuleView {
 
 	private void parseADESchema() {
 		viewController.clearConsole();
+		schemaTableModel.reset();
 
 		if (browseXMLSchemaText.getText().trim().isEmpty()) {
 			viewController.errorMessage(Translator.I18N.getString("ade_manager.error.incomplete.title"),
 					Translator.I18N.getString("ade_manager.error.incomplete.schema"));
-			schemaTable.clearSelection();
 			setEnabledMetadataSettings(false);
 			return;
 		}
 
-		schemaTableModel.reset();
-		
 		final StatusDialog statusDialog = new StatusDialog(viewController.getTopFrame(),
 				Translator.I18N.getString("ade_manager.dialog.transformation.title"),
 				Translator.I18N.getString("ade_manager.dialog.parse.message"));
@@ -306,6 +304,7 @@ public class ADETransformationPanel extends OperationModuleView {
 			setEnabledMetadataSettings(true);
 		} catch (TransformationException e) {
 			printErrorMessage("Failed to parse ADE schema.", e);
+			setEnabledMetadataSettings(false);
 		} finally {
 			SwingUtilities.invokeLater(statusDialog::dispose);
 		}
