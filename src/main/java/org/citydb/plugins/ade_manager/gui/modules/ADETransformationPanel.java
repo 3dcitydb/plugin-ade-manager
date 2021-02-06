@@ -238,6 +238,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		dbPrefixInputField.setEnabled(enable);
 		initObjectClassIdLabel.setEnabled(enable);
 		initObjectClassIdInputField.setEnabled(enable);
+		browseOutputLabel.setEnabled(enable);
 		browseOutputText.setEnabled(enable);
 		browserOutputButton.setEnabled(enable);
 		transformAndExportButton.setEnabled(enable);
