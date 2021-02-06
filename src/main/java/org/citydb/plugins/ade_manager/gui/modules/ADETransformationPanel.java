@@ -36,6 +36,7 @@ import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
 import org.citydb.plugins.ade_manager.gui.table.ADESchemaNamespaceRow;
+import org.citydb.plugins.ade_manager.gui.table.TableCellRenderer;
 import org.citydb.plugins.ade_manager.gui.table.TableModel;
 import org.citydb.plugins.ade_manager.transformation.TransformationController;
 import org.citydb.plugins.ade_manager.transformation.TransformationException;
@@ -99,6 +100,13 @@ public class ADETransformationPanel extends OperationModuleView {
 		schemaTable.setColumnSelectionAllowed(false);
 		schemaTable.setRowSelectionAllowed(true);
 		schemaTable.setRowHeight(20);
+
+		schemaTable.getTableHeader().setDefaultRenderer(new TableCellRenderer(schemaTable.getTableHeader().getDefaultRenderer()));
+		for (int i = 0; i < schemaTable.getColumnModel().getColumnCount(); i++) {
+			schemaTable.getColumnModel().getColumn(i).setCellRenderer(
+					new TableCellRenderer(schemaTable.getDefaultRenderer(schemaTableModel.getColumnClass(i))));
+		}
+
 		JScrollPane schemaPanel = new JScrollPane(schemaTable);
 		schemaPanel.setPreferredSize(new Dimension(browseXMLSchemaText.getPreferredSize().width, 200));
 
@@ -244,6 +252,8 @@ public class ADETransformationPanel extends OperationModuleView {
 		browseOutputText.setEnabled(enable);
 		browserOutputButton.setEnabled(enable);
 		transformAndExportButton.setEnabled(enable);
+		schemaTable.getTableHeader().setEnabled(enable);
+		schemaTable.setEnabled(enable);
 	}
 
 	private void browseTransformationOutputDirectory() {
@@ -267,6 +277,8 @@ public class ADETransformationPanel extends OperationModuleView {
 		if (browseXMLSchemaText.getText().trim().isEmpty()) {
 			viewController.errorMessage(Translator.I18N.getString("ade_manager.error.incomplete.title"),
 					Translator.I18N.getString("ade_manager.error.incomplete.schema"));
+			schemaTable.clearSelection();
+			setEnabledMetadataSettings(false);
 			return;
 		}
 
