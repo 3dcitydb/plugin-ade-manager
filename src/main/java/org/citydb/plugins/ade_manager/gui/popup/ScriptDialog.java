@@ -95,7 +95,7 @@ public class ScriptDialog extends JDialog {
 			outputPanel.add(browserOutputButton, GuiUtil.setConstraints(2, 0, 0, 0, GridBagConstraints.NONE, 0, 5, 0, 0));
 
 			JButton saveButton = new JButton(Translator.I18N.getString("ade_manager.scriptDialog.outputPanel.button"));
-			JButton cancelButton = new JButton(Language.I18N.getString("common.button.cancel"));
+			JButton cancelButton = new JButton(Language.I18N.getString("common.button.ok"));
 			Box box = Box.createHorizontalBox();
 			box.add(saveButton);
 			if (!autoInstall) {

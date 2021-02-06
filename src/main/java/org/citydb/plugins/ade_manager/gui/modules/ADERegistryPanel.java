@@ -130,43 +130,51 @@ public class ADERegistryPanel extends OperationModuleView {
 
 		adeTable.addMouseListener(new MouseAdapter() {
 			public void mousePressed(MouseEvent e) {
-				if (e.getClickCount() == 2) {
-					Thread thread = new Thread(() -> showADEInfoDialog());
-					thread.setDaemon(true);
-					thread.start();
+				if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
+					new SwingWorker<Void, Void>() {
+						protected Void doInBackground() {
+							showADEInfoDialog();
+							return null;
+						}
+					}.execute();
 				}
 			}
 		});
 
-		fetchADEsButton.addActionListener(e -> {
-			Thread thread = new Thread(this::showRegisteredADEs);
-			thread.setDaemon(true);
-			thread.start();
-		});
+		fetchADEsButton.addActionListener(e -> new SwingWorker<Void, Void>() {
+			protected Void doInBackground() {
+				showRegisteredADEs();
+				return null;
+			}
+		}.execute());
 		
-		registerADEButton.addActionListener(e -> {
-			Thread thread = new Thread(this::registerADE);
-			thread.setDaemon(true);
-			thread.start();
-		});
+		registerADEButton.addActionListener(e -> new SwingWorker<Void, Void>() {
+			protected Void doInBackground() {
+				registerADE();
+				return null;
+			}
+		}.execute());
 		
-		removeADEButton.addActionListener(e -> {
-			Thread thread = new Thread(this::deregisterADE);
-			thread.setDaemon(true);
-			thread.start();
-		});
+		removeADEButton.addActionListener(e -> new SwingWorker<Void, Void>() {
+			protected Void doInBackground() {
+				deregisterADE();
+				return null;
+			}
+		}.execute());
 		
-		generateDeleteScriptsButton.addActionListener(e -> {
-			Thread thread = new Thread(this::generateDeleteScripts);
-			thread.setDaemon(true);
-			thread.start();
-		});
+		generateDeleteScriptsButton.addActionListener(e -> new SwingWorker<Void, Void>() {
+			protected Void doInBackground() {
+				generateDeleteScripts();
+				return null;
+			}
+		}.execute());
 		
-		generateEnvelopeScriptsButton.addActionListener(e -> {
-			Thread thread = new Thread(this::generateEnvelopeScripts);
-			thread.setDaemon(true);
-			thread.start();
-		});
+		generateEnvelopeScriptsButton.addActionListener(e -> new SwingWorker<Void, Void>() {
+			protected Void doInBackground() {
+				generateEnvelopeScripts();
+				return null;
+			}
+		}.execute());
 		
 		browseRegistryButton.addActionListener(e -> browserRegistryInputDirectory());
 	}

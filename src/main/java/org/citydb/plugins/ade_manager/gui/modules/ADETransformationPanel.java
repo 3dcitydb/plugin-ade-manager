@@ -147,19 +147,21 @@ public class ADETransformationPanel extends OperationModuleView {
 
 		browseXMLSchemaButton.addActionListener(e -> browserXMLSchemaFile());
 		
-		readXMLSchemaButton.addActionListener(e -> {
-			Thread thread = new Thread(this::parseADESchema);
-			thread.setDaemon(true);
-			thread.start();
-		});
+		readXMLSchemaButton.addActionListener(e -> new SwingWorker<Void, Void>() {
+			protected Void doInBackground() {
+				parseADESchema();
+				return null;
+			}
+		}.execute());
 		
 		browserOutputButton.addActionListener(e -> browseTransformationOutputDirectory());
 				
-		transformAndExportButton.addActionListener(e -> {
-			Thread thread = new Thread(this::transformADESchema);
-			thread.setDaemon(true);
-			thread.start();
-		});
+		transformAndExportButton.addActionListener(e -> new SwingWorker<Void, Void>() {
+			protected Void doInBackground() {
+				transformADESchema();
+				return null;
+			}
+		}.execute());
 		
 		setEnabledMetadataSettings(false);
 	}
