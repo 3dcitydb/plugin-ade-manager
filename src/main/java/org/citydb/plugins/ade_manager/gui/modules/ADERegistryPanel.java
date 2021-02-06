@@ -278,6 +278,12 @@ public class ADERegistryPanel extends OperationModuleView {
 	private void registerADE() {
 		viewController.clearConsole();
 		setSettings();
+
+		if (browseRegistryText.getText().trim().isEmpty()) {
+			viewController.errorMessage(Translator.I18N.getString("ade_manager.error.incomplete.title"),
+					Translator.I18N.getString("ade_manager.error.incomplete.adeExtension"));
+			return;
+		}
 		
 		// database connection is required
 		try {

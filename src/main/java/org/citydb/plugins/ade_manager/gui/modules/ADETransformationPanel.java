@@ -261,6 +261,13 @@ public class ADETransformationPanel extends OperationModuleView {
 
 	private void parseADESchema() {
 		viewController.clearConsole();
+
+		if (browseXMLSchemaText.getText().trim().isEmpty()) {
+			viewController.errorMessage(Translator.I18N.getString("ade_manager.error.incomplete.title"),
+					Translator.I18N.getString("ade_manager.error.incomplete.schema"));
+			return;
+		}
+
 		schemaTableModel.reset();
 		
 		final StatusDialog statusDialog = new StatusDialog(viewController.getTopFrame(),
@@ -382,7 +389,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		if (selectedRowNums.length == 0) {
 			viewController.errorMessage(
 					Translator.I18N.getString("ade_manager.error.incomplete.title"),
-					Translator.I18N.getString("ade_manager.error.incomplete.schema"));
+					Translator.I18N.getString("ade_manager.error.incomplete.namespace"));
 			return;
 		}
 		
