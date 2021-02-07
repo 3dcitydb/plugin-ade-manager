@@ -82,7 +82,7 @@ public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 			DeleteFunction deleteFunction = new DeleteFunction(tableName, arrayDeleteFuncName, arrayDeleteDeclareField, schemaName);
 			functionCollection.put(arrayDeleteDeclareField, deleteFunction); 
 			constructArrayDeleteFunction(deleteFunction);
-			LOG.info("Delete-function '" + arrayDeleteFuncName + "' created." );
+			log.info("Delete function '" + arrayDeleteFuncName + "' created." );
 		}	
 		
 		// create single-delete function
@@ -92,7 +92,7 @@ public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 			DeleteFunction singleDeleteFunction = new DeleteFunction(tableName, singleDeleteFuncName, singleDeleteDeclareField, schemaName);
 			functionCollection.put(singleDeleteDeclareField, singleDeleteFunction); 
 			constructSingleDeleteFunction(singleDeleteFunction, arrayDeleteFuncName);
-			LOG.info("Delete-function '" + singleDeleteFuncName + "' created." );
+			log.info("Delete function '" + singleDeleteFuncName + "' created." );
 		}	
 	}
 	
@@ -101,24 +101,24 @@ public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 		DeleteFunction lineageDeleteFunction = new DeleteFunction(lineage_delete_funcname, schemaName);
 		constructLineageDeleteFunction(lineageDeleteFunction);
 		functionCollection.put(lineageDeleteFunction.getDeclareField(), lineageDeleteFunction);
-		LOG.info("Delete-function '" + lineage_delete_funcname + "' created." );
+		log.info("Delete function '" + lineage_delete_funcname + "' created." );
 
 		// Appearance cleanup function
 		DeleteFunction cleanupAppearancesFunction = new DeleteFunction(appearance_cleanup_funcname, schemaName);
 		constructAppearanceCleanupFunction(cleanupAppearancesFunction);
 		functionCollection.put(cleanupAppearancesFunction.getDeclareField(), cleanupAppearancesFunction);
-		LOG.info("Cleanup-function '" + appearance_cleanup_funcname + "' created." );
+		log.info("Cleanup-function '" + appearance_cleanup_funcname + "' created." );
 		
 		// Schema cleanup function
 		DeleteFunction cleanupSchemaFunction = new DeleteFunction(schema_cleanup_funcname, schemaName);
 		constructSchemaCleanupFunction(cleanupSchemaFunction);
 		functionCollection.put(cleanupSchemaFunction.getDeclareField(), cleanupSchemaFunction);
-		LOG.info("Cleanup-function '" + schema_cleanup_funcname + "' created." );
+		log.info("Cleanup-function '" + schema_cleanup_funcname + "' created." );
 		
 		// table cleanup function
 		DeleteFunction cleanupTableFunction = new DeleteFunction(table_cleanup_funcname, schemaName);
 		constructTableCleanupFunction(cleanupTableFunction);
 		functionCollection.put(cleanupTableFunction.getDeclareField(), cleanupTableFunction);
-		LOG.info("Cleanup-function '" + table_cleanup_funcname + "' created." );
+		log.info("Cleanup-function '" + table_cleanup_funcname + "' created." );
 	}
 }

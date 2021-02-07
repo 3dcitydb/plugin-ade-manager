@@ -94,7 +94,7 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 			EnvelopeFunction envelopeFunction = new EnvelopeFunction(tableName, funcName, schemaName);
 			functionCollection.put(funcName, envelopeFunction); 
 			constructEnvelopeFunction(envelopeFunction);
-			LOG.info("Envelope-function '" + funcName + "' created.");			
+			log.info("Envelope function '" + funcName + "' created.");
 		}			
 	}
 	
@@ -142,25 +142,25 @@ public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
 		EnvelopeFunction updateBoundsFunction = new EnvelopeFunction(update_bounds_funcname, schemaName);
 		constructUpdateBoundsFunction(updateBoundsFunction);
 		functionCollection.put(update_bounds_funcname, updateBoundsFunction);
-		LOG.info("Function '" + update_bounds_funcname + "' created." );
+		log.info("Function '" + update_bounds_funcname + "' created." );
 		
 		// box2envelope function
 		EnvelopeFunction box2envelopeFunction = new EnvelopeFunction(box2envelope_funcname, schemaName);
 		constructBox2EnvelopeFunction(box2envelopeFunction);;
 		functionCollection.put(box2envelope_funcname, box2envelopeFunction);
-		LOG.info("Function '" + box2envelope_funcname + "' created." );
+		log.info("Function '" + box2envelope_funcname + "' created." );
 		
 		// implicit geometry envelope function
 		EnvelopeFunction implicitGeomEnvelopeFunction = new EnvelopeFunction(implicitGeomEnvelope_funcname, schemaName);
 		constructImplicitGeomEnvelopeFunction(implicitGeomEnvelopeFunction);
 		functionCollection.put(implicitGeomEnvelope_funcname, implicitGeomEnvelopeFunction);
-		LOG.info("Function '" + implicitGeomEnvelope_funcname + "' created." );
+		log.info("Function '" + implicitGeomEnvelope_funcname + "' created." );
 
 		// cityobjects envelope function
 		EnvelopeFunction cityobjectsEnvelopeFunction = new EnvelopeFunction(get_envelope_cityobjects_funcname, schemaName);
 		constructCityobjectsEnvelopeFunction(cityobjectsEnvelopeFunction);
 		functionCollection.put(get_envelope_cityobjects_funcname, cityobjectsEnvelopeFunction);
-		LOG.info("Function '" + get_envelope_cityobjects_funcname + "' created." );
+		log.info("Function '" + get_envelope_cityobjects_funcname + "' created." );
 	}
 
 	private void fillCitydbSpatialTable(List<?> properties, CitydbSpatialTable citydbSpatialTable) {

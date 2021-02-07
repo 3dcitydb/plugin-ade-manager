@@ -61,9 +61,9 @@ public class TransformationController implements EventHandler {
 	
 	public void doProcess(List<String> adeNamespaces) throws TransformationException { 	
 		if (schemaHandler == null)
-			throw new TransformationException("SchemaHnadler has failed to initialize. ADE transformation cannot be started");
+			throw new TransformationException("Schema handler has failed to initialize. ADE transformation cannot be started.");
 				
-		LOG.info("Transforming ADE's XML schema to relational database schema...");
+		LOG.info("Transforming ADE XML schema to relational database schema...");
 		GraphTransformationManager aggGraphTransformationManager = new GraphTransformationManager(schemaHandler, adeNamespaces, config);
 		adeGraph = aggGraphTransformationManager.executeGraphTransformation();
 
@@ -71,12 +71,12 @@ public class TransformationController implements EventHandler {
 		DBScriptGenerator databaseScriptCreator = new DBScriptGenerator(adeGraph, config);
 		adeDatabaseSchema = databaseScriptCreator.createDatabaseScripts(); 
 		
-		LOG.info("Generating XML SchemaMapping file...");
+		LOG.info("Generating 3DCityDB schema mapping file...");
 		SchemaMappingCreator schemaMappingCreator = new SchemaMappingCreator(adeGraph, config);
     	try {
     		adeSchemaMapping = schemaMappingCreator.createSchemaMapping();
 		} catch (Exception e) {
-			throw new TransformationException("Error occurred while creating the XML schema Mapping file.", e);
+			throw new TransformationException("An error occurred while creating the 3DCityDB schema mapping file.", e);
 		} 
 	}
 	

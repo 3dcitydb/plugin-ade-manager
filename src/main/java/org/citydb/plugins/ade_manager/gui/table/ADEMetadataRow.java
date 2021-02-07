@@ -45,7 +45,7 @@ public class ADEMetadataRow extends TableRowDefaultImpl {
 			columnNames[1] = "Name";
 			columnNames[2] = "Description";
 			columnNames[3] = "Version";
-			columnNames[4] = "DB_Prefix";
+			columnNames[4] = "DB Prefix";
 			columnNames[5] = "Creation_Date";
 		}
 		return columnNames;
@@ -82,22 +82,23 @@ public class ADEMetadataRow extends TableRowDefaultImpl {
 	public void setValue(int col, Object obj) {
 		switch (col) {
 		case 0:
-			adeid = (String) obj;		
+			adeid = (String) obj;
+			break;
 		case 1:
 			name = (String) obj;
-			return;
+			break;
 		case 2:
 			description = (String) obj;
-			return;
+			break;
 		case 3:
 			version = (String) obj;
-			return;
+			break;
 		case 4:
 			dbPrefix = (String) obj;
-			return;
+			break;
 		case 5:
 			creationDate = (String) obj;
-			return;
+			break;
 		}		
 	}
 

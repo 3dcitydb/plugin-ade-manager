@@ -113,13 +113,13 @@ public class ADEMetadataManager {
 		} catch (JAXBException e) {
 			throw new SQLException(e);
 		} catch (SchemaMappingException | SchemaMappingValidationException e) {
-			throw new SQLException("The 3DCityDB schema mapping is invalid", e);
+			throw new SQLException("The 3DCityDB schema mapping is invalid.", e);
 		} 
 	
 		try {
 			validateSchemaMapping(inputADESchemaMapping);
 		} catch (SQLException e) {
-			throw new SQLException("Failed to read and process objectclass Ids, Aborting.", e);
+			throw new SQLException("Failed to read and process object class IDs. Aborting.", e);
 		}
 		
 		List<String> adeSchemaIds = new ArrayList<String>();	
@@ -133,7 +133,7 @@ public class ADEMetadataManager {
 		}		
 		
 		if (adeRootSchemaId == null)
-			throw new SQLException("Failed to import metadata, Cause: An ADE must have a root schema");
+			throw new SQLException("Failed to import metadata. Cause: An ADE must have a root schema.");
 	
 		long insertedADERowId;
 		String insertADEQueryStr = "INSERT INTO " + schema + ".ADE"
@@ -330,7 +330,7 @@ public class ADEMetadataManager {
 		}
 		
 		if (dropDBScript == null) 
-			throw new SQLException("The script for dropping ADE database schema is not available");
+			throw new SQLException("The script for dropping ADE database schema is not available.");
 		
 		return dropDBScript;
 	}
@@ -493,7 +493,7 @@ public class ADEMetadataManager {
 					SchemaMapping adeSchemaMapping = SchemaMappingUtil.getInstance().unmarshal(schemaMapping, stream);	
 					schemaMapping.merge(adeSchemaMapping);
 				} catch (SchemaMappingException | SchemaMappingValidationException | JAXBException e) {
-					throw new SQLException("Faild to read the schema mapping file of the ADE "+ ade.getName() + "from 3DCityDB.", e);
+					throw new SQLException("Failed to read the schema mapping file of the ADE "+ ade.getName() + " from 3DCityDB.", e);
 				}
 			}
 		}
@@ -920,7 +920,7 @@ public class ADEMetadataManager {
 	private void validateSchemaMapping(SchemaMapping schemaMapping) throws SQLException {
 		String dbPrefix = schemaMapping.getMetadata().getDBPrefix();
 		if (!validateDBPrefix(dbPrefix))
-			throw new SQLException("The DB_Prefix '" + dbPrefix + "'" + " is invalid, because it has already been reserved by other registered ADEs");		
+			throw new SQLException("The database prefix '" + dbPrefix + "'" + " is invalid because it is already used by another registered ADE.");
 		
 		Iterator<AbstractObjectType<?>> iter = schemaMapping.getAbstractObjectTypes().iterator();
 		while (iter.hasNext()) {
@@ -928,7 +928,7 @@ public class ADEMetadataManager {
 			int objectclassId = objectclass.getObjectClassId();
 			
 			if (!validateObjectclassId(objectclassId))
-				throw new SQLException("The objectclass Id '" + objectclassId + "'" + " is invalid, because it has already been reserved by other class");							
+				throw new SQLException("The object class ID '" + objectclassId + "'" + " is invalid because it is already used by another class.");
 		}
 	}
 
@@ -942,7 +942,7 @@ public class ADEMetadataManager {
 			
 			return hex.toString();
 		} catch (IOException | NoSuchAlgorithmException e) {
-			throw new SQLException("Failed to create fingerpint for ADE schema-mapping file", e);
+			throw new SQLException("Failed to create fingerpint for ADE schema-mapping file.", e);
 		} 	
 	}
 

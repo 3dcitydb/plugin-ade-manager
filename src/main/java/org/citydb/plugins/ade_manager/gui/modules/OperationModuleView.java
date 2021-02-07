@@ -33,7 +33,6 @@ import org.citydb.database.DatabaseController;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
-import org.citydb.gui.modules.database.operations.DatabaseOperationView;
 import org.citydb.log.Logger;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
@@ -42,15 +41,15 @@ import org.citydb.plugins.ade_manager.util.Translator;
 import org.citydb.registry.ObjectRegistry;
 
 import javax.swing.*;
+import java.awt.*;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 
-public abstract class OperationModuleView extends DatabaseOperationView implements EventHandler{
-	protected static final int BORDER_THICKNESS = 2;
-	protected static final int BUTTON_WIDTH = 170;
+public abstract class OperationModuleView implements EventHandler {
+	protected static final int BORDER_THICKNESS = 5;
 	protected static final int MINIMUM_REQUIRED_ORACLE_VERSION = 11;
 
-	protected final Logger LOG = Logger.getInstance();	
+	protected final Logger log = Logger.getInstance();
 	protected final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	protected final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();	
@@ -58,25 +57,27 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 
 	protected JPanel parentPanel;
 	protected final ConfigImpl config;
-	protected int standardButtonHeight = (new JButton("D")).getPreferredSize().height;
 
 	public OperationModuleView(ADEManagerPanel parentPanel, ConfigImpl config) {
 		this.parentPanel = parentPanel;
 		this.config = config;
 		this.viewController = parentPanel.getViewController();
 	}
+
+	public abstract Component getViewComponent();
+	public abstract void doTranslation();
+	public abstract void loadSettings();
+	public abstract void setSettings();
 	
 	protected void printErrorMessage(Exception e) {
-		printErrorMessage("Unexpected Error", e);
+		printErrorMessage("An unexpected error occurred.", e);
 	}
-	
+
 	protected void printErrorMessage(String info, Exception e) {
-		LOG.error(info + ". Cause: " + e.getMessage());			
-		Throwable cause = e.getCause();
-		while (cause != null) {
-			LOG.error("Cause: " + cause.getMessage());
-			cause = cause.getCause();
-		}
+		viewController.errorMessage(
+				Translator.I18N.getString("ade_manager.error.title"),
+				Translator.I18N.getString("ade_manager.error.message"));
+		log.error(info, e);
 	}
 	
 	protected void checkAndConnectToDB() throws SQLException {
@@ -90,7 +91,7 @@ public abstract class OperationModuleView extends DatabaseOperationView implemen
 				databaseController.connect(true);
 			}
 			else
-				throw new SQLException("Database is not connected");
+				throw new SQLException("Database is not connected.");
 		}
 
 		if (dbPool.getActiveDatabaseAdapter().getDatabaseType() == DatabaseType.ORACLE) {

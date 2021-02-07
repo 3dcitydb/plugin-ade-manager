@@ -49,10 +49,10 @@ import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManagerFactory;
 import org.citydb.registry.ObjectRegistry;
 
 public class ADERegistrationController {
-	private final Logger LOG = Logger.getInstance();
+	private final Logger log = Logger.getInstance();
 	private final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();	
 	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();		
-	private ConfigImpl config;
+	private final ConfigImpl config;
 	private Connection connection;
 	
 	public ADERegistrationController(ConfigImpl config) {
@@ -65,55 +65,55 @@ public class ADERegistrationController {
 			// disable database auto-commit in order to enable rolling back database transactions
 			connection.setAutoCommit(false);
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to initialize a database connection (connection = NULL).");			
+			throw new ADERegistrationException("Failed to connect to database.");
 		}	
 	}
 
 	public boolean registerADE() throws ADERegistrationException {
-		LOG.info("ADE Registration started...");
+		log.info("ADE registration started...");
 
 		// import ADE metadata from schema mapping file into database	
-		LOG.info("Importing ADE metadata into database...");			
+		log.info("Importing ADE metadata into database...");
 		ADEMetadataManager adeMetadataManager = null;
 		try {
 			adeMetadataManager = new ADEMetadataManager(connection, config);
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to initilize ADE Metadata-Manager", e);
+			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}
 		try {						
 			adeMetadataManager.importADEMetadata();
 		} catch (SQLException e) {				
-			throw new ADERegistrationException("Failed to import ADE metadata into database", e);
+			throw new ADERegistrationException("Failed to import ADE metadata into database.", e);
 		}		
 		
 		// create database tables, FKs, indexes, and sequences etc. 
-		LOG.info("Creating ADE database schema...");		
+		log.info("Creating ADE database schema...");
 		ADEDBSchemaManager adeDatabasSchemaManager = ADEDBSchemaManagerFactory.getInstance()
 				.createADEDatabaseSchemaManager(connection, config);
 		try {	
 			adeDatabasSchemaManager.createADEDatabaseSchema();
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to create ADE database schema", e);
+			throw new ADERegistrationException("Failed to create ADE database schema.", e);
 		} 	
 		
 		// create and install delete-functions.
-		LOG.info("Creating and installing delete-function...");
+		log.info("Creating and installing delete functions...");
 		try {	
 			DBSQLScript deleteScript = createDeleteScripts();
 			installDBScript(deleteScript);			
 			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, true, this));
 		} catch (ADERegistrationException e) {
-			LOG.info("Failed to create and install delete-script into database. (Skipped)");
+			log.info("Failed to create and install delete functions in database (skipped).");
 		} 	
 		
 		// create and install envelope-functions.
-		LOG.info("Creating and installing envelope-function...");
+		log.info("Creating and installing envelope functions...");
 		try {	
 			DBSQLScript envelopeScript = createEnvelopeScripts();
 			installDBScript(envelopeScript);	
 			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, true, this));
 		} catch (ADERegistrationException e) {
-			LOG.info("Failed to create and install envelope-script into database. (Skipped)");
+			log.info("Failed to create and install envelope functions into database (skipped).");
 		} 	
 
 		return true;
@@ -130,53 +130,53 @@ public class ADERegistrationController {
 		ADEDBSchemaManager adeDatabasSchemaManager = ADEDBSchemaManagerFactory.getInstance()
 				.createADEDatabaseSchemaManager(connection, config);
 		// Step 1: Cleanup ADE data content by calling the corresponding delete-functions
-		LOG.info("Deleting ADE data content...");
+		log.info("Deleting ADE data content...");
 		try {
 			adeDatabasSchemaManager.cleanupADEData(adeId);
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to clean up ADE data", e);
+			throw new ADERegistrationException("Failed to clean up ADE data.", e);
 		}
 		
 		// Step 2: Dropping ADE database schema and delete-functions	
-		LOG.info("Dropping ADE database schema and all delete-functions...");
+		log.info("Dropping ADE database schema and all delete functions...");
 		try {	
 			adeDatabasSchemaManager.dropADEDatabaseSchema(adeId);
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to drop ADE database schema", e);
+			throw new ADERegistrationException("Failed to drop ADE database schema.", e);
 		} 
 		
 		// Step 3: Removing ADE metadata
-		LOG.info("Removing ADE Metadata");
+		log.info("Removing ADE metadata");
 		ADEMetadataManager adeMetadataManager = null;
 		try {
 			adeMetadataManager = new ADEMetadataManager(connection, config);
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to initilize ADE Metadata-Manager", e);
+			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}	
 		try {
 			adeMetadataManager.deleteADEMetadata(adeId);
 		} catch (SQLException e) {	
-			throw new ADERegistrationException("Failed to delete ADE metadata from database", e);
+			throw new ADERegistrationException("Failed to delete ADE metadata from database.", e);
 		} 		
 
 		// Step 4: re-create and install delete-functions
-		LOG.info("Re-creating and installing delete-function...");
+		log.info("Re-creating and installing delete functions...");
 		try {	
 			DBSQLScript deleteScript = createDeleteScripts();
 			installDBScript(deleteScript);			
 			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, true, this));
 		} catch (ADERegistrationException e) {
-			LOG.info("Failed to create and install delete-script into database. (Skipped)");
+			log.info("Failed to create and install delete functions in database (skipped).");
 		} 
 
 		// Step 5: re-create and install envelope-functions.
-		LOG.info("Re-Creating and installing envelope-function...");
+		log.info("Re-Creating and installing envelope functions...");
 		try {	
 			DBSQLScript envelopeScript = createEnvelopeScripts();
 			installDBScript(envelopeScript);	
 			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, true, this));
 		} catch (ADERegistrationException e) {
-			LOG.info("Failed to create and install envelope-script into database. (Skipped)");
+			log.info("Failed to create and install envelope functions in database (skipped).");
 		} 
 		
 		return true;
@@ -188,12 +188,12 @@ public class ADERegistrationController {
 		try {
 			adeMetadataManager = new ADEMetadataManager(connection, config);
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to initilize ADE Metadata-Manager", e);
+			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}
 		try {
 			adeList = adeMetadataManager.getADEMetadata();
 		} catch (SQLException e) {		
-			throw new ADERegistrationException("Failed to query those ADEs that have already been registered in the connected database",e);
+			throw new ADERegistrationException("Failed to query ADEs that have already been registered in the database.", e);
 		} 
 		
 		return adeList;
@@ -204,10 +204,10 @@ public class ADERegistrationController {
 		try {
 			adeMetadataManager = new ADEMetadataManager(connection, config);
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to initilize ADE Metadata-Manager", e);
+			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}
 		
-		LOG.info("Creating delete-script for the current 3DCityDB instance (This process may take a while for Oracle)...");
+		log.info("Creating delete functions for the current 3DCityDB instance (this process may take a while for Oracle)...");
 		DBSQLScript deleteScript = null;
 		DBScriptGenerator deleteScriptGenerator = DBScriptGeneratorFactory.getInstance().
 				createDeleteScriptGenerator(connection, config, adeMetadataManager);
@@ -215,10 +215,10 @@ public class ADERegistrationController {
 		try {
 			deleteScript = deleteScriptGenerator.generateDBScript();			
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to create delete-script for the current 3DCityDB instance", e);
+			throw new ADERegistrationException("Failed to create delete functions for the current 3DCityDB instance", e);
 		}		
 		
-		LOG.info("Delete-script is successfully created for the current 3DCityDB database.");		
+		log.info("Delete functions successfully created for the current 3DCityDB instance.");
 		
 		return deleteScript;
 	}
@@ -228,29 +228,29 @@ public class ADERegistrationController {
 		try {
 			adeMetadataManager = new ADEMetadataManager(connection, config);
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to initilize ADE Metadata-Manager", e);
+			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}
 		
-		LOG.info("Creating envelope-script for the current 3DCityDB instance...");		
+		log.info("Creating envelope functions for the current 3DCityDB instance...");
 		DBSQLScript envelopeScript = null;
 		DBScriptGenerator envelopeScriptGenerator = DBScriptGeneratorFactory.getInstance()
 				.createEnvelopeScriptGenerator(connection, config, adeMetadataManager);
 		try {
 			envelopeScript = envelopeScriptGenerator.generateDBScript();			
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to create envelope-script for the current 3DCityDB instance", e);
+			throw new ADERegistrationException("Failed to create envelope functions for the current 3DCityDB instance.", e);
 		}		
-		LOG.info("Envelope-script is successfully created for the current 3DCityDB database.");
+		log.info("Envelope functions is successfully created for the current 3DCityDB instance.");
 				
 		return envelopeScript;
 	}
 	
 	public void installDBScript(DBSQLScript dbScript) throws ADERegistrationException {		
-		DBScriptInstaller deleteScriptInstaller = DBScriptInstallerFactory.getInstance().createScriptInstaller(connection);
+		DBScriptInstaller scriptInstaller = DBScriptInstallerFactory.getInstance().createScriptInstaller(connection);
 		try {
-			deleteScriptInstaller.installScript(dbScript);
+			scriptInstaller.installScript(dbScript);
 		} catch (SQLException e) {
-			throw new ADERegistrationException("Error occurred while installing the generated delete-script", e);
+			throw new ADERegistrationException("Error occurred while installing the generated database script.", e);
 		}				
 	}
 
@@ -261,7 +261,7 @@ public class ADERegistrationController {
 			}
 						
 		} catch (SQLException e) {
-			LOG.error("Failed to close databse connection.");
+			log.error("Failed to close database connection.");
 		}
 	}
 	
@@ -271,7 +271,7 @@ public class ADERegistrationController {
 				connection.commit();
 			}  		
     	} catch (SQLException e) {
-			throw new ADERegistrationException("Failed to exeute the database transaction", e);
+			throw new ADERegistrationException("Failed to execute database transaction.", e);
 		} 	
 	}
 	
@@ -280,7 +280,7 @@ public class ADERegistrationController {
 			try {
 				connection.rollback();
 			} catch (SQLException e) {
-				LOG.error("Failed to roll back database transactions.");
+				log.error("Failed to rollback database transactions.");
 			}	
 		}
 	}
