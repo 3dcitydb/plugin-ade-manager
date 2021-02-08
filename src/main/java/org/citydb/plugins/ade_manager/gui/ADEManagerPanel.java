@@ -30,7 +30,6 @@ package org.citydb.plugins.ade_manager.gui;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.gui.modules.ADERegistryPanel;
 import org.citydb.plugins.ade_manager.gui.modules.ADETransformationPanel;
 import org.citydb.plugins.ade_manager.gui.modules.OperationModuleView;
@@ -42,10 +41,10 @@ public class ADEManagerPanel extends JPanel {
 	private OperationModuleView registryModule;
 	private OperationModuleView transformationModule;
 	private final ViewController viewController;
-	private final ConfigImpl config;
+	private final ADEManagerPlugin plugin;
 	
 	public ADEManagerPanel(ViewController viewController, ADEManagerPlugin plugin) {	
-		this.config = plugin.getConfig();		
+		this.plugin = plugin;
 		this.viewController = viewController;
 		initGui();
 	}
@@ -55,8 +54,8 @@ public class ADEManagerPanel extends JPanel {
 	}
 
 	private void initGui() {
-		transformationModule = new ADETransformationPanel(this, config);
-		registryModule = new ADERegistryPanel(this, config);
+		transformationModule = new ADETransformationPanel(this, plugin);
+		registryModule = new ADERegistryPanel(this, plugin);
 
 		JPanel mainScrollView = new JPanel();
 		mainScrollView.setLayout(new GridBagLayout());

@@ -32,7 +32,7 @@ import org.citydb.event.Event;
 import org.citydb.gui.components.common.TitledPanel;
 import org.citydb.gui.factory.PopupMenuDecorator;
 import org.citydb.gui.util.GuiUtil;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.gui.popup.StatusDialog;
 import org.citydb.plugins.ade_manager.gui.table.ADESchemaNamespaceRow;
@@ -78,9 +78,9 @@ public class ADETransformationPanel extends OperationModuleView {
 
 	private final TransformationController adeTransformer;
 
-	public ADETransformationPanel(ADEManagerPanel parentPanel, ConfigImpl config) {
-		super(parentPanel, config);		
-		this.adeTransformer = new TransformationController(config);					
+	public ADETransformationPanel(ADEManagerPanel parentPanel, ADEManagerPlugin plugin) {
+		super(parentPanel, plugin);
+		this.adeTransformer = new TransformationController(plugin);
 		initGui();
 	}
 
@@ -198,23 +198,23 @@ public class ADETransformationPanel extends OperationModuleView {
 	}
 
 	public void loadSettings() {
-		browseXMLSchemaText.setText(config.getXMLschemaInputPath());
-		browseOutputText.setText(config.getTransformationOutputPath());
-		nameInputField.setText(config.getAdeName());
-		descriptionInputField.setText(config.getAdeDescription());
-		versionInputField.setText(config.getAdeVersion());
-		dbPrefixInputField.setText(config.getAdeDbPrefix());
-		initObjectClassIdInputField.setValue(config.getInitialObjectclassId());
+		browseXMLSchemaText.setText(plugin.getConfig().getXMLschemaInputPath());
+		browseOutputText.setText(plugin.getConfig().getTransformationOutputPath());
+		nameInputField.setText(plugin.getConfig().getAdeName());
+		descriptionInputField.setText(plugin.getConfig().getAdeDescription());
+		versionInputField.setText(plugin.getConfig().getAdeVersion());
+		dbPrefixInputField.setText(plugin.getConfig().getAdeDbPrefix());
+		initObjectClassIdInputField.setValue(plugin.getConfig().getInitialObjectclassId());
 	}
 
 	public void setSettings() {
-		config.setXMLschemaInputPath(browseXMLSchemaText.getText());
-		config.setTransformationOutputPath(browseOutputText.getText());
-		config.setAdeName(nameInputField.getText());
-		config.setAdeDescription(descriptionInputField.getText());
-		config.setAdeVersion(versionInputField.getText());
-		config.setAdeDbPrefix(dbPrefixInputField.getText());
-		config.setInitialObjectclassId(((Number)initObjectClassIdInputField.getValue()).intValue());
+		plugin.getConfig().setXMLschemaInputPath(browseXMLSchemaText.getText());
+		plugin.getConfig().setTransformationOutputPath(browseOutputText.getText());
+		plugin.getConfig().setAdeName(nameInputField.getText());
+		plugin.getConfig().setAdeDescription(descriptionInputField.getText());
+		plugin.getConfig().setAdeVersion(versionInputField.getText());
+		plugin.getConfig().setAdeDbPrefix(dbPrefixInputField.getText());
+		plugin.getConfig().setInitialObjectclassId(((Number)initObjectClassIdInputField.getValue()).intValue());
 	}
 
 	private void browserXMLSchemaFile() {
@@ -313,7 +313,7 @@ public class ADETransformationPanel extends OperationModuleView {
 	private void transformADESchema() {	
 		setSettings();
 	
-		String adeName = config.getAdeName();
+		String adeName = plugin.getConfig().getAdeName();
 		if (adeName.trim().length() == 0) {
 			viewController.errorMessage(
 					Translator.I18N.getString("ade_manager.error.incomplete.title"),
@@ -329,7 +329,7 @@ public class ADETransformationPanel extends OperationModuleView {
 			return;
 		}
 		
-		String adeDescription = config.getAdeDescription();
+		String adeDescription = plugin.getConfig().getAdeDescription();
 		if (adeDescription.trim().length() == 0) {
 			viewController.errorMessage(
 					Translator.I18N.getString("ade_manager.error.incomplete.title"),
@@ -345,7 +345,7 @@ public class ADETransformationPanel extends OperationModuleView {
 			return;
 		}
 		
-		String adeVersion = config.getAdeVersion();
+		String adeVersion = plugin.getConfig().getAdeVersion();
 		if (adeVersion.trim().length() == 0) {
 			viewController.errorMessage(
 					Translator.I18N.getString("ade_manager.error.incomplete.title"),
@@ -361,7 +361,7 @@ public class ADETransformationPanel extends OperationModuleView {
 			return;
 		}
 		
-		String dbPrefix = config.getAdeDbPrefix();
+		String dbPrefix = plugin.getConfig().getAdeDbPrefix();
 		if (dbPrefix.trim().length() == 0) {
 			viewController.errorMessage(
 					Translator.I18N.getString("ade_manager.error.incomplete.title"),
@@ -390,7 +390,7 @@ public class ADETransformationPanel extends OperationModuleView {
 			return;
 		}		
 		
-		int initialObjectClassId = config.getInitialObjectclassId();
+		int initialObjectClassId = plugin.getConfig().getInitialObjectclassId();
 		if (initialObjectClassId < GlobalConstants.MIN_ADE_OBJECTCLASSID) {
 			viewController.errorMessage(
 					Translator.I18N.getString("ade_manager.error.incorrect.title"),
@@ -411,7 +411,7 @@ public class ADETransformationPanel extends OperationModuleView {
 			namespaces.add(schemaTableModel.getColumn(rowNum).getValue(0));
 		}
 		
-		File outputFile = new File(config.getTransformationOutputPath().trim());
+		File outputFile = new File(plugin.getConfig().getTransformationOutputPath().trim());
 		if (!(outputFile.isDirectory() && outputFile.exists())) {
 			viewController.errorMessage(
 					Translator.I18N.getString("ade_manager.error.incomplete.title"),

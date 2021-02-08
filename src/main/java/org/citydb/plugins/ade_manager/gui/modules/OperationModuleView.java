@@ -35,6 +35,7 @@ import org.citydb.event.EventDispatcher;
 import org.citydb.event.EventHandler;
 import org.citydb.log.Logger;
 import org.citydb.plugin.extension.view.ViewController;
+import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.util.Translator;
@@ -56,11 +57,11 @@ public abstract class OperationModuleView implements EventHandler {
 	protected final ViewController viewController;
 
 	protected JPanel parentPanel;
-	protected final ConfigImpl config;
+	protected final ADEManagerPlugin plugin;
 
-	public OperationModuleView(ADEManagerPanel parentPanel, ConfigImpl config) {
+	public OperationModuleView(ADEManagerPanel parentPanel, ADEManagerPlugin plugin) {
 		this.parentPanel = parentPanel;
-		this.config = config;
+		this.plugin = plugin;
 		this.viewController = parentPanel.getViewController();
 	}
 

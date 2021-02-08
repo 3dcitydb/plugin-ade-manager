@@ -40,7 +40,7 @@ import org.citydb.gui.factory.PopupMenuDecorator;
 import org.citydb.gui.modules.database.util.ADEInfoDialog;
 import org.citydb.gui.modules.database.util.ADEInfoRow;
 import org.citydb.gui.util.GuiUtil;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.gui.popup.ScriptDialog;
@@ -80,9 +80,9 @@ public class ADERegistryPanel extends OperationModuleView {
 
 	private final ADERegistrationController adeRegistrationController;
 	
-	public ADERegistryPanel(ADEManagerPanel parentPanel, ConfigImpl config) {
-		super(parentPanel, config);
-		this.adeRegistrationController = new ADERegistrationController(config);
+	public ADERegistryPanel(ADEManagerPanel parentPanel, ADEManagerPlugin plugin) {
+		super(parentPanel, plugin);
+		this.adeRegistrationController = new ADERegistrationController(plugin);
 		eventDispatcher.addEventHandler(org.citydb.plugins.ade_manager.event.EventType.SCRIPT_CREATION_EVENT, this);
 		eventDispatcher.addEventHandler(EventType.DATABASE_CONNECTION_STATE, this);
 		initGui();
@@ -198,12 +198,12 @@ public class ADERegistryPanel extends OperationModuleView {
 
 	@Override
 	public void loadSettings() {
-		browseRegistryText.setText(config.getAdeRegistryInputPath());		
+		browseRegistryText.setText(plugin.getConfig().getAdeRegistryInputPath());
 	}
 
 	@Override
 	public void setSettings() {
-		config.setAdeRegistryInputPath(browseRegistryText.getText());
+		plugin.getConfig().setAdeRegistryInputPath(browseRegistryText.getText());
 	}
 	
 	private void browserRegistryInputDirectory() {

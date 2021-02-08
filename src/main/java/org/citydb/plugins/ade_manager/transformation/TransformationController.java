@@ -36,7 +36,7 @@ import org.citydb.database.schema.mapping.SchemaMapping;
 import org.citydb.event.Event;
 import org.citydb.event.EventHandler;
 import org.citydb.log.Logger;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.transformation.database.DBScriptGenerator;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphTransformationManager;
 import org.citydb.plugins.ade_manager.transformation.schemaMapping.SchemaMappingCreator;
@@ -49,30 +49,30 @@ import agg.xt_basis.GraGra;
 
 public class TransformationController implements EventHandler {
 	private final Logger LOG = Logger.getInstance();
-	private ConfigImpl config;
+	private final ADEManagerPlugin plugin;
 	private GraGra adeGraph;
 	private Database adeDatabaseSchema;
 	private SchemaMapping adeSchemaMapping;
 	private SchemaHandler schemaHandler;
-	
-	public TransformationController(ConfigImpl config) {		
-		this.config = config;
+
+	public TransformationController(ADEManagerPlugin plugin) {
+		this.plugin = plugin;
     }
-	
-	public void doProcess(List<String> adeNamespaces) throws TransformationException { 	
+
+	public void doProcess(List<String> adeNamespaces) throws TransformationException {
 		if (schemaHandler == null)
 			throw new TransformationException("Schema handler has failed to initialize. ADE transformation cannot be started.");
-				
+
 		LOG.info("Transforming ADE XML schema to relational database schema...");
-		GraphTransformationManager aggGraphTransformationManager = new GraphTransformationManager(schemaHandler, adeNamespaces, config);
+		GraphTransformationManager aggGraphTransformationManager = new GraphTransformationManager(schemaHandler, adeNamespaces, plugin.getConfig());
 		adeGraph = aggGraphTransformationManager.executeGraphTransformation();
 
     	LOG.info("Generating SQL-DDL for the database schema...");
-		DBScriptGenerator databaseScriptCreator = new DBScriptGenerator(adeGraph, config);
-		adeDatabaseSchema = databaseScriptCreator.createDatabaseScripts(); 
-		
+		DBScriptGenerator databaseScriptCreator = new DBScriptGenerator(adeGraph, plugin.getConfig());
+		adeDatabaseSchema = databaseScriptCreator.createDatabaseScripts();
+
 		LOG.info("Generating 3DCityDB schema mapping file...");
-		SchemaMappingCreator schemaMappingCreator = new SchemaMappingCreator(adeGraph, config);
+		SchemaMappingCreator schemaMappingCreator = new SchemaMappingCreator(adeGraph, plugin.getConfig());
     	try {
     		adeSchemaMapping = schemaMappingCreator.createSchemaMapping();
 		} catch (Exception e) {
@@ -81,7 +81,7 @@ public class TransformationController implements EventHandler {
 	}
 	
 	public List<String> getADENamespacesFromXMLSchema(String xmlSchemaPath) throws TransformationException {
-		List<String> result = new ArrayList<String>();		
+		List<String> result = new ArrayList<>();
 		try {
 			schemaHandler = SchemaHandler.newInstance();	
 			schemaHandler.reset();
@@ -101,7 +101,7 @@ public class TransformationController implements EventHandler {
 		
 		return result;
 	}
-	
+
 	public GraGra getAdeGraph() {
 		return adeGraph;
 	}
@@ -118,5 +118,4 @@ public class TransformationController implements EventHandler {
 	public void handleEvent(Event event) throws Exception {
 
 	}
-
 }

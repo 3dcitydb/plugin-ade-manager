@@ -35,7 +35,7 @@ import java.util.List;
 import org.citydb.database.connection.DatabaseConnectionPool;
 import org.citydb.event.EventDispatcher;
 import org.citydb.log.Logger;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
 import org.citydb.plugins.ade_manager.registry.install.DBScriptInstaller;
 import org.citydb.plugins.ade_manager.registry.install.DBScriptInstallerFactory;
@@ -52,11 +52,11 @@ public class ADERegistrationController {
 	private final Logger log = Logger.getInstance();
 	private final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();	
 	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();		
-	private final ConfigImpl config;
+	private final ADEManagerPlugin plugin;
 	private Connection connection;
 	
-	public ADERegistrationController(ConfigImpl config) {
-		this.config = config;	
+	public ADERegistrationController(ADEManagerPlugin plugin) {
+		this.plugin = plugin;
     }
 	
 	public void initDBConneciton() throws ADERegistrationException {
@@ -76,7 +76,7 @@ public class ADERegistrationController {
 		log.info("Importing ADE metadata into database...");
 		ADEMetadataManager adeMetadataManager = null;
 		try {
-			adeMetadataManager = new ADEMetadataManager(connection, config);
+			adeMetadataManager = new ADEMetadataManager(connection, plugin.getConfig());
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}
@@ -89,7 +89,7 @@ public class ADERegistrationController {
 		// create database tables, FKs, indexes, and sequences etc. 
 		log.info("Creating ADE database schema...");
 		ADEDBSchemaManager adeDatabasSchemaManager = ADEDBSchemaManagerFactory.getInstance()
-				.createADEDatabaseSchemaManager(connection, config);
+				.createADEDatabaseSchemaManager(connection, plugin.getConfig());
 		try {	
 			adeDatabasSchemaManager.createADEDatabaseSchema();
 		} catch (SQLException e) {
@@ -128,7 +128,7 @@ public class ADERegistrationController {
 		 * 4) Delete ADE metadata from the respective 3DCityDB's Metadata tables
 		 */
 		ADEDBSchemaManager adeDatabasSchemaManager = ADEDBSchemaManagerFactory.getInstance()
-				.createADEDatabaseSchemaManager(connection, config);
+				.createADEDatabaseSchemaManager(connection, plugin.getConfig());
 		// Step 1: Cleanup ADE data content by calling the corresponding delete-functions
 		log.info("Deleting ADE data content...");
 		try {
@@ -149,7 +149,7 @@ public class ADERegistrationController {
 		log.info("Removing ADE metadata");
 		ADEMetadataManager adeMetadataManager = null;
 		try {
-			adeMetadataManager = new ADEMetadataManager(connection, config);
+			adeMetadataManager = new ADEMetadataManager(connection, plugin.getConfig());
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}	
@@ -186,7 +186,7 @@ public class ADERegistrationController {
 		List<ADEMetadataInfo> adeList = new ArrayList<ADEMetadataInfo>();				
 		ADEMetadataManager adeMetadataManager = null;
 		try {
-			adeMetadataManager = new ADEMetadataManager(connection, config);
+			adeMetadataManager = new ADEMetadataManager(connection, plugin.getConfig());
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}
@@ -202,7 +202,7 @@ public class ADERegistrationController {
 	public DBSQLScript createDeleteScripts() throws ADERegistrationException {
 		ADEMetadataManager adeMetadataManager = null;
 		try {
-			adeMetadataManager = new ADEMetadataManager(connection, config);
+			adeMetadataManager = new ADEMetadataManager(connection, plugin.getConfig());
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}
@@ -210,7 +210,7 @@ public class ADERegistrationController {
 		log.info("Creating delete functions for the current 3DCityDB instance (this process may take a while for Oracle)...");
 		DBSQLScript deleteScript = null;
 		DBScriptGenerator deleteScriptGenerator = DBScriptGeneratorFactory.getInstance().
-				createDeleteScriptGenerator(connection, config, adeMetadataManager);
+				createDeleteScriptGenerator(connection, plugin.getConfig(), adeMetadataManager);
 		
 		try {
 			deleteScript = deleteScriptGenerator.generateDBScript();			
@@ -226,7 +226,7 @@ public class ADERegistrationController {
 	public DBSQLScript createEnvelopeScripts() throws ADERegistrationException {
 		ADEMetadataManager adeMetadataManager = null;
 		try {
-			adeMetadataManager = new ADEMetadataManager(connection, config);
+			adeMetadataManager = new ADEMetadataManager(connection, plugin.getConfig());
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}
@@ -234,7 +234,7 @@ public class ADERegistrationController {
 		log.info("Creating envelope functions for the current 3DCityDB instance...");
 		DBSQLScript envelopeScript = null;
 		DBScriptGenerator envelopeScriptGenerator = DBScriptGeneratorFactory.getInstance()
-				.createEnvelopeScriptGenerator(connection, config, adeMetadataManager);
+				.createEnvelopeScriptGenerator(connection, plugin.getConfig(), adeMetadataManager);
 		try {
 			envelopeScript = envelopeScriptGenerator.generateDBScript();			
 		} catch (SQLException e) {
