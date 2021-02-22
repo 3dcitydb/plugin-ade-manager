@@ -60,7 +60,9 @@ public class StatusDialog extends JDialog {
 
 			add(main, GuiUtil.setConstraints(0, 0, 1, 0, GridBagConstraints.BOTH, 10, 10, 15, 10));
 
+			setMinimumSize(new Dimension(300, 100));
 			pack();
+
 			progressBar.setIndeterminate(true);
 		}
 	}
