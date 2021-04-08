@@ -36,6 +36,7 @@ import org.citydb.event.Event;
 import org.citydb.event.global.DatabaseConnectionStateEvent;
 import org.citydb.event.global.EventType;
 import org.citydb.gui.components.common.TitledPanel;
+import org.citydb.gui.components.dialog.ConfirmationCheckDialog;
 import org.citydb.gui.factory.PopupMenuDecorator;
 import org.citydb.gui.modules.database.util.ADEInfoDialog;
 import org.citydb.gui.modules.database.util.ADEInfoRow;
@@ -61,7 +62,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ADERegistryPanel extends OperationModuleView {
 	private JPanel component;
@@ -335,19 +338,38 @@ public class ADERegistryPanel extends OperationModuleView {
 	
 	private void deregisterADE(){
 		viewController.clearConsole();
-		setSettings();	
+		setSettings();
+
+		int selectedRowNum = adeTable.getSelectedRow();
+		if (selectedRowNum == -1) {
+			viewController.errorMessage("ADE Deregistration", "Please select one of the listed ADEs.");
+			return;
+		}
+
+		if (plugin.getConfig().getGuiConfig().isShowRemoveADEWarning()) {
+			String formattedMessage = MessageFormat.format(Translator.I18N.getString("ade_manager.dialog.remove.warning"),
+					adeTableModel.getColumn(selectedRowNum).getValue(1));
+
+			ConfirmationCheckDialog dialog = ConfirmationCheckDialog.defaults()
+					.withParentComponent(viewController.getTopFrame())
+					.withTitle(Language.I18N.getString("common.dialog.warning.title"))
+					.withOptionType(JOptionPane.YES_NO_OPTION)
+					.withMessageType(JOptionPane.WARNING_MESSAGE)
+					.addMessage(formattedMessage);
+
+			int selectedOption = dialog.show();
+			plugin.getConfig().getGuiConfig().setShowRemoveADEWarning(dialog.keepShowingDialog());
+
+			if (selectedOption != JOptionPane.OK_OPTION) {
+				return;
+			}
+		}
 		
 		// database connection is required
 		try {
 			checkAndConnectToDB();
 		} catch (SQLException e) {
 			printErrorMessage("Failed to connect to database.", e);
-			return;
-		}
-		
-		int selectedRowNum = adeTable.getSelectedRow();
-		if (selectedRowNum == -1) {
-			viewController.errorMessage("ADE Deregistration", "Please select one of the listed ADEs.");
 			return;
 		}
 		

@@ -44,7 +44,8 @@ import org.citydb.util.CoreConstants;
 		"adeVersion",	
 		"adeDbPrefix",	
 		"initialObjectclassId",
-		"adeRegistryInputPath"
+		"adeRegistryInputPath",
+		"guiConfig"
 })
 
 public class ConfigImpl extends PluginConfig {
@@ -56,6 +57,7 @@ public class ConfigImpl extends PluginConfig {
 	private String adeDbPrefix;
 	private int initialObjectclassId;
 	private String adeRegistryInputPath;
+	private GuiConfig guiConfig;
 	@XmlTransient
 	private String tmpGraphDirPath;
 	
@@ -67,6 +69,7 @@ public class ConfigImpl extends PluginConfig {
 		tmpGraphDirPath = tmp.getAbsolutePath();		
 		
 		initialObjectclassId = GlobalConstants.MIN_ADE_OBJECTCLASSID;
+		guiConfig = new GuiConfig();
 	}
 
 	public String getTransformationOutputPath() {
@@ -136,5 +139,14 @@ public class ConfigImpl extends PluginConfig {
 	public void setAdeRegistryInputPath(String adeRegistryInputPath) {
 		this.adeRegistryInputPath = adeRegistryInputPath;
 	}
-	
+
+	public GuiConfig getGuiConfig() {
+		return guiConfig;
+	}
+
+	public void setGuiConfig(GuiConfig guiConfig) {
+		if (guiConfig != null) {
+			this.guiConfig = guiConfig;
+		}
+	}
 }

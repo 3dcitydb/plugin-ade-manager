@@ -27,9 +27,6 @@
  */
 package org.citydb.plugins.ade_manager;
 
-import java.util.Locale;
-import java.util.ResourceBundle;
-
 import org.citydb.ImpExpLauncher;
 import org.citydb.plugin.Plugin;
 import org.citydb.plugin.extension.config.ConfigExtension;
@@ -38,8 +35,12 @@ import org.citydb.plugin.extension.view.View;
 import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugin.extension.view.ViewExtension;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.config.GuiConfig;
 import org.citydb.plugins.ade_manager.gui.ADEManagerView;
 import org.citydb.plugins.ade_manager.util.Translator;
+
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 public class ADEManagerPlugin implements Plugin, ViewExtension, ConfigExtension<ConfigImpl> {
 	private ADEManagerView view;
@@ -99,13 +100,16 @@ public class ADEManagerPlugin implements Plugin, ViewExtension, ConfigExtension<
 	@Override
 	public void handleEvent(PluginConfigEvent event) {
 		switch (event) {
-		case RESET_DEFAULT_CONFIG:
-			this.config = new ConfigImpl();
-			loadSettings();
-			break;
-		case PRE_SAVE_CONFIG:
-			saveSettings();
-			break;
+			case RESET_DEFAULT_CONFIG:
+				this.config = new ConfigImpl();
+				loadSettings();
+				break;
+			case PRE_SAVE_CONFIG:
+				saveSettings();
+				break;
+			case RESET_GUI_VIEW:
+				config.setGuiConfig(new GuiConfig());
+				break;
 		}
 	}
 
