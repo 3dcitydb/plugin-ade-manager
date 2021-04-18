@@ -29,8 +29,8 @@ package org.citydb.plugins.ade_manager.registry.schema.adapter;
 
 import org.citydb.citygml.deleter.concurrent.DBDeleteWorkerFactory;
 import org.citydb.citygml.deleter.database.BundledConnection;
+import org.citydb.citygml.deleter.database.DBSplittingResult;
 import org.citydb.citygml.deleter.util.InternalConfig;
-import org.citydb.citygml.exporter.database.content.DBSplittingResult;
 import org.citydb.concurrent.SingleWorkerPool;
 import org.citydb.concurrent.WorkerPool;
 import org.citydb.config.Config;
@@ -95,7 +95,7 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		try {				
 			stmt = connection.createStatement();
 			rs = stmt.executeQuery(
-						"select co.id, co.objectclass_id "
+						"select co.id, co.objectclass_id, co.gmlid "
 						+ "FROM " + schema + ".cityobject co, " + schema + ".objectclass oc, " + schema + ".ade a "
 						+ "WHERE co.objectclass_id = oc.id "
 						+ "AND a.id = oc.ade_id "
@@ -103,8 +103,9 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 			while (rs.next()) {
 				int objId = rs.getInt(1);
 				int objectclassId = rs.getInt(2);
+				String gmlId = rs.getString(3);
 				AbstractObjectType<?> objectType = schemaMapping.getAbstractObjectType(objectclassId);
-				deleteWorks.add(new DBSplittingResult(objId, objectType));		
+				deleteWorks.add(new DBSplittingResult(objId, objectType, gmlId));
 			}
 		} finally {
 			if (stmt != null) 
@@ -118,7 +119,7 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		try {
 			dbWorkerPool = new SingleWorkerPool<>(
 					"db_deleter_pool",
-					new DBDeleteWorkerFactory(bundledConnection, new InternalConfig(), new Config(), eventDispatcher),
+					new DBDeleteWorkerFactory(bundledConnection, null, new InternalConfig(), new Config(), eventDispatcher),
 					300,
 					false);
 
