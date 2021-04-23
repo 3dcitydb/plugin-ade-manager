@@ -44,9 +44,9 @@ You may obtain a copy of the License at
 3. About
 --------
 
-By using the @pluginShortName@, it is possible to export
-data from a @citydbName@ instance into tables. Supported output
-formats are Microsoft Excel and CSV.
+The @pluginShortName@ plugin allows you to dynamically extend
+a @citydbName@ instance to be able to store and manage
+CityGML Application Domain Extension (ADE) data in the database.
 
 
 4. Requirements
@@ -81,15 +81,15 @@ the "@pkgName@" subfolder and all its contents.
 6. Developers
 -------------
 
-Zhihang Yao <zyao@virtualcitysystems.de>
-Claus Nagel <cnagel@virtualcitysystems.de>
+Zhihang Yao <zyao@vc.systems>
+Claus Nagel <cnagel@vc.systems>
 Thomas H.Kolbe <thomas.kolbe@tum.de>
 
 
 7. Contact
 ----------
 
-zyao@virtualcitysystems.de
+zyao@vc.systems
 
 
 8. Websites
