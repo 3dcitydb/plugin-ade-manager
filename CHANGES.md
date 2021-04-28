@@ -15,7 +15,7 @@ Change Log
   * Create OBJECTCLASS_ID column for merged table mapped from complex <DataType>.
   * Do not create SEQEUNCE for tables of sub data types.
 * Fixed check of GML geometry property types by evaluating the XML namespace.
-* Fixed parsing complex type whose super type has empty contents.
+* Fixed parsing of complex types whose super type has empty contents.
 * Create table node for CityGML standard classes only once.
 * Fixed issues when another config file is loaded for the Importer/Exporter.
 
