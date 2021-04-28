@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-### 1.2.0
+### 1.2.0 - 2021-04-28
 
 ##### Additions
 * Added support for processing inline `<xs:choice>` elements.
