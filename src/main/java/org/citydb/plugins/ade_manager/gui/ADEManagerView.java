@@ -27,14 +27,13 @@
  */
 package org.citydb.plugins.ade_manager.gui;
 
-import java.awt.Component;
-
-import javax.swing.Icon;
-
-import org.citydb.plugin.extension.view.View;
-import org.citydb.plugin.extension.view.ViewController;
+import org.citydb.core.plugin.extension.view.View;
+import org.citydb.core.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.util.Translator;
+
+import javax.swing.*;
+import java.awt.*;
 
 public class ADEManagerView extends View {
 	private final ADEManagerPanel component;

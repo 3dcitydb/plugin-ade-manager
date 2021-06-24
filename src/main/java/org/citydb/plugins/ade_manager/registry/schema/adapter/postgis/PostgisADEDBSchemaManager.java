@@ -35,7 +35,11 @@ import org.citydb.plugins.ade_manager.util.PathResolver;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.*;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 

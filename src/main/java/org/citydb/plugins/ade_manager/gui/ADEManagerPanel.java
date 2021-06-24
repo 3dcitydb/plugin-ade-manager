@@ -27,8 +27,8 @@
  */
 package org.citydb.plugins.ade_manager.gui;
 
+import org.citydb.core.plugin.extension.view.ViewController;
 import org.citydb.gui.util.GuiUtil;
-import org.citydb.plugin.extension.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.gui.modules.ADERegistryPanel;
 import org.citydb.plugins.ade_manager.gui.modules.ADETransformationPanel;

@@ -27,9 +27,9 @@
  */
 package org.citydb.plugins.ade_manager.util;
 
-import java.io.File;
-
 import org.citydb.config.project.database.DatabaseType;
+
+import java.io.File;
 
 public class PathResolver {
 	private static final String CITYDB_FOLDER_NAME = "3dcitydb";

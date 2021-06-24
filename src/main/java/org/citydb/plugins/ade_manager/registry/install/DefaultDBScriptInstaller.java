@@ -27,11 +27,11 @@
  */
 package org.citydb.plugins.ade_manager.registry.install;
 
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-
-import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 
 public abstract class DefaultDBScriptInstaller implements DBScriptInstaller {
 	protected final Connection connection;

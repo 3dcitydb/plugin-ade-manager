@@ -27,13 +27,14 @@
  */
 package org.citydb.plugins.ade_manager.registry.install;
 
-import java.sql.Connection;
 import org.citydb.config.project.database.DatabaseType;
-import org.citydb.database.connection.DatabaseConnectionPool;
+import org.citydb.core.database.connection.DatabaseConnectionPool;
+
+import java.sql.Connection;
 
 public class DBScriptInstallerFactory {
 	private static DBScriptInstallerFactory instance;
-	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();		
+	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	
 	private DBScriptInstallerFactory() {}
 

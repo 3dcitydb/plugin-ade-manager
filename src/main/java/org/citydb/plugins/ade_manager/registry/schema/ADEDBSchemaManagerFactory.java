@@ -27,16 +27,17 @@
  */
 package org.citydb.plugins.ade_manager.registry.schema;
 
-import java.sql.Connection;
 import org.citydb.config.project.database.DatabaseType;
-import org.citydb.database.connection.DatabaseConnectionPool;
+import org.citydb.core.database.connection.DatabaseConnectionPool;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.schema.adapter.oracle.OracleADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.registry.schema.adapter.postgis.PostgisADEDBSchemaManager;
 
+import java.sql.Connection;
+
 public class ADEDBSchemaManagerFactory {
 	private static ADEDBSchemaManagerFactory instance;
-	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();		
+	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	
 	private ADEDBSchemaManagerFactory() {}
 

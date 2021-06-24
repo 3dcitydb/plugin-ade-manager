@@ -27,23 +27,23 @@
  */
 package org.citydb.plugins.ade_manager.registry.schema.adapter;
 
-import org.citydb.citygml.deleter.concurrent.DBDeleteWorkerFactory;
-import org.citydb.citygml.deleter.database.BundledConnection;
-import org.citydb.citygml.deleter.database.DBSplittingResult;
-import org.citydb.citygml.deleter.util.InternalConfig;
-import org.citydb.concurrent.SingleWorkerPool;
-import org.citydb.concurrent.WorkerPool;
 import org.citydb.config.Config;
-import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.database.schema.mapping.AbstractObjectType;
-import org.citydb.database.schema.mapping.SchemaMapping;
-import org.citydb.event.EventDispatcher;
-import org.citydb.log.Logger;
+import org.citydb.core.database.connection.DatabaseConnectionPool;
+import org.citydb.core.database.schema.mapping.AbstractObjectType;
+import org.citydb.core.database.schema.mapping.SchemaMapping;
+import org.citydb.core.operation.deleter.concurrent.DBDeleteWorkerFactory;
+import org.citydb.core.operation.deleter.database.BundledConnection;
+import org.citydb.core.operation.deleter.database.DBSplittingResult;
+import org.citydb.core.operation.deleter.util.InternalConfig;
+import org.citydb.core.registry.ObjectRegistry;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.registry.schema.SQLScriptRunner;
-import org.citydb.registry.ObjectRegistry;
+import org.citydb.util.concurrent.SingleWorkerPool;
+import org.citydb.util.concurrent.WorkerPool;
+import org.citydb.util.event.EventDispatcher;
+import org.citydb.util.log.Logger;
 
 import java.io.IOException;
 import java.sql.Connection;

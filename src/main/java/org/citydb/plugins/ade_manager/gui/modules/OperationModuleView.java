@@ -29,17 +29,16 @@ package org.citydb.plugins.ade_manager.gui.modules;
 
 import org.citydb.config.i18n.Language;
 import org.citydb.config.project.database.DatabaseType;
-import org.citydb.database.DatabaseController;
-import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.event.EventDispatcher;
-import org.citydb.event.EventHandler;
-import org.citydb.log.Logger;
-import org.citydb.plugin.extension.view.ViewController;
+import org.citydb.core.database.DatabaseController;
+import org.citydb.core.database.connection.DatabaseConnectionPool;
+import org.citydb.core.plugin.extension.view.ViewController;
+import org.citydb.core.registry.ObjectRegistry;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
 import org.citydb.plugins.ade_manager.util.Translator;
-import org.citydb.registry.ObjectRegistry;
+import org.citydb.util.event.EventDispatcher;
+import org.citydb.util.event.EventHandler;
+import org.citydb.util.log.Logger;
 
 import javax.swing.*;
 import java.awt.*;
@@ -53,7 +52,7 @@ public abstract class OperationModuleView implements EventHandler {
 	protected final Logger log = Logger.getInstance();
 	protected final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
 	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
-	protected final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();	
+	protected final DatabaseController databaseController = ObjectRegistry.getInstance().getDatabaseController();
 	protected final ViewController viewController;
 
 	protected JPanel parentPanel;

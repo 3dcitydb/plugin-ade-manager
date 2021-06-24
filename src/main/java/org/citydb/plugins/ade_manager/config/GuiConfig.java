@@ -28,8 +28,6 @@
 
 package org.citydb.plugins.ade_manager.config;
 
-import org.citydb.config.gui.components.SQLExportFilterComponent;
-
 import javax.xml.bind.annotation.XmlType;
 
 @XmlType(name = "GuiConfigType", propOrder = {

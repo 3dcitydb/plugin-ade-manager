@@ -27,13 +27,13 @@
  */
 package org.citydb.plugins.ade_manager;
 
-import org.citydb.ImpExpLauncher;
-import org.citydb.plugin.Plugin;
-import org.citydb.plugin.extension.config.ConfigExtension;
-import org.citydb.plugin.extension.config.PluginConfigEvent;
-import org.citydb.plugin.extension.view.View;
-import org.citydb.plugin.extension.view.ViewController;
-import org.citydb.plugin.extension.view.ViewExtension;
+import org.citydb.core.plugin.Plugin;
+import org.citydb.core.plugin.extension.config.ConfigExtension;
+import org.citydb.core.plugin.extension.config.PluginConfigEvent;
+import org.citydb.core.plugin.extension.view.View;
+import org.citydb.core.plugin.extension.view.ViewController;
+import org.citydb.core.plugin.extension.view.ViewExtension;
+import org.citydb.gui.ImpExpLauncher;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.config.GuiConfig;
 import org.citydb.plugins.ade_manager.gui.ADEManagerView;
@@ -42,7 +42,7 @@ import org.citydb.plugins.ade_manager.util.Translator;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
-public class ADEManagerPlugin implements Plugin, ViewExtension, ConfigExtension<ConfigImpl> {
+public class ADEManagerPlugin extends Plugin implements ViewExtension, ConfigExtension<ConfigImpl> {
 	private ADEManagerView view;
 	private ConfigImpl config;
 	private Locale currentLocale;
@@ -114,10 +114,11 @@ public class ADEManagerPlugin implements Plugin, ViewExtension, ConfigExtension<
 	}
 
 	@Override
-	public void initViewExtension(ViewController viewController, Locale locale) {
+	public void initGuiExtension(ViewController viewController, Locale locale) {
 		Translator.I18N = ResourceBundle.getBundle("org.citydb.plugins.ade_manager.i18n.language", locale);
 		view = new ADEManagerView(viewController, this);
 		loadSettings();
 	}
-	
+
+
 }

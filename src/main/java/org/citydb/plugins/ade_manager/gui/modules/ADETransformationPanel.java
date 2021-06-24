@@ -28,9 +28,8 @@
 package org.citydb.plugins.ade_manager.gui.modules;
 
 import org.citydb.config.i18n.Language;
-import org.citydb.event.Event;
-import org.citydb.gui.components.common.TitledPanel;
-import org.citydb.gui.factory.PopupMenuDecorator;
+import org.citydb.gui.components.TitledPanel;
+import org.citydb.gui.components.popup.PopupMenuDecorator;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.gui.ADEManagerPanel;
@@ -42,6 +41,7 @@ import org.citydb.plugins.ade_manager.transformation.TransformationController;
 import org.citydb.plugins.ade_manager.transformation.TransformationException;
 import org.citydb.plugins.ade_manager.util.GlobalConstants;
 import org.citydb.plugins.ade_manager.util.Translator;
+import org.citydb.util.event.Event;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;

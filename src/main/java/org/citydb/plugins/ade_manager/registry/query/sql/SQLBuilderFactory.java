@@ -28,11 +28,11 @@
 package org.citydb.plugins.ade_manager.registry.query.sql;
 
 import org.citydb.config.project.database.DatabaseType;
-import org.citydb.database.connection.DatabaseConnectionPool;
+import org.citydb.core.database.connection.DatabaseConnectionPool;
 
 public class SQLBuilderFactory {
 	private static SQLBuilderFactory instance;
-	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();		
+	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	
 	private SQLBuilderFactory() {}
 

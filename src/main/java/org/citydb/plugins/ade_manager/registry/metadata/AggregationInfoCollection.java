@@ -27,11 +27,11 @@
  */
 package org.citydb.plugins.ade_manager.registry.metadata;
 
+import org.citydb.core.database.schema.mapping.RelationType;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.citydb.database.schema.mapping.RelationType;
 
 public class AggregationInfoCollection {
 	private List<AggregationInfo> aggrInfos; 

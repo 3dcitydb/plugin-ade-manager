@@ -1,0 +1,19 @@
+<plugin>
+    <name>ADE Manager</name>
+    <version>1.2.0</version>
+    <description lang="en"><![CDATA[
+    The ADE Manager plugin allows extending a 3D City Database instance to store
+    and manage CityGML Application Domain Extension (ADE) data.
+    <ul>
+      <li>Transform an ADE XML schema to a compact relational schema for use with the 3DCityDB</li>
+      <li>Generate a mapping file linking elements from the ADE XML schema with the relational schema</li>
+      <li>Register ADE extensions with your 3DCityDB</li>
+    </ul>
+    <a href="https://3dcitydb-docs.readthedocs.io/en/release-v4.3.0/plugins/ade-manager">Documentation</a><br />
+    <a href="https://github.com/3dcitydb/extension-test-ade">Example 3DCityDB extension for the TestADE</a>
+    ]]>
+    </description>
+    <url>https://github.com/3dcitydb/plugin-ade-manager</url>
+    <vendor url="https://www.3dcitydb.org">3DCityDB Project</vendor>
+    <ade-support>true</ade-support>
+</plugin>

@@ -27,19 +27,6 @@
  */
 package org.citydb.plugins.ade_manager.transformation.graph;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.util.Enumeration;
-import java.util.List;
-
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.util.GlobalConstants;
-import org.citygml4j.xml.schema.SchemaHandler;
-
 import agg.attribute.AttrInstance;
 import agg.attribute.impl.ValueMember;
 import agg.attribute.impl.ValueTuple;
@@ -51,6 +38,18 @@ import agg.xt_basis.GraTra;
 import agg.xt_basis.LayeredGraTraImpl;
 import agg.xt_basis.Node;
 import agg.xt_basis.Type;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.util.GlobalConstants;
+import org.citygml4j.xml.schema.SchemaHandler;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.util.Enumeration;
+import java.util.List;
 
 public class GraphTransformationManager {
 	private List<String> namespaces;

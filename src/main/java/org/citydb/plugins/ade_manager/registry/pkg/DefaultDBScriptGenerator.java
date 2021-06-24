@@ -27,24 +27,24 @@
  */
 package org.citydb.plugins.ade_manager.registry.pkg;
 
+import org.citydb.core.database.connection.DatabaseConnectionPool;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
+import org.citydb.plugins.ade_manager.registry.metadata.AggregationInfoCollection;
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
+import org.citydb.plugins.ade_manager.registry.model.DBStoredFunctionCollection;
+import org.citydb.plugins.ade_manager.registry.query.Querier;
+import org.citydb.util.log.Logger;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.log.Logger;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
-import org.citydb.plugins.ade_manager.registry.metadata.AggregationInfoCollection;
-import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
-import org.citydb.plugins.ade_manager.registry.model.DBStoredFunctionCollection;
-import org.citydb.plugins.ade_manager.registry.pkg.DBScriptGenerator;
-import org.citydb.plugins.ade_manager.registry.query.Querier;
 
 public abstract class DefaultDBScriptGenerator implements DBScriptGenerator {
-	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();	
+	protected final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	protected final Logger log = Logger.getInstance();
 	protected final String br = System.lineSeparator();
 	protected final String commentPrefix = "-- ";

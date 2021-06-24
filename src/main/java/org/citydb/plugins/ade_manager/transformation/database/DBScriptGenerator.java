@@ -27,6 +27,32 @@
  */
 package org.citydb.plugins.ade_manager.transformation.database;
 
+import agg.attribute.AttrInstance;
+import agg.xt_basis.Arc;
+import agg.xt_basis.GraGra;
+import agg.xt_basis.Node;
+import agg.xt_basis.Type;
+import org.apache.ddlutils.Platform;
+import org.apache.ddlutils.PlatformInfo;
+import org.apache.ddlutils.model.Column;
+import org.apache.ddlutils.model.Database;
+import org.apache.ddlutils.model.Reference;
+import org.apache.ddlutils.model.Table;
+import org.apache.ddlutils.platform.SqlBuilder;
+import org.apache.ddlutils.platform.oracle.Oracle10Platform;
+import org.apache.ddlutils.platform.postgresql.PostgreSqlPlatform;
+import org.citydb.config.project.database.DatabaseType;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.transformation.database.extension.IndexedColumn;
+import org.citydb.plugins.ade_manager.transformation.database.extension.RestrictableForeignKey;
+import org.citydb.plugins.ade_manager.transformation.database.extension.SpatialColumn;
+import org.citydb.plugins.ade_manager.transformation.database.extension.TimestampColumn;
+import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
+import org.citydb.plugins.ade_manager.util.GlobalConstants;
+import org.citydb.plugins.ade_manager.util.NameShortener;
+import org.citydb.plugins.ade_manager.util.PathResolver;
+import org.citydb.util.log.Logger;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -42,33 +68,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-
-import org.apache.ddlutils.Platform;
-import org.apache.ddlutils.PlatformInfo;
-import org.apache.ddlutils.model.Column;
-import org.apache.ddlutils.model.Database;
-import org.apache.ddlutils.model.Reference;
-import org.apache.ddlutils.model.Table;
-import org.apache.ddlutils.platform.SqlBuilder;
-import org.apache.ddlutils.platform.oracle.Oracle10Platform;
-import org.apache.ddlutils.platform.postgresql.PostgreSqlPlatform;
-import org.citydb.config.project.database.DatabaseType;
-import org.citydb.log.Logger;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.transformation.database.extension.RestrictableForeignKey;
-import org.citydb.plugins.ade_manager.transformation.database.extension.IndexedColumn;
-import org.citydb.plugins.ade_manager.transformation.database.extension.SpatialColumn;
-import org.citydb.plugins.ade_manager.transformation.database.extension.TimestampColumn;
-import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
-import org.citydb.plugins.ade_manager.util.GlobalConstants;
-import org.citydb.plugins.ade_manager.util.NameShortener;
-import org.citydb.plugins.ade_manager.util.PathResolver;
-
-import agg.attribute.AttrInstance;
-import agg.xt_basis.Arc;
-import agg.xt_basis.GraGra;
-import agg.xt_basis.Node;
-import agg.xt_basis.Type;
 
 public class DBScriptGenerator {	
 	private Map<String, Table> databaseTables;
