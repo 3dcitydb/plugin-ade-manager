@@ -27,12 +27,7 @@
  */
 package org.citydb.plugins.ade_manager.transformation.graph;
 
-import com.sun.xml.xsom.XSContentType;
-import com.sun.xml.xsom.XSElementDecl;
-import com.sun.xml.xsom.XSModelGroup;
-import com.sun.xml.xsom.XSParticle;
-import com.sun.xml.xsom.XSTerm;
-import com.sun.xml.xsom.XSType;
+import com.sun.xml.xsom.*;
 import org.citygml4j.xml.schema.ElementDecl;
 import org.citygml4j.xml.schema.Schema;
 

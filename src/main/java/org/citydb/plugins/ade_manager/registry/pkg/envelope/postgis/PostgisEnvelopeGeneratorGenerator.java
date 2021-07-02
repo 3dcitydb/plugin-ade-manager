@@ -27,15 +27,7 @@
  */
 package org.citydb.plugins.ade_manager.registry.pkg.envelope.postgis;
 
-import org.citydb.core.database.schema.mapping.AbstractJoin;
-import org.citydb.core.database.schema.mapping.AbstractProperty;
-import org.citydb.core.database.schema.mapping.AbstractType;
-import org.citydb.core.database.schema.mapping.AbstractTypeProperty;
-import org.citydb.core.database.schema.mapping.GeometryProperty;
-import org.citydb.core.database.schema.mapping.ImplicitGeometryProperty;
-import org.citydb.core.database.schema.mapping.Join;
-import org.citydb.core.database.schema.mapping.JoinTable;
-import org.citydb.core.database.schema.mapping.TableRole;
+import org.citydb.core.database.schema.mapping.*;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;

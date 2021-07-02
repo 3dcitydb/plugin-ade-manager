@@ -27,8 +27,8 @@
  */
 package org.citydb.plugins.ade_manager.gui;
 
-import org.citydb.core.plugin.extension.view.View;
-import org.citydb.core.plugin.extension.view.ViewController;
+import org.citydb.gui.plugin.view.View;
+import org.citydb.gui.plugin.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.util.Translator;
 

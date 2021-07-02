@@ -32,22 +32,12 @@ import agg.attribute.impl.ValueMember;
 import agg.attribute.impl.ValueTuple;
 import agg.editor.impl.EdGraGra;
 import agg.util.XMLHelper;
-import agg.xt_basis.BaseFactory;
-import agg.xt_basis.GraGra;
-import agg.xt_basis.GraTra;
-import agg.xt_basis.LayeredGraTraImpl;
-import agg.xt_basis.Node;
-import agg.xt_basis.Type;
+import agg.xt_basis.*;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.util.GlobalConstants;
 import org.citygml4j.xml.schema.SchemaHandler;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Enumeration;
 import java.util.List;
 

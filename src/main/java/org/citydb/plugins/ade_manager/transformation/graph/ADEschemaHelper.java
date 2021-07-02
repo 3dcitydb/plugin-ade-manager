@@ -31,12 +31,7 @@ import org.citydb.core.database.schema.mapping.GeometryType;
 import org.citydb.core.database.schema.mapping.SimpleType;
 
 import javax.xml.namespace.QName;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ADEschemaHelper {
 	@SuppressWarnings("serial")

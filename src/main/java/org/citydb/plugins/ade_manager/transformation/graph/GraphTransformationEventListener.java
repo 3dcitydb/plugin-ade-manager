@@ -28,13 +28,7 @@
 package org.citydb.plugins.ade_manager.transformation.graph;
 
 
-import agg.xt_basis.GraTra;
-import agg.xt_basis.GraTraEvent;
-import agg.xt_basis.GraTraEventListener;
-import agg.xt_basis.GraTraOptions;
-import agg.xt_basis.LayeredGraTraImpl;
-import agg.xt_basis.Match;
-import agg.xt_basis.Rule;
+import agg.xt_basis.*;
 import org.citydb.util.log.Logger;
 
 public class GraphTransformationEventListener implements GraTraEventListener {
