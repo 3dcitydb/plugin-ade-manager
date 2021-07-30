@@ -59,7 +59,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		String tableName = envelopeFunction.getTargetTable();
 		String schemaName = envelopeFunction.getOwnerSchema();
 		String declareField = "FUNCTION " + wrapSchemaName(envelopeFunction.getName(), schemaName) + 
-				"(co_id INTEGER, set_envelope INTEGER DEFAULT 0, caller INTEGER DEFAULT 0) RETURNS GEOMETRY";
+				"(co_id BIGINT, set_envelope INTEGER DEFAULT 0, caller INTEGER DEFAULT 0) RETURNS GEOMETRY";
 		envelopeFunction.setDeclareField(declareField);
 		
 		// declaration block
@@ -382,7 +382,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 	protected void constructImplicitGeomEnvelopeFunction(EnvelopeFunction implicitGeomEnvelopeFunction) {
 		String schemaName = implicitGeomEnvelopeFunction.getOwnerSchema();
 		String declareField = "FUNCTION " + wrapSchemaName(implicitGeomEnvelopeFunction.getName(), schemaName) + 
-				"(implicit_rep_id INTEGER, ref_pt GEOMETRY, transform4x4 VARCHAR) RETURNS GEOMETRY";
+				"(implicit_rep_id BIGINT, ref_pt GEOMETRY, transform4x4 VARCHAR) RETURNS GEOMETRY";
 		implicitGeomEnvelopeFunction.setDeclareField(declareField);
 
 		String implict_geom_func_ddl = 

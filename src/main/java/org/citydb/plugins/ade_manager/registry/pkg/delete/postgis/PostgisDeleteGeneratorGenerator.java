@@ -67,10 +67,10 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		
 		String declare_block = 
 				"DECLARE" + 
-				brDent1 + "deleted_ids int[] := '{}';"+
-				brDent1 + "dummy_id integer;" +
-				brDent1 + "deleted_child_ids int[] := '{}';"+
-				brDent1 + "object_id integer;" +
+				brDent1 + "deleted_ids bigint[] := '{}';"+
+				brDent1 + "dummy_id bigint;" +
+				brDent1 + "deleted_child_ids bigint[] := '{}';"+
+				brDent1 + "object_id bigint;" +
 				brDent1 + "objectclass_id integer;" +
 				brDent1 + "rec RECORD;";
 		
@@ -156,7 +156,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				"CREATE OR REPLACE " + declareField + " AS" + br + 
 				"$body$" + br +
 				"DECLARE" +
-				brDent1 + "deleted_id integer;" + br +
+				brDent1 + "deleted_id bigint;" + br +
 				"BEGIN" + 
 				brDent1 + "deleted_id := " + wrapSchemaName(arrayDeleteFuncname, schemaName) + "(ARRAY[pid]);" +
 				brDent1 + "RETURN deleted_id;" + br +
@@ -171,7 +171,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	protected void constructLineageDeleteFunction(DeleteFunction deleteFunction) {
 		String schemaName = deleteFunction.getOwnerSchema();
 		String declareField = "FUNCTION " + wrapSchemaName(deleteFunction.getName(), schemaName) + 
-				"(lineage_value TEXT, objectclass_id INTEGER DEFAULT 0) RETURNS SETOF int";
+				"(lineage_value TEXT, objectclass_id INTEGER DEFAULT 0) RETURNS SETOF BIGINT";
 		deleteFunction.setDeclareField(declareField);
 		
 		String delete_func_ddl = 
@@ -179,7 +179,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				"$body$" + br +
 				commentPrefix + "Function for deleting cityobjects by lineage value" + br + 
 				"DECLARE" + 
-				brDent1 + "deleted_ids int[] := '{}';" + br + 
+				brDent1 + "deleted_ids bigint[] := '{}';" + br +
 				"BEGIN" + 
 				brDent1 + "IF $2 = 0 THEN" +	
 					brDent2 + "SELECT array_agg(c.id) FROM" + 
@@ -214,15 +214,15 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	protected void constructAppearanceCleanupFunction(DeleteFunction cleanupFunction) {
 		String schemaName = cleanupFunction.getOwnerSchema();
 		String declareField = "FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
-				"(only_global INTEGER DEFAULT 1) RETURNS SETOF int";
+				"(only_global INTEGER DEFAULT 1) RETURNS SETOF BIGINT";
 		cleanupFunction.setDeclareField(declareField);
 		
 		String cleanup_func_ddl = 
 				"CREATE OR REPLACE " + declareField + " AS" + br + 
 				"$body$" + br +
 				"DECLARE" + 
-				brDent1 + "deleted_id int;" + 
-				brDent1 + "app_id int;" + br +
+				brDent1 + "deleted_id bigint;" +
+				brDent1 + "app_id bigint;" + br +
 				"BEGIN" + 
 				brDent1 + "PERFORM " + wrapSchemaName(getArrayDeleteFunctionName("surface_data"), schemaName) + "(array_agg(s.id))" +	
 					brDent2 + "FROM " + wrapSchemaName("surface_data", schemaName) + " s " + 
@@ -306,7 +306,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	protected void constructTableCleanupFunction(DeleteFunction cleanupFunction) {
 		String schemaName = cleanupFunction.getOwnerSchema();
 		String declareField = "FUNCTION " + wrapSchemaName(cleanupFunction.getName(), schemaName) + 
-				"(tab_name TEXT) RETURNS SETOF INTEGER";
+				"(tab_name TEXT) RETURNS SETOF BIGINT";
 		cleanupFunction.setDeclareField(declareField);
 		
 		String cleanup_func_ddl = 
@@ -314,15 +314,15 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				"$body$" + br +
 				"DECLARE" + 
 				brDent1 + "rec RECORD;" + 
-				brDent1 + "rec_id INTEGER;" +
+				brDent1 + "rec_id BIGINT;" +
 				brDent1 + "where_clause TEXT;" +
 				brDent1 + "query_ddl TEXT;" +
-				brDent1 + "counter INTEGER;" +
+				brDent1 + "counter BIGINT;" +
 				brDent1 + "table_alias TEXT;" +
 				brDent1 + "table_name_with_schemaprefix TEXT;" +
 				brDent1 + "del_func_name TEXT;" +
 				brDent1 + "schema_name TEXT;" +
-				brDent1 + "deleted_id INTEGER;" +
+				brDent1 + "deleted_id BIGINT;" +
 				br +
 				"BEGIN" + 
 				brDent1 + "schema_name = '" + schemaName + "';" + 
@@ -393,12 +393,12 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 	@Override
 	protected String getArrayDeleteFunctionDeclareField(String arrayDeleteFuncName, String schemaName) {
 		return "FUNCTION " + wrapSchemaName(arrayDeleteFuncName, schemaName) + 
-				"(int[], caller INTEGER DEFAULT 0) RETURNS SETOF int";
+				"(bigint[], caller INTEGER DEFAULT 0) RETURNS SETOF BIGINT";
 	}
 
 	@Override
 	protected String getSingleDeleteFunctionDeclareField(String singleDeleteFuncName, String schemaName) {
-		return "FUNCTION " + wrapSchemaName(singleDeleteFuncName, schemaName) + "(pid int) RETURNS integer";	
+		return "FUNCTION " + wrapSchemaName(singleDeleteFuncName, schemaName) + "(pid bigint) RETURNS BIGINT";
 	}
 
 	private String create_local_delete(String tableName, String schemaName) {
@@ -466,7 +466,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			else {	
 				ref_block += create_n_ref_delete(n_table_name, n_fk_column_name, schemaName, nRootRelation);	
 				if (nRootRelation == RelationType.AGGREGATION)
-					vars += brDent1 + n_table_name + "_ids int[] := '{}';";
+					vars += brDent1 + n_table_name + "_ids bigint[] := '{}';";
 			}	
 			// If the n_fk_column is not nullable and the table m exists, the table n should be an associative table 
 			// between the root table and table m
@@ -477,7 +477,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				// In case of composition or aggregation between the root table and table m, the corresponding 
 				// records in the tables n and m should be deleted using an explicit code-block created below 
 				if (mRootRelation != RelationType.ASSOCIATION) {
-					vars += brDent1 + m_table_name + "_ids int[] := '{}';";
+					vars += brDent1 + m_table_name + "_ids bigint[] := '{}';";
 					ref_block += create_n_m_ref_delete(n_table_name, 
 														n_fk_column_name, 
 														m_table_name,
@@ -530,7 +530,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 								 	+ brDent3 + "WHERE"
 								 		+ brDent4 + "co.id = a.a_id"
 								 + brDent2 + "LOOP"
-									+ brDent3 + "object_id := rec.id::integer;"
+									+ brDent3 + "object_id := rec.id::bigint;"
 									+ brDent3 + "objectclass_id := rec.objectclass_id::integer;"
 									+ brDent3 + "CASE"
 										+ ref_child_block 
@@ -738,7 +738,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			}
 			fk_columns = tmpList.toArray(new String[0]);
 			if (fk_columns.length > 0) {
-				vars += brDent1 + ref_table_name + "_ids int[] := '{}';";
+				vars += brDent1 + ref_table_name + "_ids bigint[] := '{}';";
 				collect_block += "," 
 							  + brDent2;
 				for (int i = 0; i < fk_columns.length; i++) {
