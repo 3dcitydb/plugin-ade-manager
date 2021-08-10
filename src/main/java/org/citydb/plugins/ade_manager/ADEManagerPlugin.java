@@ -55,7 +55,7 @@ public class ADEManagerPlugin extends Plugin implements ViewExtension, ConfigExt
 		launcher.start();
 	}
 
-	public void shutdown() {
+	public void shutdownGui() {
 		saveSettings();
 	}
 

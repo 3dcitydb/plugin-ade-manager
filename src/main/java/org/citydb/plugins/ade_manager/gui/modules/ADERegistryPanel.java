@@ -225,9 +225,11 @@ public class ADERegistryPanel extends OperationModuleView {
 
 	private void showADEInfoDialog() {
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
-			printErrorMessage("Failed to connect to database", e);
+			printErrorMessage("Failed to connect to database.", e);
 			return;
 		}
 		String adeId = adeTableModel.getColumn(adeTable.getSelectedRow()).getValue(0);
@@ -265,9 +267,11 @@ public class ADERegistryPanel extends OperationModuleView {
 		
 		// database connection is required
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
-			printErrorMessage("Failed to connect to database", e);
+			printErrorMessage("Failed to connect to database.", e);
 			return;
 		}
 		
@@ -310,7 +314,9 @@ public class ADERegistryPanel extends OperationModuleView {
 		
 		// database connection is required
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
 			printErrorMessage("Failed to connect to database.", e);
 			return;
@@ -366,7 +372,9 @@ public class ADERegistryPanel extends OperationModuleView {
 		
 		// database connection is required
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
 			printErrorMessage("Failed to connect to database.", e);
 			return;
@@ -410,7 +418,9 @@ public class ADERegistryPanel extends OperationModuleView {
 	private void generateDeleteScripts() {
 		// database connection is required
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
 			printErrorMessage("Failed to connect to database.", e);
 			return;
@@ -443,7 +453,9 @@ public class ADERegistryPanel extends OperationModuleView {
 	private void generateEnvelopeScripts() {
 		// database connection is required
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
 			printErrorMessage("Failed to connect to database.", e);
 			return;

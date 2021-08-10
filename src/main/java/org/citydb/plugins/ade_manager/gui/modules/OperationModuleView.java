@@ -28,6 +28,7 @@
 package org.citydb.plugins.ade_manager.gui.modules;
 
 import org.citydb.config.i18n.Language;
+import org.citydb.config.project.database.DatabaseConnection;
 import org.citydb.config.project.database.DatabaseType;
 import org.citydb.core.database.DatabaseController;
 import org.citydb.core.database.connection.DatabaseConnectionPool;
@@ -80,18 +81,20 @@ public abstract class OperationModuleView implements EventHandler {
 		log.error(info, e);
 	}
 	
-	protected void checkAndConnectToDB() throws SQLException {
-		String[] connectConfirm = { Language.I18N.getString("pref.kmlexport.connectDialog.line1"),
-				Language.I18N.getString("pref.kmlexport.connectDialog.line3") };
+	protected boolean checkAndConnectToDB() throws SQLException {
+		if (!dbPool.isConnected()) {
+			DatabaseConnection conn = ObjectRegistry.getInstance().getConfig().getDatabaseConfig().getActiveConnection();
+			if (viewController.showOptionDialog(
+					Translator.I18N.getString("ade_manager.dialog.database.connect.title"),
+					MessageFormat.format(Translator.I18N.getString("ade_manager.dialog.database.connect"),
+							conn.getDescription(), conn.toConnectString()),
+					JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+				databaseController.connect();
+			}
+		}
 
 		if (!dbPool.isConnected()) {
-			if (JOptionPane.showConfirmDialog(parentPanel.getTopLevelAncestor(), connectConfirm,
-					Language.I18N.getString("pref.kmlexport.connectDialog.title"),
-					JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-				databaseController.connect(true);
-			}
-			else
-				throw new SQLException("Database is not connected.");
+			return false;
 		}
 
 		if (dbPool.getActiveDatabaseAdapter().getDatabaseType() == DatabaseType.ORACLE) {
@@ -103,6 +106,8 @@ public abstract class OperationModuleView implements EventHandler {
 				throw new SQLException(warnMessage);
 			}
 		}
+
+		return true;
 	}
 	
 }
