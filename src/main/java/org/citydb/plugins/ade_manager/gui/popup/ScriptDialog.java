@@ -28,12 +28,12 @@
 package org.citydb.plugins.ade_manager.gui.popup;
 
 import org.citydb.config.i18n.Language;
-import org.citydb.gui.factory.PopupMenuDecorator;
-import org.citydb.gui.factory.RSyntaxTextAreaHelper;
+import org.citydb.gui.components.popup.PopupMenuDecorator;
 import org.citydb.gui.util.GuiUtil;
-import org.citydb.log.Logger;
+import org.citydb.gui.util.RSyntaxTextAreaHelper;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.util.Translator;
+import org.citydb.util.log.Logger;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rtextarea.RTextScrollPane;

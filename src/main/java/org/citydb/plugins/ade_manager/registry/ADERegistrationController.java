@@ -27,14 +27,8 @@
  */
 package org.citydb.plugins.ade_manager.registry;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.event.EventDispatcher;
-import org.citydb.log.Logger;
+import org.citydb.core.database.connection.DatabaseConnectionPool;
+import org.citydb.core.registry.ObjectRegistry;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
 import org.citydb.plugins.ade_manager.registry.install.DBScriptInstaller;
@@ -46,12 +40,18 @@ import org.citydb.plugins.ade_manager.registry.pkg.DBScriptGenerator;
 import org.citydb.plugins.ade_manager.registry.pkg.DBScriptGeneratorFactory;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.registry.schema.ADEDBSchemaManagerFactory;
-import org.citydb.registry.ObjectRegistry;
+import org.citydb.util.event.EventDispatcher;
+import org.citydb.util.log.Logger;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ADERegistrationController {
 	private final Logger log = Logger.getInstance();
-	private final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();	
-	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();		
+	private final EventDispatcher eventDispatcher = ObjectRegistry.getInstance().getEventDispatcher();
+	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	private final ADEManagerPlugin plugin;
 	private Connection connection;
 	

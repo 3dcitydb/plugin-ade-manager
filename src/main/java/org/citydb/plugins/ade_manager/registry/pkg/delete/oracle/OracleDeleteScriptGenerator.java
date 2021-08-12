@@ -27,6 +27,16 @@
  */
 package org.citydb.plugins.ade_manager.registry.pkg.delete.oracle;
 
+import org.citydb.core.database.schema.mapping.RelationType;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
+import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteFunction;
+import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
+import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
+import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencedEntry;
+import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencingEntry;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -34,16 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.citydb.database.schema.mapping.RelationType;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteScriptGenerator;
-import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
-import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
-import org.citydb.plugins.ade_manager.registry.pkg.delete.DeleteFunction;
-import org.citydb.plugins.ade_manager.registry.query.datatype.MnRefEntry;
-import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencedEntry;
-import org.citydb.plugins.ade_manager.registry.query.datatype.ReferencingEntry;
 
 public class OracleDeleteScriptGenerator extends DeleteScriptGenerator {
 

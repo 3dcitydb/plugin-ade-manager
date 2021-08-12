@@ -27,38 +27,29 @@
  */
 package org.citydb.plugins.ade_manager.transformation.graph;
 
-import java.util.*;
-import java.util.Map.Entry;
-
-import javax.xml.XMLConstants;
-import javax.xml.namespace.QName;
-import org.citydb.database.schema.mapping.GeometryType;
-import org.citydb.database.schema.mapping.SimpleType;
-import org.citydb.log.Logger;
+import agg.attribute.AttrInstance;
+import agg.attribute.impl.ValueMember;
+import agg.attribute.impl.ValueTuple;
+import agg.xt_basis.*;
+import com.sun.xml.xsom.*;
+import org.citydb.core.database.schema.mapping.GeometryType;
+import org.citydb.core.database.schema.mapping.SimpleType;
 import org.citydb.plugins.ade_manager.transformation.graph.ADEschemaHelper.ComplexAttributeType;
 import org.citydb.plugins.ade_manager.transformation.graph.ADEschemaHelper.SimpleAttribute;
+import org.citydb.util.log.Logger;
 import org.citygml4j.xml.schema.Schema;
 import org.citygml4j.xml.schema.SchemaHandler;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
-import com.sun.xml.xsom.XSAnnotation;
-import com.sun.xml.xsom.XSComplexType;
-import com.sun.xml.xsom.XSElementDecl;
-import com.sun.xml.xsom.XSModelGroup;
-import com.sun.xml.xsom.XSParticle;
-import com.sun.xml.xsom.XSTerm;
-import com.sun.xml.xsom.XSType;
 
-import agg.attribute.AttrInstance;
-import agg.attribute.impl.ValueMember;
-import agg.attribute.impl.ValueTuple;
-import agg.xt_basis.Arc;
-import agg.xt_basis.GraGra;
-import agg.xt_basis.Graph;
-import agg.xt_basis.Node;
-import agg.xt_basis.Type;
-import agg.xt_basis.TypeException;
+import javax.xml.XMLConstants;
+import javax.xml.namespace.QName;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class GraphCreator {
 	private GraGra graphGrammar;

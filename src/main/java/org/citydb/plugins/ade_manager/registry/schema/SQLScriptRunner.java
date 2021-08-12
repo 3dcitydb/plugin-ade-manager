@@ -30,6 +30,10 @@ package org.citydb.plugins.ade_manager.registry.schema;
 /**
  * Inspired from the website: https://allstarnix.blogspot.de/2013/03/how-to-execute-sql-script-file-using.html
  */
+
+import org.citydb.core.database.connection.DatabaseConnectionPool;
+import org.citydb.util.log.Logger;
+
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.StringReader;
@@ -41,15 +45,12 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.log.Logger;
-
 public class SQLScriptRunner {
 	private static SQLScriptRunner instance;
     private final String DELIMITER_LINE_REGEX = "(?i)DELIMITER.+"; 
     private final String DELIMITER_LINE_SPLIT_REGEX = "(?i)DELIMITER"; 
     private final String DEFAULT_DELIMITER = ";";
-    private final Logger LOG = Logger.getInstance();	 
+    private final Logger LOG = Logger.getInstance();
     private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
     private String delimiter = DEFAULT_DELIMITER;
 

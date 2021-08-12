@@ -27,6 +27,12 @@
  */
 package org.citydb.plugins.ade_manager.registry.pkg.envelope;
 
+import org.citydb.core.database.schema.mapping.*;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
+import org.citydb.plugins.ade_manager.registry.pkg.DefaultDBScriptGenerator;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -34,31 +40,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.citydb.database.schema.mapping.AbstractExtension;
-import org.citydb.database.schema.mapping.AbstractJoin;
-import org.citydb.database.schema.mapping.AbstractProperty;
-import org.citydb.database.schema.mapping.AbstractRefTypeProperty;
-import org.citydb.database.schema.mapping.AbstractType;
-import org.citydb.database.schema.mapping.AbstractTypeProperty;
-import org.citydb.database.schema.mapping.ComplexProperty;
-import org.citydb.database.schema.mapping.FeatureProperty;
-import org.citydb.database.schema.mapping.GeometryProperty;
-import org.citydb.database.schema.mapping.ImplicitGeometryProperty;
-import org.citydb.database.schema.mapping.InjectedProperty;
-import org.citydb.database.schema.mapping.Join;
-import org.citydb.database.schema.mapping.JoinTable;
-import org.citydb.database.schema.mapping.ObjectProperty;
-import org.citydb.database.schema.mapping.PropertyInjection;
-import org.citydb.database.schema.mapping.RelationType;
-import org.citydb.database.schema.mapping.SchemaMapping;
-import org.citydb.database.schema.mapping.TableRole;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
-import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
-import org.citydb.plugins.ade_manager.registry.pkg.DefaultDBScriptGenerator;
-
 public abstract class EnvelopeScriptGenerator extends DefaultDBScriptGenerator {
-	protected SchemaMapping schemaMapping; 
+	protected SchemaMapping schemaMapping;
 	
 	protected final String update_bounds_funcname = "update_bounds";	
 	protected final String box2envelope_funcname = "box2envelope";

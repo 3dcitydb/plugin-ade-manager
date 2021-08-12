@@ -27,25 +27,23 @@
  */
 package org.citydb.plugins.ade_manager.transformation;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-
+import agg.xt_basis.GraGra;
+import com.sun.xml.xsom.util.DomAnnotationParserFactory;
 import org.apache.ddlutils.model.Database;
-import org.citydb.database.schema.mapping.SchemaMapping;
-import org.citydb.event.Event;
-import org.citydb.event.EventHandler;
-import org.citydb.log.Logger;
+import org.citydb.core.database.schema.mapping.SchemaMapping;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.transformation.database.DBScriptGenerator;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphTransformationManager;
 import org.citydb.plugins.ade_manager.transformation.schemaMapping.SchemaMappingCreator;
+import org.citydb.util.event.Event;
+import org.citydb.util.event.EventHandler;
+import org.citydb.util.log.Logger;
 import org.citygml4j.xml.schema.SchemaHandler;
 import org.xml.sax.SAXException;
 
-import com.sun.xml.xsom.util.DomAnnotationParserFactory;
-
-import agg.xt_basis.GraGra;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TransformationController implements EventHandler {
 	private final Logger LOG = Logger.getInstance();

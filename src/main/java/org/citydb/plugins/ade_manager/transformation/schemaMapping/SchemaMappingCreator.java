@@ -27,6 +27,18 @@
  */
 package org.citydb.plugins.ade_manager.transformation.schemaMapping;
 
+import agg.attribute.AttrInstance;
+import agg.xt_basis.Arc;
+import agg.xt_basis.GraGra;
+import agg.xt_basis.Node;
+import agg.xt_basis.Type;
+import org.citydb.core.database.schema.mapping.*;
+import org.citydb.core.database.schema.util.SchemaMappingUtil;
+import org.citydb.core.util.CoreConstants;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
+
+import javax.xml.namespace.QName;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
@@ -35,60 +47,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.xml.namespace.QName;
-
-import org.citydb.database.schema.mapping.AbstractExtension;
-import org.citydb.database.schema.mapping.AbstractJoin;
-import org.citydb.database.schema.mapping.AbstractProperty;
-import org.citydb.database.schema.mapping.AbstractRefTypeProperty;
-import org.citydb.database.schema.mapping.AbstractType;
-import org.citydb.database.schema.mapping.AbstractTypeProperty;
-import org.citydb.database.schema.mapping.AppSchema;
-import org.citydb.database.schema.mapping.CityGMLContext;
-import org.citydb.database.schema.mapping.ComplexAttribute;
-import org.citydb.database.schema.mapping.ComplexAttributeType;
-import org.citydb.database.schema.mapping.ComplexProperty;
-import org.citydb.database.schema.mapping.ComplexType;
-import org.citydb.database.schema.mapping.ComplexTypeExtension;
-import org.citydb.database.schema.mapping.Condition;
-import org.citydb.database.schema.mapping.FeatureProperty;
-import org.citydb.database.schema.mapping.FeatureType;
-import org.citydb.database.schema.mapping.FeatureTypeExtension;
-import org.citydb.database.schema.mapping.GeometryProperty;
-import org.citydb.database.schema.mapping.GeometryType;
-import org.citydb.database.schema.mapping.ImplicitGeometryProperty;
-import org.citydb.database.schema.mapping.InjectedComplexAttribute;
-import org.citydb.database.schema.mapping.InjectedComplexProperty;
-import org.citydb.database.schema.mapping.InjectedFeatureProperty;
-import org.citydb.database.schema.mapping.InjectedGeometryProperty;
-import org.citydb.database.schema.mapping.InjectedObjectProperty;
-import org.citydb.database.schema.mapping.InjectedProperty;
-import org.citydb.database.schema.mapping.InjectedSimpleAttribute;
-import org.citydb.database.schema.mapping.Join;
-import org.citydb.database.schema.mapping.JoinTable;
-import org.citydb.database.schema.mapping.Metadata;
-import org.citydb.database.schema.mapping.Namespace;
-import org.citydb.database.schema.mapping.ObjectProperty;
-import org.citydb.database.schema.mapping.ObjectType;
-import org.citydb.database.schema.mapping.ObjectTypeExtension;
-import org.citydb.database.schema.mapping.PropertyInjection;
-import org.citydb.database.schema.mapping.RelationType;
-import org.citydb.database.schema.mapping.SchemaMapping;
-import org.citydb.database.schema.mapping.SchemaMappingException;
-import org.citydb.database.schema.mapping.SimpleAttribute;
-import org.citydb.database.schema.mapping.SimpleType;
-import org.citydb.database.schema.mapping.TableRole;
-import org.citydb.database.schema.mapping.TreeHierarchy;
-import org.citydb.database.schema.util.SchemaMappingUtil;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
-import org.citydb.util.CoreConstants;
-
-import agg.attribute.AttrInstance;
-import agg.xt_basis.Arc;
-import agg.xt_basis.GraGra;
-import agg.xt_basis.Node;
-import agg.xt_basis.Type;
+import static org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType.Join;
 
 public class SchemaMappingCreator {	
 	private final String schemaMappingFoldername = "schema-mapping";
@@ -142,7 +101,7 @@ public class SchemaMappingCreator {
 		return metadata;
 	}
 	
-	private void generateApplicationSchema(SchemaMapping adeSchemaMapping) throws SchemaMappingException{	
+	private void generateApplicationSchema(SchemaMapping adeSchemaMapping) throws SchemaMappingException {
 		List<Node> schemaNodes = this.getSchemaNode();			
 		for (int i = 0; i < schemaNodes.size(); i++) {
 			Node schemaNode = schemaNodes.get(i);
@@ -155,7 +114,7 @@ public class SchemaMappingCreator {
 			else
 				schemaId = dbPrefix; // legacy
 			AppSchema appSchema = new AppSchema(schemaId, adeSchemaMapping);		
-			Namespace namespace = new Namespace(namespaceUri, CityGMLContext.CITYGML_2_0);		
+			Namespace namespace = new Namespace(namespaceUri, CityGMLContext.CITYGML_2_0);
 			appSchema.addNamespace(namespace);	
 			appSchema.setIsADERoot(true);
 			adeSchemaMapping.addSchema(appSchema);
@@ -358,7 +317,7 @@ public class SchemaMappingCreator {
 			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.ComplexType)) {
 				AbstractType<?> superType = this.getOrCreateFeatureOrObjectOrComplexType(targetNode, schemaMapping);
 				if (subType instanceof FeatureType) {
-					FeatureTypeExtension featureTypeExtension = new FeatureTypeExtension((FeatureType) superType);	
+					FeatureTypeExtension featureTypeExtension = new FeatureTypeExtension((FeatureType) superType);
 					((FeatureType) subType).setExtension(featureTypeExtension);
 					extension = featureTypeExtension;
 				}
@@ -374,7 +333,7 @@ public class SchemaMappingCreator {
 				}
 			}
 			
-			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.Join) && extension != null) {
+			if (targetNode.getType().getName().equalsIgnoreCase(Join) && extension != null) {
 				Join extensionJoin = this.createJoin(subType.getTable(), targetNode);
 				extension.setJoin(extensionJoin);
 			}
@@ -512,7 +471,7 @@ public class SchemaMappingCreator {
 				if (targetAttributeType != null) {
 					ComplexAttribute complexAttribute = new ComplexAttribute(propertyPath, appSchema);
 					complexAttribute.setRefType(targetAttributeType);
-					if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.Join)) {
+					if (targetNode.getType().getName().equalsIgnoreCase(Join)) {
 						Join propertyJoin = this.createJoin(localType.getTable(), targetNode);
 						complexAttribute.setJoin(propertyJoin);
 					}
@@ -522,13 +481,13 @@ public class SchemaMappingCreator {
 					AbstractType<?> targetType = this.getOrCreateFeatureOrObjectOrComplexType(targetNode, schemaMapping);
 													
 					if (targetType instanceof FeatureType) {
-						property = new FeatureProperty(propertyPath, (FeatureType) targetType, appSchema);						
+						property = new FeatureProperty(propertyPath, (FeatureType) targetType, appSchema);
 					}
 					else if (targetType instanceof ObjectType) {
-						property = new ObjectProperty(propertyPath, (ObjectType) targetType, appSchema);	
+						property = new ObjectProperty(propertyPath, (ObjectType) targetType, appSchema);
 					}
 					else if (targetType instanceof ComplexType) {
-						property = new ComplexProperty(propertyPath, appSchema);	
+						property = new ComplexProperty(propertyPath, appSchema);
 						if (checkInlineType(targetNode)) {
 							((ComplexProperty)property).setInlineType((ComplexType) targetType);
 							this.processFeatureOrObjectOrComplexType(targetNode, targetType, schemaMapping);
@@ -545,7 +504,7 @@ public class SchemaMappingCreator {
 				localType.addProperty(property);				
 			}
 			
-			if (targetNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.Join)) {
+			if (targetNode.getType().getName().equalsIgnoreCase(Join)) {
 				Join propertyJoin = this.createJoin(localType.getTable(), targetNode);
 				if (property instanceof ComplexAttribute)
 					((ComplexAttribute) property).setJoin(propertyJoin);
@@ -577,7 +536,7 @@ public class SchemaMappingCreator {
 				while (arcIter2.hasNext()) {
 					Arc arc2 = arcIter2.next();
 					Node joinNode = (Node) arc2.getSource();
-					if (joinNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.Join)) {
+					if (joinNode.getType().getName().equalsIgnoreCase(Join)) {
 						Join join = this.createJoin(tableName, joinNode);
 						if (join.getTable().equalsIgnoreCase(parentTableName))
 							joinTable.setJoin(join);

@@ -27,6 +27,16 @@
  */
 package org.citydb.plugins.ade_manager.registry.metadata;
 
+import org.citydb.config.project.database.DatabaseType;
+import org.citydb.core.database.connection.DatabaseConnectionPool;
+import org.citydb.core.database.schema.mapping.*;
+import org.citydb.core.database.schema.util.SchemaMappingUtil;
+import org.citydb.core.util.CoreConstants;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.util.GlobalConstants;
+import org.citydb.plugins.ade_manager.util.PathResolver;
+
+import javax.xml.bind.JAXBException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,61 +45,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.sql.Types;
+import java.sql.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.TreeMap;
-
-import javax.xml.bind.JAXBException;
-import org.citydb.config.project.database.DatabaseType;
-import org.citydb.database.connection.DatabaseConnectionPool;
-import org.citydb.database.schema.mapping.AbstractExtension;
-import org.citydb.database.schema.mapping.AbstractJoin;
-import org.citydb.database.schema.mapping.AbstractObjectType;
-import org.citydb.database.schema.mapping.AbstractProperty;
-import org.citydb.database.schema.mapping.AbstractType;
-import org.citydb.database.schema.mapping.AbstractTypeProperty;
-import org.citydb.database.schema.mapping.AppSchema;
-import org.citydb.database.schema.mapping.ComplexType;
-import org.citydb.database.schema.mapping.FeatureType;
-import org.citydb.database.schema.mapping.GeometryProperty;
-import org.citydb.database.schema.mapping.ImplicitGeometryProperty;
-import org.citydb.database.schema.mapping.InjectedProperty;
-import org.citydb.database.schema.mapping.Join;
-import org.citydb.database.schema.mapping.JoinTable;
-import org.citydb.database.schema.mapping.Namespace;
-import org.citydb.database.schema.mapping.ObjectType;
-import org.citydb.database.schema.mapping.PropertyInjection;
-import org.citydb.database.schema.mapping.RelationType;
-import org.citydb.database.schema.mapping.SchemaMapping;
-import org.citydb.database.schema.mapping.SchemaMappingException;
-import org.citydb.database.schema.mapping.SchemaMappingValidationException;
-import org.citydb.database.schema.mapping.TableRole;
-import org.citydb.database.schema.mapping.TreeHierarchy;
-import org.citydb.database.schema.util.SchemaMappingUtil;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.util.GlobalConstants;
-import org.citydb.plugins.ade_manager.util.PathResolver;
-import org.citydb.util.CoreConstants;
 
 public class ADEMetadataManager {	
 	private final DatabaseConnectionPool dbPool = DatabaseConnectionPool.getInstance();
 	private final Connection connection;
 	private final ConfigImpl config;
 	private final String schema;
-	private SchemaMapping mergedSchemaMapping;	
+	private SchemaMapping mergedSchemaMapping;
 	private final AggregationInfoCollection aggregationInfoCollection;
 	
 	public ADEMetadataManager(Connection connection, ConfigImpl config) throws SQLException {
@@ -612,7 +579,7 @@ public class ADEMetadataManager {
 	private Map<Long, String> insertObjectclasses(SchemaMapping inputADESchemaMapping, long insertedADERowId, PreparedStatement ps) throws SQLException {		
 		Map<Long, String> insertedObjectclasses = new HashMap<Long, String>();
 		
-		Iterator<AbstractType<?>> objectIter = inputADESchemaMapping.getAbstractTypes().iterator();		
+		Iterator<AbstractType<?>> objectIter = inputADESchemaMapping.getAbstractTypes().iterator();
 		while (objectIter.hasNext()) {
 			AbstractType<?> objectClass = objectIter.next();	
 			if (!insertedObjectclasses.containsKey((long)objectClass.getObjectClassId()))
@@ -677,12 +644,12 @@ public class ADEMetadataManager {
 		AggregationInfoCollection insertedAggregationinfo = new AggregationInfoCollection(this);		
 		for (AbstractType<?> objectclass: inputADESchemaMapping.getAbstractTypes()) {
 			int parentClassId = objectclass.getObjectClassId();	
-			for (AbstractProperty property: objectclass.getProperties()) 
+			for (AbstractProperty property: objectclass.getProperties())
 				insertSingleAggregationInfo(parentClassId, property, insertedAggregationinfo, ps);
 		}	
 		for (PropertyInjection injection: inputADESchemaMapping.getPropertyInjections()) {
 			int parentClassId = injection.getDefaultBase().getObjectClassId();
-			for (InjectedProperty property: injection.getProperties()) 
+			for (InjectedProperty property: injection.getProperties())
 				insertSingleAggregationInfo(parentClassId, (AbstractProperty)property, insertedAggregationinfo, ps);
 		}		
 	}

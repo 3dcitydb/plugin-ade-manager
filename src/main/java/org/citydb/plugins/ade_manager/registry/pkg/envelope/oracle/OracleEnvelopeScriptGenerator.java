@@ -27,28 +27,19 @@
  */
 package org.citydb.plugins.ade_manager.registry.pkg.envelope.oracle;
 
+import org.citydb.core.database.schema.mapping.*;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
+import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
+import org.citydb.plugins.ade_manager.registry.pkg.envelope.EnvelopeFunction;
+import org.citydb.plugins.ade_manager.registry.pkg.envelope.EnvelopeScriptGenerator;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.citydb.database.schema.mapping.AbstractJoin;
-import org.citydb.database.schema.mapping.AbstractProperty;
-import org.citydb.database.schema.mapping.AbstractType;
-import org.citydb.database.schema.mapping.AbstractTypeProperty;
-import org.citydb.database.schema.mapping.GeometryProperty;
-import org.citydb.database.schema.mapping.ImplicitGeometryProperty;
-import org.citydb.database.schema.mapping.Join;
-import org.citydb.database.schema.mapping.JoinTable;
-import org.citydb.database.schema.mapping.TableRole;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.pkg.envelope.EnvelopeScriptGenerator;
-
-import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
-import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
-import org.citydb.plugins.ade_manager.registry.pkg.envelope.EnvelopeFunction;
 
 public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 	
@@ -284,7 +275,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		while (iter.hasNext()) {
 			AbstractTypeProperty<?> spatialRefTypeProperty = iter.next();
 			AbstractType<?> spatialRefType = spatialRefTypeProperty.getType();
-			AbstractJoin propertyJoin = spatialRefTypeProperty.getJoin();					
+			AbstractJoin propertyJoin = spatialRefTypeProperty.getJoin();
 			String refTable = spatialRefType.getTable();
 			
 			// register function

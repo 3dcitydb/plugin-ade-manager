@@ -27,6 +27,11 @@
  */
 package org.citydb.plugins.ade_manager.registry.schema.adapter.oracle;
 
+import org.citydb.config.project.database.DatabaseType;
+import org.citydb.plugins.ade_manager.config.ConfigImpl;
+import org.citydb.plugins.ade_manager.registry.schema.adapter.AbstractADEDBSchemaManager;
+import org.citydb.plugins.ade_manager.util.PathResolver;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -35,11 +40,6 @@ import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Scanner;
-
-import org.citydb.config.project.database.DatabaseType;
-import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.registry.schema.adapter.AbstractADEDBSchemaManager;
-import org.citydb.plugins.ade_manager.util.PathResolver;
 
 public class OracleADEDBSchemaManager extends AbstractADEDBSchemaManager {
 

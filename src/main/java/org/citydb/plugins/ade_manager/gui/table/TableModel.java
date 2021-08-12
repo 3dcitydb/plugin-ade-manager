@@ -27,12 +27,11 @@
  */
 package org.citydb.plugins.ade_manager.gui.table;
 
+import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import javax.swing.table.AbstractTableModel;
 
 public class TableModel<T extends TableRowDefaultImpl> extends AbstractTableModel {
 	private final String[] columnNames;

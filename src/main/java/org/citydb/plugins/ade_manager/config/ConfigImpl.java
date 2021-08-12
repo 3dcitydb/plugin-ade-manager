@@ -27,14 +27,13 @@
  */
 package org.citydb.plugins.ade_manager.config;
 
-import java.io.File;
+import org.citydb.config.project.plugin.PluginConfig;
+import org.citydb.core.util.CoreConstants;
+import org.citydb.plugins.ade_manager.util.GlobalConstants;
 
 import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
-
-import org.citydb.config.project.plugin.PluginConfig;
-import org.citydb.plugins.ade_manager.util.GlobalConstants;
-import org.citydb.util.CoreConstants;
+import java.io.File;
 
 @XmlType(name="ADEManagerType", propOrder={			
 		"xmlSchemaInputPath",		

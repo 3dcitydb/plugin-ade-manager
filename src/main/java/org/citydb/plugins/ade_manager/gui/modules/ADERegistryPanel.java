@@ -27,19 +27,17 @@
  */
 package org.citydb.plugins.ade_manager.gui.modules;
 
-import org.citydb.ade.ADEExtensionManager;
 import org.citydb.config.i18n.Language;
-import org.citydb.database.schema.mapping.SchemaMapping;
-import org.citydb.database.schema.mapping.SchemaMappingException;
-import org.citydb.database.schema.mapping.SchemaMappingValidationException;
-import org.citydb.event.Event;
-import org.citydb.event.global.DatabaseConnectionStateEvent;
-import org.citydb.event.global.EventType;
-import org.citydb.gui.components.common.TitledPanel;
+import org.citydb.core.ade.ADEExtensionManager;
+import org.citydb.core.database.schema.mapping.SchemaMapping;
+import org.citydb.core.database.schema.mapping.SchemaMappingException;
+import org.citydb.core.database.schema.mapping.SchemaMappingValidationException;
+import org.citydb.core.registry.ObjectRegistry;
+import org.citydb.gui.components.TitledPanel;
 import org.citydb.gui.components.dialog.ConfirmationCheckDialog;
-import org.citydb.gui.factory.PopupMenuDecorator;
-import org.citydb.gui.modules.database.util.ADEInfoDialog;
-import org.citydb.gui.modules.database.util.ADEInfoRow;
+import org.citydb.gui.components.popup.PopupMenuDecorator;
+import org.citydb.gui.operation.database.util.ADEInfoDialog;
+import org.citydb.gui.operation.database.util.ADEInfoRow;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
@@ -53,7 +51,9 @@ import org.citydb.plugins.ade_manager.registry.ADERegistrationException;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataInfo;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.util.Translator;
-import org.citydb.registry.ObjectRegistry;
+import org.citydb.util.event.Event;
+import org.citydb.util.event.global.DatabaseConnectionStateEvent;
+import org.citydb.util.event.global.EventType;
 
 import javax.swing.*;
 import javax.xml.bind.JAXBException;
@@ -64,7 +64,6 @@ import java.io.File;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ADERegistryPanel extends OperationModuleView {
 	private JPanel component;
@@ -226,9 +225,11 @@ public class ADERegistryPanel extends OperationModuleView {
 
 	private void showADEInfoDialog() {
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
-			printErrorMessage("Failed to connect to database", e);
+			printErrorMessage("Failed to connect to database.", e);
 			return;
 		}
 		String adeId = adeTableModel.getColumn(adeTable.getSelectedRow()).getValue(0);
@@ -266,9 +267,11 @@ public class ADERegistryPanel extends OperationModuleView {
 		
 		// database connection is required
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
-			printErrorMessage("Failed to connect to database", e);
+			printErrorMessage("Failed to connect to database.", e);
 			return;
 		}
 		
@@ -311,7 +314,9 @@ public class ADERegistryPanel extends OperationModuleView {
 		
 		// database connection is required
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
 			printErrorMessage("Failed to connect to database.", e);
 			return;
@@ -367,7 +372,9 @@ public class ADERegistryPanel extends OperationModuleView {
 		
 		// database connection is required
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
 			printErrorMessage("Failed to connect to database.", e);
 			return;
@@ -411,7 +418,9 @@ public class ADERegistryPanel extends OperationModuleView {
 	private void generateDeleteScripts() {
 		// database connection is required
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
 			printErrorMessage("Failed to connect to database.", e);
 			return;
@@ -444,7 +453,9 @@ public class ADERegistryPanel extends OperationModuleView {
 	private void generateEnvelopeScripts() {
 		// database connection is required
 		try {
-			checkAndConnectToDB();
+			if (!checkAndConnectToDB()) {
+				return;
+			}
 		} catch (SQLException e) {
 			printErrorMessage("Failed to connect to database.", e);
 			return;

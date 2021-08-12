@@ -1,0 +1,31 @@
+<plugin>
+    <name>@name@</name>
+    <version>@version@</version>
+    <url>@url@</url>
+    <vendor url="@vendorUrl@">@vendor@</vendor>
+    <ade-support>true</ade-support>
+    <description lang="en"><![CDATA[
+    The @name@ allows you to extend a @citydbName@ instance to store and manage CityGML Application
+    Domain Extensions (ADE).
+    <ul>
+      <li>Transforms ADE XML schemas to compact relational schemas for use with the @citydbShortName@</li>
+      <li>Generates mapping files linking elements from the ADE XML schema with the relational schema</li>
+      <li>Registers ADE extensions with your @citydbShortName@</li>
+    </ul>
+    <a href="@docUrl@">Documentation</a><br />
+    <a href="@testADEUrl@">Example @citydbShortName@ extension for the TestADE</a>
+    ]]>
+    </description>
+    <description lang="de"><![CDATA[
+    Mit dem @name@ kann eine @citydbName@ Instanz erweitert werden, um CityGML Application Domain Extensions
+    (ADE) speichern und verwalten zu können.
+    <ul>
+      <li>Überführt ADE XML Schemas in kompakte Datenbankschemas für die @citydbShortName@</li>
+      <li>Erzeugt Mapping-Dateien zur Verknüpfung der Elemente des ADE XML Schemas mit dem Datenbankschema</li>
+      <li>Registriert ADE Erweiterungen in der @citydbShortName@</li>
+    </ul>
+    <a href="@docUrl@">Dokumentation</a><br />
+    <a href="@testADEUrl@">Beispiel einer @citydbShortName@ Erweiterung für die TestADE</a>
+    ]]>
+    </description>
+</plugin>

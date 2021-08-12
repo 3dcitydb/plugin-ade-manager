@@ -27,12 +27,13 @@
  */
 package org.citydb.plugins.ade_manager.registry.pkg.delete;
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
 import org.citydb.plugins.ade_manager.registry.pkg.DefaultDBScriptGenerator;
+
+import java.sql.Connection;
+import java.sql.SQLException;
 
 public abstract class DeleteScriptGenerator extends DefaultDBScriptGenerator {
 	protected final String lineage_delete_funcname = "del_cityobjects_by_lineage";

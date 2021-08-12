@@ -27,8 +27,8 @@
  */
 package org.citydb.plugins.ade_manager.event;
 
-import org.citydb.event.Event;
 import org.citydb.plugins.ade_manager.registry.model.DBSQLScript;
+import org.citydb.util.event.Event;
 
 public final class ScriptCreationEvent extends Event {
 	private final DBSQLScript script;
