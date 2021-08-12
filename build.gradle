@@ -30,6 +30,23 @@ dependencies {
 	compile fileTree(dir: 'lib/shared', include: '*.jar')
 }
 
+processResources {
+    filesMatching('**/plugin.xml') {
+        filteringCharset = 'UTF-8'
+        filter(ReplaceTokens, tokens: [
+                name: project.pluginShortName,
+                version: project.version,
+                url: project.pluginUrl,
+                vendor: project.citydbProject,
+                vendorUrl: project.citydbWebsiteUrl,
+                citydbName: project.citydbName,
+                citydbShortName: project.citydbShortName,
+                docUrl: project.docUrl,
+                testADEUrl: project.testADEUrl
+        ])
+    }
+}
+
 jar {
     manifest {
         attributes('Implementation-Title': project.name,
