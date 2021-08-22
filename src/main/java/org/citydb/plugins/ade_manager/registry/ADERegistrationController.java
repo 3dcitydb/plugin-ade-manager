@@ -103,7 +103,7 @@ public class ADERegistrationController {
 			installDBScript(deleteScript);			
 			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, true, this));
 		} catch (ADERegistrationException e) {
-			log.info("Failed to create and install delete functions in database (skipped).");
+			log.error("Failed to create and install delete functions in database (skipped).", e);
 		} 	
 		
 		// create and install envelope-functions.
@@ -113,7 +113,7 @@ public class ADERegistrationController {
 			installDBScript(envelopeScript);	
 			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, true, this));
 		} catch (ADERegistrationException e) {
-			log.info("Failed to create and install envelope functions into database (skipped).");
+			log.error("Failed to create and install envelope functions into database (skipped).", e);
 		} 	
 
 		return true;
