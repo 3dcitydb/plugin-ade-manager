@@ -184,7 +184,12 @@ public class DBScriptGenerator {
 		String columnName = (String) columnNode.getAttribute().getValueAt("name");	
 		IndexedColumn indexedColumn = new IndexedColumn();
 		indexedColumn.setName(columnName);
-		indexedColumn.setTypeCode(Types.INTEGER);
+		if (columnName.equalsIgnoreCase("objectclass_id")) {
+			indexedColumn.setTypeCode(Types.INTEGER);
+		} else {
+			indexedColumn.setTypeCode(Types.BIGINT);
+		}
+
 		dbTable.addColumn(indexedColumn);		
 		if (columnNode.getType().getName().equalsIgnoreCase(GraphNodeArcType.PrimaryKeyColumn)) {
 			indexedColumn.setPrimaryKey(true);
