@@ -871,7 +871,7 @@ public class DBScriptGenerator {
 						writer.println();
 						writer.println("INCREMENT BY 1");
 						writer.println("MINVALUE 0");
-						writer.println("MAXVALUE 2147483647");
+						writer.println("MAXVALUE 9223372036854775807");
 						writer.println("START WITH 1");
 						writer.println("CACHE 1");
 						writer.println("NO CYCLE");
