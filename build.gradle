@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.citydb:impexp-client-gui:4.4.0-SNAPSHOT'
+    compile 'org.citydb:impexp-client-gui:5.0.0-SNAPSHOT'
 	compile fileTree(dir: 'lib', include: '*.jar')
 	compile fileTree(dir: 'lib/shared', include: '*.jar')
 }
