@@ -27,6 +27,7 @@
  */
 package org.citydb.plugins.ade_manager.registry.pkg.envelope.postgis;
 
+import org.citydb.core.database.connection.DatabaseConnectionPool;
 import org.citydb.core.database.schema.mapping.*;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.metadata.ADEMetadataManager;
@@ -42,9 +43,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
+	private final String idType;
 	
 	public PostgisEnvelopeGeneratorGenerator(Connection connection, ConfigImpl config, ADEMetadataManager adeMetadataManager) {
 		super(connection, config, adeMetadataManager);
+		idType = DatabaseConnectionPool.getInstance().getActiveDatabaseAdapter().getConnectionMetaData().getCityDBVersion().compareTo(4, 2, 0) < 0 ?
+				"INTEGER" :
+				"BIGINT";
 	}
 
 	@Override
@@ -59,7 +64,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		String tableName = envelopeFunction.getTargetTable();
 		String schemaName = envelopeFunction.getOwnerSchema();
 		String declareField = "FUNCTION " + wrapSchemaName(envelopeFunction.getName(), schemaName) + 
-				"(co_id INTEGER, set_envelope INTEGER DEFAULT 0, caller INTEGER DEFAULT 0) RETURNS GEOMETRY";
+				"(co_id " + idType + ", set_envelope INTEGER DEFAULT 0, caller INTEGER DEFAULT 0) RETURNS GEOMETRY";
 		envelopeFunction.setDeclareField(declareField);
 		
 		// declaration block
@@ -382,7 +387,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 	protected void constructImplicitGeomEnvelopeFunction(EnvelopeFunction implicitGeomEnvelopeFunction) {
 		String schemaName = implicitGeomEnvelopeFunction.getOwnerSchema();
 		String declareField = "FUNCTION " + wrapSchemaName(implicitGeomEnvelopeFunction.getName(), schemaName) + 
-				"(implicit_rep_id INTEGER, ref_pt GEOMETRY, transform4x4 VARCHAR) RETURNS GEOMETRY";
+				"(implicit_rep_id " + idType + ", ref_pt GEOMETRY, transform4x4 VARCHAR) RETURNS GEOMETRY";
 		implicitGeomEnvelopeFunction.setDeclareField(declareField);
 
 		String implict_geom_func_ddl = 
