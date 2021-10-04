@@ -7,6 +7,11 @@ Change Log
 * This version is implemented against the new Plugin API introduced with **version 5.0.0** of the
   [Importer/Exporter](https://github.com/3dcitydb/importer-exporter). It *cannot be used with previous versions*
   of the Importer/Exporter anymore.
+* The generated PostgreSQL-based ADE database schemas now use 64-bit bigint as data type instead of 32-bit integer 
+  for all primary key columns and therefore *cannot be used with previous versions (< 4.2.0)* of the 3DCityDB anymore.
+
+##### Fixes
+* Fixed logging of some error messages
 
 ### 1.2.0 - 2021-04-28
 
@@ -20,7 +25,7 @@ Change Log
 ##### Fixes
 * Fixed graph transformation rules:
   * Create OBJECTCLASS_ID column for merged table mapped from complex <DataType>.
-  * Do not create SEQEUNCE for tables of sub data types.
+  * Do not create SEQUENCE for tables of sub data types.
 * Fixed check of GML geometry property types by evaluating the XML namespace.
 * Fixed parsing of complex types whose super type has empty contents.
 * Create table node for CityGML standard classes only once.
