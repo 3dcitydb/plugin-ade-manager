@@ -6,12 +6,17 @@ plugins {
 }
 
 group 'org.citydb.plugins'
-version '1.2.0'
+version '2.0.0'
 
 apply from: 'properties.gradle'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+    compileJava {
+        options.release = 8
+    }
 }
 
 repositories {
@@ -25,9 +30,9 @@ repositories {
 }
 
 dependencies {
-    compile 'org.citydb:impexp-client-gui:5.0.0-SNAPSHOT'
-	compile fileTree(dir: 'lib', include: '*.jar')
-	compile fileTree(dir: 'lib/shared', include: '*.jar')
+    implementation 'org.citydb:impexp-client-gui:5.0.0-SNAPSHOT'
+    implementation fileTree(dir: 'lib', include: '*.jar')
+    implementation fileTree(dir: 'lib/shared', include: '*.jar')
 }
 
 processResources {
