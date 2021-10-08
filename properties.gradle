@@ -23,6 +23,6 @@ ext {
     impexpVersion = '5.0.0'
 
     // documentation
-    docUrl = 'https://3dcitydb-docs.readthedocs.io/en/latest/plugins/ade-manager'
+    docUrl = 'https://3dcitydb-docs.readthedocs.io/en/version-2021.1/plugins/ade-manager'
     testADEUrl = 'https://github.com/3dcitydb/extension-test-ade'
 }
