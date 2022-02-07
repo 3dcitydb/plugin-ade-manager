@@ -20,9 +20,8 @@ ext {
 
     // Importer/Exporter
     impexpName = citydbName + ' Importer/Exporter'
-    impexpVersion = '5.0.0'
+    impexpVersion = '5'
 
     // documentation
-    docUrl = 'https://3dcitydb-docs.readthedocs.io/en/version-2021.1/plugins/ade-manager'
     testADEUrl = 'https://github.com/3dcitydb/extension-test-ade'
 }

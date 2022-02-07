@@ -46,7 +46,6 @@ processResources {
                 vendorUrl: project.citydbWebsiteUrl,
                 citydbName: project.citydbName,
                 citydbShortName: project.citydbShortName,
-                docUrl: project.docUrl,
                 testADEUrl: project.testADEUrl
         ])
     }
