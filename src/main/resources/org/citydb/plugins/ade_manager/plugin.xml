@@ -12,7 +12,7 @@
       <li>Generates mapping files linking elements from the ADE XML schema with the relational schema</li>
       <li>Registers ADE extensions with your @citydbShortName@</li>
     </ul>
-    <a href="@docUrl@">Documentation</a><br />
+    More details on how to use the @name@ can be found in the online documentation of the @citydbName@.<br />
     <a href="@testADEUrl@">Example @citydbShortName@ extension for the TestADE</a>
     ]]>
     </description>
@@ -24,7 +24,7 @@
       <li>Erzeugt Mapping-Dateien zur Verknüpfung der Elemente des ADE XML Schemas mit dem Datenbankschema</li>
       <li>Registriert ADE Erweiterungen in der @citydbShortName@</li>
     </ul>
-    <a href="@docUrl@">Dokumentation</a><br />
+    Weitere Details zur Nutzung des @name@ finden sich in der Online-Dokumentation der @citydbName@.<br />
     <a href="@testADEUrl@">Beispiel einer @citydbShortName@ Erweiterung für die TestADE</a>
     ]]>
     </description>

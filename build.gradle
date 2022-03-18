@@ -6,7 +6,7 @@ plugins {
 }
 
 group 'org.citydb.plugins'
-version '2.0.0'
+version '2.0.1'
 
 apply from: 'properties.gradle'
 
@@ -46,7 +46,6 @@ processResources {
                 vendorUrl: project.citydbWebsiteUrl,
                 citydbName: project.citydbName,
                 citydbShortName: project.citydbShortName,
-                docUrl: project.docUrl,
                 testADEUrl: project.testADEUrl
         ])
     }
