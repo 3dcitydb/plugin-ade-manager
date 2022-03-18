@@ -66,7 +66,7 @@ public abstract class OperationModuleView implements EventHandler {
 	}
 
 	public abstract Component getViewComponent();
-	public abstract void doTranslation();
+	public abstract void switchLocale();
 	public abstract void loadSettings();
 	public abstract void setSettings();
 	

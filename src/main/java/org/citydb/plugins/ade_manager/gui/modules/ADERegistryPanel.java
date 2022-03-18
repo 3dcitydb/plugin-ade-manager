@@ -180,7 +180,7 @@ public class ADERegistryPanel extends OperationModuleView {
 	}
 
 	@Override
-	public void doTranslation() {
+	public void switchLocale() {
 		adeOperationsPanel.setTitle(Translator.I18N.getString("ade_manager.operationsPanel.border"));
 		adeTable.getColumnModel().getColumn(0).setHeaderValue(Translator.I18N.getString("ade_manager.operationsPanel.adeTable.id"));
 		adeTable.getColumnModel().getColumn(1).setHeaderValue(Translator.I18N.getString("ade_manager.operationsPanel.adeTable.name"));

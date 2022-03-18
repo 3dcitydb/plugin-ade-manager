@@ -173,7 +173,7 @@ public class ADETransformationPanel extends OperationModuleView {
 	}
 
 	// localized Labels and Strings
-	public void doTranslation() {
+	public void switchLocale() {
 		schemaTable.getColumnModel().getColumn(0).setHeaderValue(Translator.I18N.getString("ade_manager.operationsPanel.xsdTable.namespace"));
 
 		nameLabel.setText(MessageFormat.format(Translator.I18N.getString("ade_manager.transformationPanel.namePanel.border"),

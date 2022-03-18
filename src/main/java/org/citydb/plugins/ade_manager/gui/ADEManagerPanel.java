@@ -76,8 +76,8 @@ public class ADEManagerPanel extends DefaultViewComponent {
 
 	@Override
 	public void switchLocale(Locale locale) {
-		registryModule.doTranslation();
-		transformationModule.doTranslation();
+		registryModule.switchLocale();
+		transformationModule.switchLocale();
 	}
 
 	@Override
