@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.citydb:impexp-client-gui:5.0.0'
+    implementation 'org.citydb:impexp-client-gui:5.2.0-SNAPSHOT'
     implementation fileTree(dir: 'lib', include: '*.jar')
     implementation fileTree(dir: 'lib/shared', include: '*.jar')
 }

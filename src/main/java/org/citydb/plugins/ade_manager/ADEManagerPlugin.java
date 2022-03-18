@@ -45,8 +45,7 @@ import java.util.ResourceBundle;
 public class ADEManagerPlugin extends Plugin implements ViewExtension, ConfigExtension<ConfigImpl> {
 	private ADEManagerView view;
 	private ConfigImpl config;
-	private Locale currentLocale;
-	
+
 	public static void main(String[] args) {
 		ImpExpLauncher launcher = new ImpExpLauncher()
 				.withArgs(args)
@@ -55,16 +54,20 @@ public class ADEManagerPlugin extends Plugin implements ViewExtension, ConfigExt
 		launcher.start();
 	}
 
+	@Override
+	public void initGuiExtension(ViewController viewController, Locale locale) {
+		Translator.I18N = ResourceBundle.getBundle("org.citydb.plugins.ade_manager.i18n.language", locale);
+		view = new ADEManagerView(viewController, this);
+		loadSettings();
+	}
+
 	public void shutdownGui() {
-		saveSettings();
+		setSettings();
 	}
 
 	public void switchLocale(Locale locale) {
-		if (locale.equals(currentLocale))
-			return;
 		Translator.I18N = ResourceBundle.getBundle("org.citydb.plugins.ade_manager.i18n.language", locale);
-		currentLocale = locale;
-		view.doTranslation();
+		view.switchLocale(locale);
 	}
 
 	public View getView() {
@@ -75,14 +78,14 @@ public class ADEManagerPlugin extends Plugin implements ViewExtension, ConfigExt
 		view.loadSettings();
 	}
 
-	public void saveSettings() {
-		view.saveSettings();
+	public void setSettings() {
+		view.setSettings();
 	}
 
 	@Override
-	public void configLoaded(ConfigImpl config2) {
+	public void configLoaded(ConfigImpl config) {
 		boolean reload = this.config != null;		
-		setConfig(config2);
+		setConfig(config);
 		
 		if (reload)
 			loadSettings();
@@ -105,20 +108,11 @@ public class ADEManagerPlugin extends Plugin implements ViewExtension, ConfigExt
 				loadSettings();
 				break;
 			case PRE_SAVE_CONFIG:
-				saveSettings();
+				setSettings();
 				break;
 			case RESET_GUI_VIEW:
 				config.setGuiConfig(new GuiConfig());
 				break;
 		}
 	}
-
-	@Override
-	public void initGuiExtension(ViewController viewController, Locale locale) {
-		Translator.I18N = ResourceBundle.getBundle("org.citydb.plugins.ade_manager.i18n.language", locale);
-		view = new ADEManagerView(viewController, this);
-		loadSettings();
-	}
-
-
 }

@@ -27,29 +27,22 @@
  */
 package org.citydb.plugins.ade_manager.gui;
 
-import org.citydb.gui.plugin.view.View;
+import org.citydb.gui.plugin.util.DefaultView;
 import org.citydb.gui.plugin.view.ViewController;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.util.Translator;
 
 import javax.swing.*;
-import java.awt.*;
 
-public class ADEManagerView extends View {
-	private final ADEManagerPanel component;
-	
+public class ADEManagerView extends DefaultView {
+
 	public ADEManagerView(ViewController viewController, ADEManagerPlugin adeManagerPlugin) {
-		component = new ADEManagerPanel(viewController, adeManagerPlugin);
+		super(new ADEManagerPanel(viewController, adeManagerPlugin));
 	}
 	
 	@Override
 	public String getLocalizedTitle() {
 		return Translator.I18N.getString("ade_manager.general.title");
-	}
-
-	@Override
-	public Component getViewComponent() {
-		return component;
 	}
 
 	@Override
@@ -61,17 +54,4 @@ public class ADEManagerView extends View {
 	public Icon getIcon() {
 		return null;
 	}
-	
-	public void loadSettings() {
-		component.loadSettings();
-	}
-	
-	public void saveSettings() {
-		component.setSettings();
-	}
-	
-	public void doTranslation() {
-		component.doTranslation();
-	}
-
 }

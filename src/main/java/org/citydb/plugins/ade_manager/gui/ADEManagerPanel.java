@@ -27,6 +27,7 @@
  */
 package org.citydb.plugins.ade_manager.gui;
 
+import org.citydb.gui.plugin.util.DefaultViewComponent;
 import org.citydb.gui.plugin.view.ViewController;
 import org.citydb.gui.util.GuiUtil;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
@@ -36,8 +37,9 @@ import org.citydb.plugins.ade_manager.gui.modules.OperationModuleView;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Locale;
 
-public class ADEManagerPanel extends JPanel {
+public class ADEManagerPanel extends DefaultViewComponent {
 	private OperationModuleView registryModule;
 	private OperationModuleView transformationModule;
 	private final ViewController viewController;
@@ -72,17 +74,19 @@ public class ADEManagerPanel extends JPanel {
 		add(mainScrollPanel, GuiUtil.setConstraints(0, 0, 1, 1, GridBagConstraints.BOTH, 15, 0, 10, 0));
 	}
 
-	// localized Labels and Strings
-	public void doTranslation() {
+	@Override
+	public void switchLocale(Locale locale) {
 		registryModule.doTranslation();
 		transformationModule.doTranslation();
 	}
 
+	@Override
 	public void loadSettings() {
 		registryModule.loadSettings();
 		transformationModule.loadSettings();
 	}
 
+	@Override
 	public void setSettings() {
 		registryModule.setSettings();
 		transformationModule.setSettings();
