@@ -1,10 +1,11 @@
 Change Log
 ==========
 
-### 2.1.0
+### 2.1.0 - 2022-05-23
 
 #### Changes
-* Use the new default view implementations of GUI plugin.
+* Use the new default view implementations of the Plugin API introduced with **version 5.2.0** of the
+  [Importer/Exporter](https://github.com/3dcitydb/importer-exporter).
 
 ### 2.0.1 - 2022-02-07
 
