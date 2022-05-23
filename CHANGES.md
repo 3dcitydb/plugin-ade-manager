@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-### 2.1.0-SNAPSHOT
+### 2.1.0
 
 #### Changes
 * Use the new default view implementations of GUI plugin.
