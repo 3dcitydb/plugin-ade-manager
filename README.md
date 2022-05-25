@@ -46,7 +46,7 @@ System requirements
 Each version of the ADE Manager plugin is built against a specific version of the Importer/Exporter.
 Please check the release notes of the version you want to use for more information. 
 
-Please Note that the ADE Manager Plugin may not work with Java 17 or later versions.
+Please note that the ADE Manager Plugin may not work with Java 17 or later versions.
 
 Documentation
 -------------
