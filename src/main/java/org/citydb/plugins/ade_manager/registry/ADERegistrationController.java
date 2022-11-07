@@ -101,7 +101,7 @@ public class ADERegistrationController {
 		try {	
 			DBSQLScript deleteScript = createDeleteScripts();
 			installDBScript(deleteScript);			
-			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, true, this));
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, true));
 		} catch (ADERegistrationException e) {
 			log.error("Failed to create and install delete functions in database (skipped).", e);
 		} 	
@@ -111,7 +111,7 @@ public class ADERegistrationController {
 		try {	
 			DBSQLScript envelopeScript = createEnvelopeScripts();
 			installDBScript(envelopeScript);	
-			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, true, this));
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, true));
 		} catch (ADERegistrationException e) {
 			log.error("Failed to create and install envelope functions into database (skipped).", e);
 		} 	
@@ -164,7 +164,7 @@ public class ADERegistrationController {
 		try {	
 			DBSQLScript deleteScript = createDeleteScripts();
 			installDBScript(deleteScript);			
-			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, true, this));
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, true));
 		} catch (ADERegistrationException e) {
 			log.info("Failed to create and install delete functions in database (skipped).");
 		} 
@@ -174,7 +174,7 @@ public class ADERegistrationController {
 		try {	
 			DBSQLScript envelopeScript = createEnvelopeScripts();
 			installDBScript(envelopeScript);	
-			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, true, this));
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, true));
 		} catch (ADERegistrationException e) {
 			log.info("Failed to create and install envelope functions in database (skipped).");
 		} 

@@ -447,7 +447,7 @@ public class ADERegistryPanel extends OperationModuleView {
 		}	
 		
 		if (deleteScript != null)
-			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, false, this));
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(deleteScript, false));
 	}
 	
 	private void generateEnvelopeScripts() {
@@ -482,7 +482,7 @@ public class ADERegistryPanel extends OperationModuleView {
 		}	
 		
 		if (envelopeScript != null)
-			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, false, this));
+			eventDispatcher.triggerEvent(new ScriptCreationEvent(envelopeScript, false));
 	}
 
 	@Override

@@ -34,8 +34,8 @@ public final class ScriptCreationEvent extends Event {
 	private final DBSQLScript script;
 	private final boolean autoInstall;
 	
-	public ScriptCreationEvent(DBSQLScript script, boolean autoInstall, Object source) {
-		super(EventType.SCRIPT_CREATION_EVENT, GLOBAL_CHANNEL, source);
+	public ScriptCreationEvent(DBSQLScript script, boolean autoInstall) {
+		super(EventType.SCRIPT_CREATION_EVENT, GLOBAL_CHANNEL);
 		this.script =  script;
 		this.autoInstall = autoInstall;
 	}
