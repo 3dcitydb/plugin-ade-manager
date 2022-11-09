@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+### 2.2.0 - tba
+
+* Updated to [Importer/Exporter](https://github.com/3dcitydb/importer-exporter) version 5.3.0.
+
 ### 2.1.0 - 2022-05-23
 
 #### Changes
