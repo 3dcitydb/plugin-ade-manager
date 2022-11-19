@@ -505,17 +505,19 @@ public class GraphCreator {
 	    </annotation>
 	 **/
 	private void processGMLreferencePropertyNode(Node propertyNode, ADEschemaElement decl) {
-		Element annotationElement = (Element) decl.getXSElementDecl().getAnnotation().getAnnotation();       	
-		if (annotationElement != null) {   		
-			org.w3c.dom.Node targetElementDOMNode = (org.w3c.dom.Node) annotationElement.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "appinfo").item(0).getFirstChild().getNextSibling().getFirstChild();
-			String[] strArray = targetElementDOMNode.getNodeValue().split(":");
-			String classPrefix = strArray[0];
-			String childClassName = strArray[1];
-			String classNameSpace = annotationElement.lookupNamespaceURI(classPrefix);
-			XSElementDecl xsChildElement = schemaHandler.getSchema(classNameSpace).getXSSchema().getElementDecl(childClassName);     		
-			ADEschemaElement childDecl = new ADEschemaElement(xsChildElement, schemaHandler.getSchema(xsChildElement.getTargetNamespace()));	
-			Node childNode = this.getOrCreateElementTypeNode(childDecl);    		
-			this.createArc(GraphNodeArcType.TargetType, propertyNode, childNode);
+		if (decl.getXSElementDecl().getAnnotation() != null) {
+			Element annotationElement = (Element) decl.getXSElementDecl().getAnnotation().getAnnotation();
+			if (annotationElement != null) {
+				org.w3c.dom.Node targetElementDOMNode = (org.w3c.dom.Node) annotationElement.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "appinfo").item(0).getFirstChild().getNextSibling().getFirstChild();
+				String[] strArray = targetElementDOMNode.getNodeValue().split(":");
+				String classPrefix = strArray[0];
+				String childClassName = strArray[1];
+				String classNameSpace = annotationElement.lookupNamespaceURI(classPrefix);
+				XSElementDecl xsChildElement = schemaHandler.getSchema(classNameSpace).getXSSchema().getElementDecl(childClassName);
+				ADEschemaElement childDecl = new ADEschemaElement(xsChildElement, schemaHandler.getSchema(xsChildElement.getTargetNamespace()));
+				Node childNode = this.getOrCreateElementTypeNode(childDecl);
+				this.createArc(GraphNodeArcType.TargetType, propertyNode, childNode);
+			}
 		}
 	}
 
