@@ -431,7 +431,7 @@ public class ADETransformationPanel extends OperationModuleView {
 		try {
 			adeTransformer.doProcess(namespaces);
 			log.info("Transformation finished.");
-		} catch (TransformationException e) {
+		} catch (Exception e) {
 			printErrorMessage("Failed to transform XML schema.", e);
 		} finally {
 			SwingUtilities.invokeLater(statusDialog::dispose);
