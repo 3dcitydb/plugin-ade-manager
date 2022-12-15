@@ -24,9 +24,9 @@ See the `LICENSE` file for more details.
 
 Latest release
 --------------
-The latest stable release of the ADE Manager Plugin is 2.1.0.
+The latest stable release of the ADE Manager Plugin is 2.2.0.
 
-Download the software [here](https://github.com/3dcitydb/plugin-ade-manager/releases/download/v2.1.0/plugin-ade-manager-2.1.0.zip).
+Download the software [here](https://github.com/3dcitydb/plugin-ade-manager/releases/download/v2.2.0/plugin-ade-manager-2.2.0.zip).
 Previous releases are available from the [releases section](https://github.com/3dcitydb/plugin-ade-manager/releases).
 
 Installation
@@ -51,7 +51,7 @@ Please note that the ADE Manager Plugin may not work with Java 17 or later versi
 Documentation
 -------------
 A complete and comprehensive user manual on the ADE Manager Plugin is available
-[online](https://3dcitydb-docs.readthedocs.io/en/version-2021.1/plugins/ade-manager/).
+[online](https://3dcitydb-docs.readthedocs.io/en/version-2022.2/plugins/ade-manager/).
 
 Contributing
 ------------
