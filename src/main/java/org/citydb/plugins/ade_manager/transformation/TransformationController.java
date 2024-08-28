@@ -39,7 +39,9 @@ import org.citydb.util.event.Event;
 import org.citydb.util.event.EventHandler;
 import org.citydb.util.log.Logger;
 import org.citygml4j.xml.schema.SchemaHandler;
+import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -84,9 +86,33 @@ public class TransformationController implements EventHandler {
 			schemaHandler = SchemaHandler.newInstance();	
 			schemaHandler.reset();
 			schemaHandler.setAnnotationParser(new DomAnnotationParserFactory());
+			schemaHandler.setErrorHandler(new ErrorHandler() {
+				@Override
+				public void warning(SAXParseException exception) {
+					LOG.warn(format("Parser warning", exception));
+				}
+
+				@Override
+				public void error(SAXParseException exception) throws SAXException {
+					LOG.error(format("Schema error", exception));
+					throw new SAXException("The ADE XML schema is invalid.");
+				}
+
+				@Override
+				public void fatalError(SAXParseException exception) throws SAXException {
+					LOG.error(format("Schema error", exception));
+					throw new SAXException("The ADE XML schema is invalid.");
+				}
+
+				private String format(String msg, SAXParseException exception) {
+					return msg + " [" + exception.getLineNumber() + ", " + exception.getColumnNumber() + "]: " +
+							exception.getMessage() + ".";
+				}
+			});
+
 			schemaHandler.parseSchema(new File(xmlSchemaPath));
 		} catch (SAXException e) {
-			throw new TransformationException("Failed to parse ADE XML schema", e);
+			throw new TransformationException("Failed to parse ADE XML schema.", e);
 		}
 
 		for (String schemaNamespace : schemaHandler.getTargetNamespaces()) {

@@ -185,19 +185,6 @@ public class ADEschemaHelper {
 			put("_GenericApplicationPropertyOfBuildingPart", "BuildingPart");
 			put("_GenericApplicationPropertyOfBuildingInstallation", "BuildingInstallation");
 			put("_GenericApplicationPropertyOfIntBuildingInstallation", "IntBuildingInstallation");
-			put("_GenericApplicationPropertyOfBoundarySurface", "_BoundarySurface");
-			put("_GenericApplicationPropertyOfRoofSurface", "RoofSurface");
-			put("_GenericApplicationPropertyOfWallSurface", "WallSurface");
-			put("_GenericApplicationPropertyOfGroundSurface", "GroundSurface");
-			put("_GenericApplicationPropertyOfClosureSurface", "ClosureSurface");
-			put("_GenericApplicationPropertyOfFloorSurface", "FloorSurface");
-			put("_GenericApplicationPropertyOfOuterFloorSurface", "OuterFloorSurface");
-			put("_GenericApplicationPropertyOfInteriorWallSurface", "InteriorWallSurface");
-			put("_GenericApplicationPropertyOfCeilingSurface", "CeilingSurface");
-			put("_GenericApplicationPropertyOfOuterCeilingSurface", "OuterCeilingSurface");
-			put("_GenericApplicationPropertyOfOpening", "_Opening");
-			put("_GenericApplicationPropertyOfWindow", "Window");
-			put("_GenericApplicationPropertyOfDoor", "Door");
 			put("_GenericApplicationPropertyOfRoom", "Room");
 			put("_GenericApplicationPropertyOfBuildingFurniture", "BuildingFurniture");
 			
@@ -208,19 +195,6 @@ public class ADEschemaHelper {
 			put("_GenericApplicationPropertyOfBridgeConstructionElement", "BridgeConstructionElement");
 			put("_GenericApplicationPropertyOfBridgeInstallation", "BridgeInstallation");
 			put("_GenericApplicationPropertyOfIntBridgeInstallation", "IntBridgeInstallation");
-			put("_GenericApplicationPropertyOfBoundarySurface", "_BoundarySurface");
-			put("_GenericApplicationPropertyOfRoofSurface", "RoofSurface");
-			put("_GenericApplicationPropertyOfWallSurface", "WallSurface");
-			put("_GenericApplicationPropertyOfGroundSurface", "GroundSurface");
-			put("_GenericApplicationPropertyOfClosureSurface", "ClosureSurface");
-			put("_GenericApplicationPropertyOfFloorSurface", "FloorSurface");
-			put("_GenericApplicationPropertyOfOuterFloorSurface", "OuterFloorSurface");
-			put("_GenericApplicationPropertyOfInteriorWallSurface", "InteriorWallSurface");
-			put("_GenericApplicationPropertyOfCeilingSurface", "CeilingSurface");
-			put("_GenericApplicationPropertyOfOuterCeilingSurface", "OuterCeilingSurface");
-			put("_GenericApplicationPropertyOfOpening", "_Opening");
-			put("_GenericApplicationPropertyOfWindow", "Window");
-			put("_GenericApplicationPropertyOfDoor", "Door");
 			put("_GenericApplicationPropertyOfBridgeRoom", "BridgeRoom");
 			put("_GenericApplicationPropertyOfBridgeFurniture", "BridgeFurniture");
 
@@ -242,7 +216,7 @@ public class ADEschemaHelper {
 			// hooks for relief
 			put("_GenericApplicationPropertyOfReliefFeature", "ReliefFeature");
 			put("_GenericApplicationPropertyOfReliefComponent", "_ReliefComponent");
-			put("_GenericApplicationPropertyOfTinRelief", "TinRelief");
+			put("_GenericApplicationPropertyOfTinRelief", "TINRelief");
 			put("_GenericApplicationPropertyOfRasterRelief", "RasterRelief");
 			put("_GenericApplicationPropertyOfMassPointRelief", "MassPointRelief");
 			put("_GenericApplicationPropertyOfBreaklineRelief", "BreaklineRelief");
@@ -263,19 +237,6 @@ public class ADEschemaHelper {
 			put("_GenericApplicationPropertyOfTunnelPart", "TunnelPart");
 			put("_GenericApplicationPropertyOfTunnelInstallation", "TunnelInstallation");
 			put("_GenericApplicationPropertyOfIntTunnelInstallation", "IntTunnelInstallation");
-			put("_GenericApplicationPropertyOfBoundarySurface", "_BoundarySurface");
-			put("_GenericApplicationPropertyOfRoofSurface", "RoofSurface");
-			put("_GenericApplicationPropertyOfWallSurface", "WallSurface");
-			put("_GenericApplicationPropertyOfGroundSurface", "GroundSurface");
-			put("_GenericApplicationPropertyOfClosureSurface", "ClosureSurface");
-			put("_GenericApplicationPropertyOfFloorSurface", "FloorSurface");
-			put("_GenericApplicationPropertyOfOuterFloorSurface", "OuterFloorSurface");
-			put("_GenericApplicationPropertyOfInteriorWallSurface", "InteriorWallSurface");
-			put("_GenericApplicationPropertyOfCeilingSurface", "CeilingSurface");
-			put("_GenericApplicationPropertyOfOuterCeilingSurface", "OuterCeilingSurface");
-			put("_GenericApplicationPropertyOfOpening", "_Opening");
-			put("_GenericApplicationPropertyOfWindow", "Window");
-			put("_GenericApplicationPropertyOfDoor", "Door");
 			put("_GenericApplicationPropertyOfHollowSpace", "HollowSpace");
 			put("_GenericApplicationPropertyOfTunnelFurniture", "TunnelFurniture");
 			
@@ -290,7 +251,22 @@ public class ADEschemaHelper {
 			put("_GenericApplicationPropertyOfWaterBoundarySurface", "_WaterBoundarySurface");
 			put("_GenericApplicationPropertyOfWaterSurface", "WaterSurface");
 			put("_GenericApplicationPropertyOfWaterGroundSurface", "WaterGroundSurface");
-			put("_GenericApplicationPropertyOfWaterClosureSurface", "WaterClosureSurface");			
+			put("_GenericApplicationPropertyOfWaterClosureSurface", "WaterClosureSurface");
+
+			// hooks for boundary surfaces and openings
+			put("_GenericApplicationPropertyOfBoundarySurface", "_BoundarySurface");
+			put("_GenericApplicationPropertyOfRoofSurface", "RoofSurface");
+			put("_GenericApplicationPropertyOfWallSurface", "WallSurface");
+			put("_GenericApplicationPropertyOfGroundSurface", "GroundSurface");
+			put("_GenericApplicationPropertyOfClosureSurface", "ClosureSurface");
+			put("_GenericApplicationPropertyOfFloorSurface", "FloorSurface");
+			put("_GenericApplicationPropertyOfOuterFloorSurface", "OuterFloorSurface");
+			put("_GenericApplicationPropertyOfInteriorWallSurface", "InteriorWallSurface");
+			put("_GenericApplicationPropertyOfCeilingSurface", "CeilingSurface");
+			put("_GenericApplicationPropertyOfOuterCeilingSurface", "OuterCeilingSurface");
+			put("_GenericApplicationPropertyOfOpening", "_Opening");
+			put("_GenericApplicationPropertyOfWindow", "Window");
+			put("_GenericApplicationPropertyOfDoor", "Door");
 		}
 	};
 	

@@ -672,7 +672,7 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 		if (aggComprefList.size() == 0) {
 			code_block += 
 				   brDent1 + "IF -1 = ALL(" + m_table_name + "_ids) IS NOT NULL THEN"
-					+ brDent2 + "PERFORM " + wrapSchemaName(getArrayDeleteFunctionName(m_table_name), schemaName) + "(" + m_table_name + "_ids)"
+					+ brDent2 + "PERFORM " + wrapSchemaName(getArrayDeleteFunctionName(m_table_name), schemaName) + "(" + m_table_name + "_ids);"
 				 + brDent1 + "END IF;" + br;
 			return code_block;
 		}	
