@@ -14,9 +14,6 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(11)
     }
-    compileJava {
-        options.release = 8
-    }
 }
 
 repositories {
@@ -30,7 +27,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.citydb:impexp-client-gui:5.4.3'
+    implementation 'org.citydb:impexp-client-gui:5.5.0-SNAPSHOT'
     implementation fileTree(dir: 'lib', include: '*.jar')
 }
 
