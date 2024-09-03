@@ -56,7 +56,7 @@ public class GraphCreator {
 	private SchemaHandler schemaHandler;
 	private Schema schema;
 	private List<String> namespaces;
-	private Map<String, Node> globalClassNodes;
+	private Map<QName, Node> globalClassNodes;
 	private Map<String, ADEschemaElement> xsTypeElementMap;
 	private Node hostSchemaNode;
 	private final Logger LOG = Logger.getInstance();
@@ -94,7 +94,7 @@ public class GraphCreator {
 			}
 			
 			// Create class Nodes and put them into a internal map
-			globalClassNodes = new HashMap<String, Node>();
+			globalClassNodes = new HashMap<>();
 			Iterator<Entry<String, XSElementDecl>> iter = xsElementDecls.entrySet().iterator();		
 			while (iter.hasNext()) {
 				Entry<String, XSElementDecl> elementDeclEntry = (Entry<String, XSElementDecl>) iter.next();
@@ -303,29 +303,31 @@ public class GraphCreator {
 			this.createArc(GraphNodeArcType.Contains, parentNode, propertyNode);   		     	      
 	}
 
-	private Node getOrCreateADEHookClass (String className, ADEschemaElement parentDecl) {	
-		if (globalClassNodes.containsKey(className))
-			return globalClassNodes.get(className);	
-
+	private Node getOrCreateADEHookClass (String className, ADEschemaElement parentDecl) {
 		String namespaceUri = schema.getNamespaceURI();
+		QName qName = new QName(namespaceUri, className);
+		if (globalClassNodes.containsKey(qName))
+			return globalClassNodes.get(qName);
+
 		boolean isAbstract = parentDecl.isAbstract();	
 		boolean isForeign = false;
 		String derivedFrom = "HookClass";
 
 		Node classNode = this.createComplexTypeNode(className, isForeign, className, namespaceUri, isAbstract, derivedFrom, false);	
 
-		globalClassNodes.put(className, classNode);
+		globalClassNodes.put(qName, classNode);
 
 		return classNode;
 	}
 
 	private Node getOrCreateElementTypeNode (ADEschemaElement decl) {
 		String className = decl.getXSElementDecl().getType().getName();
-		String path = decl.getLocalName();
-		if (globalClassNodes.containsKey(className))
-			return globalClassNodes.get(className);	
-		
 		String namespaceUri = decl.getNamespaceURI();
+		QName qName = new QName(namespaceUri, className);
+		String path = decl.getLocalName();
+		if (globalClassNodes.containsKey(qName))
+			return globalClassNodes.get(qName);
+
 		boolean isAbstract = decl.isAbstract();	
 		boolean isForeign = !schema.getNamespaceURI().equalsIgnoreCase(namespaceUri);
 
@@ -352,7 +354,7 @@ public class GraphCreator {
 		if (ADEschemaHelper.CityGML_Namespaces.contains(namespaceUri) || namespaceUri.equalsIgnoreCase("http://www.opengis.net/gml")) 
 			createTableForCityGMLClass(namespaceUri, decl.getXSElementDecl().getType().getName(), classNode);
 
-		globalClassNodes.put(className, classNode);
+		globalClassNodes.put(qName, classNode);
 
 		return classNode;
 	}
@@ -373,12 +375,13 @@ public class GraphCreator {
 		return derivedFrom;
 	}
 
-	private Node getOrCreateComplexTypeNode (String path, boolean isForeign, String className, String namespaceUri, boolean isAbstract, String derivedFrom) {	
-		if (globalClassNodes.containsKey(className))
-			return globalClassNodes.get(className);	
+	private Node getOrCreateComplexTypeNode (String path, boolean isForeign, String className, String namespaceUri, boolean isAbstract, String derivedFrom) {
+		QName qName = new QName(namespaceUri, className);
+		if (globalClassNodes.containsKey(qName))
+			return globalClassNodes.get(qName);
 
 		Node classNode = this.createComplexTypeNode(path, isForeign, className, namespaceUri, isAbstract, derivedFrom, false);		
-		globalClassNodes.put(className, classNode);
+		globalClassNodes.put(qName, classNode);
 
 		return classNode;
 	}
