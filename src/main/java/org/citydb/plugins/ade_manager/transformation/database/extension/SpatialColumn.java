@@ -32,13 +32,13 @@ import org.apache.ddlutils.platform.oracle.Oracle10Platform;
 import org.apache.ddlutils.platform.postgresql.PostgreSqlPlatform;
 import org.citydb.plugins.ade_manager.transformation.database.DBScriptGenerator;
 
+import java.util.Collections;
+
 @SuppressWarnings("serial")
 public class SpatialColumn extends IndexedColumn {
-	private DBScriptGenerator databaseDDLCreator;
-	
-	public SpatialColumn(DBScriptGenerator databaseDDLCreator) {		
-		super();
-		this.databaseDDLCreator = databaseDDLCreator;
+
+	public SpatialColumn(String table, DBScriptGenerator databaseDDLCreator) {
+		super(table, Collections.emptyMap(), databaseDDLCreator);
 	}
 	
 	@Override

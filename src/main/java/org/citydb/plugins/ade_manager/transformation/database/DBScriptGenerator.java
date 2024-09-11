@@ -43,10 +43,7 @@ import org.apache.ddlutils.platform.oracle.Oracle10Platform;
 import org.apache.ddlutils.platform.postgresql.PostgreSqlPlatform;
 import org.citydb.config.project.database.DatabaseType;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
-import org.citydb.plugins.ade_manager.transformation.database.extension.IndexedColumn;
-import org.citydb.plugins.ade_manager.transformation.database.extension.RestrictableForeignKey;
-import org.citydb.plugins.ade_manager.transformation.database.extension.SpatialColumn;
-import org.citydb.plugins.ade_manager.transformation.database.extension.TimestampColumn;
+import org.citydb.plugins.ade_manager.transformation.database.extension.*;
 import org.citydb.plugins.ade_manager.transformation.graph.GraphNodeArcType;
 import org.citydb.plugins.ade_manager.util.GlobalConstants;
 import org.citydb.plugins.ade_manager.util.NameShortener;
@@ -182,7 +179,7 @@ public class DBScriptGenerator {
 		
 	private void createJoinColumn(Table dbTable, Node columnNode) {
 		String columnName = (String) columnNode.getAttribute().getValueAt("name");	
-		IndexedColumn indexedColumn = new IndexedColumn();
+		IndexedColumn indexedColumn = new IndexedColumn(dbTable.getName(), getSequences(), this);
 		indexedColumn.setName(columnName);
 		if (columnName.equalsIgnoreCase("objectclass_id")) {
 			indexedColumn.setTypeCode(Types.INTEGER);
@@ -236,7 +233,7 @@ public class DBScriptGenerator {
 	
 	private void createInlineGeometryColumn (Table dbTable, Node columnNode) {
 		String columnName = (String) columnNode.getAttribute().getValueAt("name");
-		SpatialColumn column = new SpatialColumn(this);
+		SpatialColumn column = new SpatialColumn(dbTable.getName(), this);
 		column.setName(columnName);
 		dbTable.addColumn(column);
 		this.createIndexForColumn(dbTable, column, columnNode);	
@@ -517,7 +514,9 @@ public class DBScriptGenerator {
 
 		// Create Database Schema for ADE...
 		PrintWriter writer = null;
-		int tableCounter = 0;	
+		int tableCounter = 0;
+
+		Collection<String> sequences = getSequences().values();
 		
 		try {
 			File createDbFile = new File(PathResolver.get_create_ade_db_filepath(outputPath, databaseType));
@@ -575,7 +574,7 @@ public class DBScriptGenerator {
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
 			printComment("*********************************** Create Sequences ***********************************", databasePlatform, writer);
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);	
-			this.printCreateSequences(writer);	
+			this.printCreateSequences(sequences, writer);
 
 		} catch (IOException | NullPointerException e) {			
 			e.printStackTrace();
@@ -623,7 +622,7 @@ public class DBScriptGenerator {
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
 			printComment("*********************************** Drop Sequences *************************************", databasePlatform, writer);
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);	
-			this.printDropSequences(writer);
+			this.printDropSequences(sequences, writer);
 
 			// Recycle Bin for Oracle
 			if (databasePlatform instanceof Oracle10Platform)
@@ -852,59 +851,36 @@ public class DBScriptGenerator {
         }
 	}
 	
-	private void printCreateSequences(PrintWriter writer) {
-		Enumeration<Type> e = this.graphGrammar.getTypes();
-		while(e.hasMoreElements()){
-			Type nodeType = e.nextElement();
-			if (nodeType.getName().equalsIgnoreCase(GraphNodeArcType.Sequence)) {
-				List<Node> nodes = this.graphGrammar.getGraph().getNodes(nodeType);
-				if (nodes == null)
-					return;
-				Iterator<Node> iter = nodes.iterator();
-				while (iter.hasNext()) {
-					Node sequenceNode = iter.next();
-					String squenceName = (String) sequenceNode.getAttribute().getValueAt("name");
-					writer.println();
-					writer.print("CREATE SEQUENCE ");
-					writer.print(squenceName);
-					if (databasePlatform instanceof PostgreSqlPlatform) {	
-						writer.println();
-						writer.println("INCREMENT BY 1");
-						writer.println("MINVALUE 0");
-						writer.println("MAXVALUE 9223372036854775807");
-						writer.println("START WITH 1");
-						writer.println("CACHE 1");
-						writer.println("NO CYCLE");
-						writer.println("OWNED BY NONE;");						
-					}
-                   else {
-						writer.print(" INCREMENT BY 1 START WITH 1 MINVALUE 1 CACHE 10000;");
-                   }   
-					writer.println();
-				}
-			};
+	private void printCreateSequences(Collection<String> sequences, PrintWriter writer) {
+		for (String sequenceName : sequences) {
+			writer.println();
+			writer.print("CREATE SEQUENCE ");
+			writer.print(sequenceName);
+			if (databasePlatform instanceof PostgreSqlPlatform) {
+				writer.println();
+				writer.println("INCREMENT BY 1");
+				writer.println("MINVALUE 0");
+				writer.println("MAXVALUE 9223372036854775807");
+				writer.println("START WITH 1");
+				writer.println("CACHE 1");
+				writer.println("NO CYCLE");
+				writer.println("OWNED BY NONE;");
+			}
+			else {
+				writer.print(" INCREMENT BY 1 START WITH 1 MINVALUE 1 CACHE 10000;");
+			}
+			writer.println();
 		}
+
 		writer.println();
 	}
 	
-	private void printDropSequences(PrintWriter writer) {
-		Enumeration<Type> e = this.graphGrammar.getTypes();
-		while(e.hasMoreElements()){
-			Type nodeType = e.nextElement();
-			if (nodeType.getName().equalsIgnoreCase(GraphNodeArcType.Sequence)) {
-				List<Node> nodes = this.graphGrammar.getGraph().getNodes(nodeType);
-				if (nodes == null)
-					return;
-				Iterator<Node> iter = nodes.iterator();
-				while (iter.hasNext()) {
-					Node sequenceNode = iter.next();
-					String squenceName = (String) sequenceNode.getAttribute().getValueAt("name");
-					writer.println();
-					writer.print("DROP SEQUENCE ");
-					writer.print(squenceName + ";");
-					writer.println();
-				}
-			};
+	private void printDropSequences(Collection<String> sequences, PrintWriter writer) {
+		for (String sequenceName : sequences) {
+			writer.println();
+			writer.print("DROP SEQUENCE ");
+			writer.print(sequenceName + ";");
+			writer.println();
 		}
 	}
 	
@@ -912,6 +888,28 @@ public class DBScriptGenerator {
 		writer.println();
 		writer.print("PURGE RECYCLEBIN;");
 		writer.println();
+	}
+
+	private Map<String, String> getSequences() {
+		Map<String, String> sequences = new HashMap();
+		Enumeration<Type> e = this.graphGrammar.getTypes();
+		while(e.hasMoreElements()) {
+			Type nodeType = e.nextElement();
+			if (nodeType.getName().equalsIgnoreCase(GraphNodeArcType.Sequence)) {
+				List<Node> nodes = this.graphGrammar.getGraph().getNodes(nodeType);
+				if (nodes != null) {
+					Iterator<Node> iter = nodes.iterator();
+					while (iter.hasNext()) {
+						Node sequenceNode = iter.next();
+						String sequenceName = (String) sequenceNode.getAttribute().getValueAt("name");
+						Node targetTableNode = (Node)sequenceNode.getOutgoingArcs().next().getTarget();
+						String tableName = (String)targetTableNode.getAttribute().getValueAt("name");
+						sequences.put(tableName, sequenceName);
+					}
+				}
+			}
+		}
+		return sequences;
 	}
 	
 	private boolean checkExistenceOfNodeOrArc(String nodeOrArcTypeName) {
