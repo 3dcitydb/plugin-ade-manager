@@ -28,6 +28,7 @@
 package org.citydb.plugins.ade_manager.registry.schema.adapter.postgis;
 
 import org.citydb.config.project.database.DatabaseType;
+import org.citydb.core.database.schema.mapping.SchemaMapping;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.schema.adapter.AbstractADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.util.PathResolver;
@@ -45,15 +46,15 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
         super(connection, config);
     }
 
-    public void createADEDatabaseSchema() throws SQLException {
-        super.createADEDatabaseSchema();
+    public void createADEDatabaseSchema(SchemaMapping schemaMapping) throws SQLException {
+        super.createADEDatabaseSchema(schemaMapping);
 
         // update SRID for geometry columns of cityGML core and ADE tables
-        log.debug("Updating SRID on geometry columns. This operation may take some time...");
         String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
         int srid = dbPool.getActiveDatabaseAdapter().getUtil().getDatabaseInfo(schema).getReferenceSystem().getSrid();
         try (PreparedStatement preparedStatement = connection.prepareStatement(
                 "select f_table_schema, f_table_name, f_geometry_column from geometry_columns where f_table_schema=? " +
+                        "AND f_table_name LIKE '" + schemaMapping.getMetadata().getDBPrefix() + "\\_%' " +
                         "AND f_geometry_column <> 'implicit_geometry' " +
                         "AND f_geometry_column <> 'relative_other_geom'" +
                         "AND f_geometry_column <> 'texture_coordinates'")) {

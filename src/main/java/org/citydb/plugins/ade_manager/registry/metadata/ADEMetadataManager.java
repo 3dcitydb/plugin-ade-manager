@@ -67,7 +67,7 @@ public class ADEMetadataManager {
 		this.aggregationInfoCollection = queryAggregationInfoCollection();
 	}
 	
-	public void importADEMetadata() throws SQLException {				
+	public SchemaMapping importADEMetadata() throws SQLException {
 		String adeRegistryInputpath = config.getAdeRegistryInputPath();
 		DatabaseType databaseType = dbPool.getActiveDatabaseAdapter().getDatabaseType();
 		Path adeSchemaMappingFilePath = Paths.get(PathResolver.get_schemaMapping_filepath(adeRegistryInputpath));
@@ -168,6 +168,8 @@ public class ADEMetadataManager {
 		} finally {
 			psInsertSchemaToObjectclass.close();
 		}
+
+		return inputADESchemaMapping;
 	}
 
 	public AggregationInfoCollection getAggregationInfoCollection() {

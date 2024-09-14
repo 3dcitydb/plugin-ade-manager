@@ -66,7 +66,7 @@ public abstract class AbstractADEDBSchemaManager implements ADEDBSchemaManager {
 		this.schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
 	}
 	
-	public void createADEDatabaseSchema() throws SQLException {		
+	public void createADEDatabaseSchema(SchemaMapping schemaMapping) throws SQLException {
 		try {	
 			String createDBscriptString = readCreateADEDBScript();
 			SQLScriptRunner.getInstance().runScript(processScript(createDBscriptString), connection);

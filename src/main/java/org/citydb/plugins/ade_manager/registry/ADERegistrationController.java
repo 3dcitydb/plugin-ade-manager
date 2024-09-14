@@ -28,6 +28,7 @@
 package org.citydb.plugins.ade_manager.registry;
 
 import org.citydb.core.database.connection.DatabaseConnectionPool;
+import org.citydb.core.database.schema.mapping.SchemaMapping;
 import org.citydb.core.registry.ObjectRegistry;
 import org.citydb.plugins.ade_manager.ADEManagerPlugin;
 import org.citydb.plugins.ade_manager.event.ScriptCreationEvent;
@@ -80,8 +81,10 @@ public class ADERegistrationController {
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to initialize ADE metadata manager.", e);
 		}
+
+		SchemaMapping schemaMapping;
 		try {						
-			adeMetadataManager.importADEMetadata();
+			schemaMapping = adeMetadataManager.importADEMetadata();
 		} catch (SQLException e) {				
 			throw new ADERegistrationException("Failed to import ADE metadata into database.", e);
 		}		
@@ -91,7 +94,7 @@ public class ADERegistrationController {
 		ADEDBSchemaManager adeDatabasSchemaManager = ADEDBSchemaManagerFactory.getInstance()
 				.createADEDatabaseSchemaManager(connection, plugin.getConfig());
 		try {	
-			adeDatabasSchemaManager.createADEDatabaseSchema();
+			adeDatabasSchemaManager.createADEDatabaseSchema(schemaMapping);
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to create ADE database schema.", e);
 		} 	

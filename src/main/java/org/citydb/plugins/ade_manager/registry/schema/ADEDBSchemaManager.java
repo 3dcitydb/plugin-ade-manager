@@ -27,10 +27,12 @@
  */
 package org.citydb.plugins.ade_manager.registry.schema;
 
+import org.citydb.core.database.schema.mapping.SchemaMapping;
+
 import java.sql.SQLException;
 
 public interface ADEDBSchemaManager {
-	public void createADEDatabaseSchema() throws SQLException;
+	public void createADEDatabaseSchema(SchemaMapping schemaMapping) throws SQLException;
 	public void dropADEDatabaseSchema(String adeId) throws SQLException;
 	public void cleanupADEData(String adeId) throws SQLException;
 }
