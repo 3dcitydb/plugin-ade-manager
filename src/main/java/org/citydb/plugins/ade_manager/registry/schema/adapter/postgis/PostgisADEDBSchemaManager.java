@@ -31,6 +31,7 @@ import org.citydb.config.project.database.DatabaseType;
 import org.citydb.plugins.ade_manager.config.ConfigImpl;
 import org.citydb.plugins.ade_manager.registry.schema.adapter.AbstractADEDBSchemaManager;
 import org.citydb.plugins.ade_manager.util.PathResolver;
+import org.citydb.util.log.Logger;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,6 +39,7 @@ import java.nio.file.Paths;
 import java.sql.*;
 
 public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
+    private final Logger log = Logger.getInstance();
 
     public PostgisADEDBSchemaManager(Connection connection, ConfigImpl config) {
         super(connection, config);
@@ -47,6 +49,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
         super.createADEDatabaseSchema();
 
         // update SRID for geometry columns of cityGML core and ADE tables
+        log.debug("Updating SRID on geometry columns. This operation may take some time...");
         String schema = dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema();
         int srid = dbPool.getActiveDatabaseAdapter().getUtil().getDatabaseInfo(schema).getReferenceSystem().getSrid();
         try (PreparedStatement preparedStatement = connection.prepareStatement(
