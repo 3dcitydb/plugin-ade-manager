@@ -112,7 +112,7 @@ public class DBScriptGenerator {
 		database.addTables(list);
 		
 		// Oracle version
-		databasePlatform = new Oracle10Platform();		
+		databasePlatform = new Oracle10Platform();
 		this.marshallingDatabaseSchema(databasePlatform, database);
 		
 		// PgSQL version
@@ -520,12 +520,19 @@ public class DBScriptGenerator {
 		
 		try {
 			File createDbFile = new File(PathResolver.get_create_ade_db_filepath(outputPath, databaseType));
-			// create tables...
 			writer = new PrintWriter(createDbFile);
 			SqlBuilder sqlBuilder = new SqlBuilder(databasePlatform) {};		
 			sqlBuilder.setWriter(writer);
-			printComment(headerText, databasePlatform, writer);	
-			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
+			printComment(headerText, databasePlatform, writer);
+
+			// create sequences
+			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);
+			printComment("*********************************** Create Sequences ***********************************", databasePlatform, writer);
+			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);
+			this.printCreateSequences(sequences, writer);
+
+			// create tables
+			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);
 			printComment("*********************************** Create tables **************************************", databasePlatform, writer);
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);				
 			Iterator<Table> iterator = adeTables.values().iterator();			
@@ -540,7 +547,7 @@ public class DBScriptGenerator {
 					tableCounter++;	
 				}
 			}
-			LOG.info(tableCounter + " tables are created");
+			LOG.info(tableCounter + " tables are created for " + databaseType.value() + ".");
 
 			// create foreign key constraints
 			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
@@ -568,14 +575,7 @@ public class DBScriptGenerator {
 				if (!isMappedFromforeignClass(table.getName())) {
 					this.printIndexes(table, writer);
 				}
-			}		
-			
-			// create sequences
-			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);						
-			printComment("*********************************** Create Sequences ***********************************", databasePlatform, writer);
-			printComment("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", databasePlatform, writer);	
-			this.printCreateSequences(sequences, writer);
-
+			}
 		} catch (IOException | NullPointerException e) {			
 			e.printStackTrace();
 		} finally {
