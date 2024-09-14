@@ -1,6 +1,20 @@
 Change Log
 ==========
 
+### 2.3.0 - tba
+
+#### Changes
+* **Breaking:** Java 11 is now the minimum required version for using the ADE Manager Plugin.
+* ADE tables requiring their own sequence are now created with an auto-increment statement for their ID column.
+  [#7](https://github.com/3dcitydb/plugin-ade-manager/issues/7)
+* ADE XSD schema errors are now reported to the user while processing the schema. [impexp #306](https://github.com/3dcitydb/importer-exporter/issues/306)
+* Updated to [Importer/Exporter](https://github.com/3dcitydb/importer-exporter) version 5.5.0.
+
+##### Fixes
+* ADE-specific delete functions are now correctly dropped when removing an ADE. [#19](https://github.com/3dcitydb/plugin-ade-manager/issues/19)
+* Fixed mapping of ADE hook properties of boundary surface classes.
+* Fixed mapping of ADE hook properties of TIN relief.
+
 ### 2.2.0 - 2022-12-15
 
 * Updated to [Importer/Exporter](https://github.com/3dcitydb/importer-exporter) version 5.3.0.
