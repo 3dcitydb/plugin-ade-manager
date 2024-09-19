@@ -51,7 +51,7 @@ Please note that the ADE Manager Plugin may not work with Java 17 or later versi
 Documentation
 -------------
 A complete and comprehensive user manual on the ADE Manager Plugin is available
-[online](https://3dcitydb-docs.readthedocs.io/en/latest/plugins/ade-manager/index.html).
+[online](https://3dcitydb-docs.readthedocs.io/en/latest/plugins/ade-manager).
 
 Contributing
 ------------
