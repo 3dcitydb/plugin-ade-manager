@@ -24,9 +24,9 @@ See the `LICENSE` file for more details.
 
 Latest release
 --------------
-The latest stable release of the ADE Manager Plugin is 2.2.0.
+The latest stable release of the ADE Manager Plugin is 2.3.0.
 
-Download the software [here](https://github.com/3dcitydb/plugin-ade-manager/releases/download/v2.2.0/plugin-ade-manager-2.2.0.zip).
+Download the software [here](https://github.com/3dcitydb/plugin-ade-manager/releases/download/v2.3.0/plugin-ade-manager-2.3.0.zip).
 Previous releases are available from the [releases section](https://github.com/3dcitydb/plugin-ade-manager/releases).
 
 Installation
@@ -51,7 +51,7 @@ Please note that the ADE Manager Plugin may not work with Java 17 or later versi
 Documentation
 -------------
 A complete and comprehensive user manual on the ADE Manager Plugin is available
-[online](https://3dcitydb-docs.readthedocs.io/en/version-2022.2/plugins/ade-manager/).
+[online](https://3dcitydb-docs.readthedocs.io/en/latest/plugins/ade-manager/index.html).
 
 Contributing
 ------------
@@ -79,9 +79,9 @@ The ADE Manager plugin has been developed by and with the support from the follo
 
 More information
 ----------------
-[OGC CityGML](http://www.opengeospatial.org/standards/citygml) is an open data model and XML-based format for the
+[OGC CityGML](https://www.ogc.org/standard/citygml/) is an open data model and XML-based format for the
 storage and exchange of semantic 3D city models. It is an application schema for the
-[Geography Markup Language version 3.1.1 (GML3)](http://www.opengeospatial.org/standards/gml), the extensible
+[Geography Markup Language version 3.1.1 (GML3)](https://www.ogc.org/standard/gml/), the extensible
 international standard for spatial data exchange issued by the Open Geospatial Consortium (OGC) and the ISO TC211.
 The aim of the development of CityGML is to reach a common definition of the basic entities, attributes,
 and relations of a 3D city model. Particularly, CityGML provides an extension mechanism called “Application 
