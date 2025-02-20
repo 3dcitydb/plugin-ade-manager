@@ -47,7 +47,7 @@ public class PostgisADEDBSchemaManager extends AbstractADEDBSchemaManager {
     }
 
     public void createADEDatabaseSchema(SchemaMapping schemaMapping) throws SQLException {
-        connection.prepareStatement("SET search_path TO " + schema + ", public").execute();
+
         super.createADEDatabaseSchema(schemaMapping);
 
         // update SRID for geometry columns of cityGML core and ADE tables
