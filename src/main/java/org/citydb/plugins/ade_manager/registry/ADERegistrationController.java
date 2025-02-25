@@ -65,6 +65,7 @@ public class ADERegistrationController {
 			connection = dbPool.getConnection();
 			// disable database auto-commit in order to enable rolling back database transactions
 			connection.setAutoCommit(false);
+			connection.prepareStatement("SET search_path TO " + dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema() + ", public").execute();
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to connect to database.");
 		}	
