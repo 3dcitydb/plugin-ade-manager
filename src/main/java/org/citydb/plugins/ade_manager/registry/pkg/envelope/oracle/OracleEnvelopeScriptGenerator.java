@@ -36,10 +36,9 @@ import org.citydb.plugins.ade_manager.registry.pkg.envelope.EnvelopeScriptGenera
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 	
@@ -179,8 +178,12 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 		
 		// update envelope column of CITYOBJECT table
 		String update_block = "";
-		if (!citydbSpatialTable.isHookTable() && tableName.equalsIgnoreCase("cityobject")) {
-			update_block += brDent2 + "IF set_envelope <> 0 THEN" + 
+		boolean updateEnvelope = !citydbSpatialTable.isHookTable()
+				&& (citydbSpatialTable.getSuperTable() != null
+				&& citydbSpatialTable.getSuperTable().equalsIgnoreCase("cityobject")
+				|| tableName.equalsIgnoreCase("cityobject"));
+		if (updateEnvelope) {
+			update_block += brDent2 + "IF set_envelope <> 0 AND caller = 0 THEN" +
 								brDent3 + "UPDATE cityobject SET envelope = bbox WHERE id = co_id;" +
 							brDent2 + "END IF;" + br;	
 		}					
@@ -269,8 +272,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 	
 	private String union_spatialRefTypeProperties_envelope(String tableName, String schemaName,
 			List<AbstractTypeProperty<?>> spatialRefTypeProperties) throws SQLException {
-		String geom_block = "";
-		
+		Map<String, Set<AbstractType<?>>> blocks = new LinkedHashMap<>();
 		Iterator<AbstractTypeProperty<?>> iter = spatialRefTypeProperties.iterator();
 		while (iter.hasNext()) {
 			AbstractTypeProperty<?> spatialRefTypeProperty = iter.next();
@@ -281,14 +283,13 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 			// register function
 			registerEnvelopeFunction(refTable, schemaName);
 			
-			geom_block += brDent2 + "OPEN nested_feat_cur FOR" +
-							brDent3 + commentPrefix + spatialRefType.getPath();
+			String block = "OPEN nested_feat_cur FOR";							;
 			if (propertyJoin instanceof Join) {
 				Join join = ((Join) propertyJoin);
 				TableRole toRole = join.getToRole();
 				if (toRole == TableRole.PARENT) {
 					String fk_column = join.getFromColumn();
-					geom_block += 						
+					block +=
 							brDent3 + "SELECT c.id " +
 									  "FROM " + tableName + " p, " + refTable + " c " +
 									  "WHERE p.id = co_id " +
@@ -296,7 +297,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 				}
 				else if (toRole == TableRole.CHILD) {
 					String fk_column = join.getToColumn();
-					geom_block += 
+					block +=
 							brDent3 + "SELECT id"  +
 									  " FROM " + refTable +
 									  " WHERE " + fk_column + " = co_id;";
@@ -307,7 +308,7 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 				String joinTable = ((JoinTable) propertyJoin).getTable();
 				String p_fk_column = ((JoinTable) propertyJoin).getJoin().getFromColumn();
 				String c_fk_column = ((JoinTable) propertyJoin).getInverseJoin().getFromColumn();
-				geom_block += 
+				block +=
 						brDent3 + "SELECT c.id " +
 								  "FROM " + refTable + " c, " + joinTable + " p2c " +
 								  "WHERE c.id = " + c_fk_column + 
@@ -315,15 +316,21 @@ public class OracleEnvelopeScriptGenerator extends EnvelopeScriptGenerator {
 			} 
 			else {/**/}
 			
-			geom_block += brDent2 + "LOOP" +
+			block += brDent2 + "LOOP" +
 						  	brDent3 + "FETCH nested_feat_cur INTO nested_feat_id;" +
 						  	brDent3 + "EXIT WHEN nested_feat_cur%notfound;" +
 						  	brDent3 + "bbox := update_bounds(bbox, " + getFunctionName(refTable) + "(nested_feat_id, set_envelope));" +
 						  brDent2 + "END LOOP;" + 
-						  brDent2 + "CLOSE nested_feat_cur;" + br;
+						  brDent2 + "CLOSE nested_feat_cur;";
+
+			blocks.computeIfAbsent(block, v -> new LinkedHashSet<>()).add(spatialRefType);
 		}
-		
-		return geom_block;
+
+		return blocks.entrySet().stream()
+				.map(e -> brDent2 + commentPrefix + e.getValue().stream()
+						.map(AbstractPathElement::getPath)
+						.collect(Collectors.joining(", ")) + brDent2 + e.getKey())
+				.collect(Collectors.joining(br)) + br;
 	}
 	
 	protected void constructUpdateBoundsFunction(EnvelopeFunction updateBoundsFunction) {

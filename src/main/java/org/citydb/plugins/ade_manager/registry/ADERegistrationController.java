@@ -27,6 +27,7 @@
  */
 package org.citydb.plugins.ade_manager.registry;
 
+import org.citydb.config.project.database.DatabaseType;
 import org.citydb.core.database.connection.DatabaseConnectionPool;
 import org.citydb.core.database.schema.mapping.SchemaMapping;
 import org.citydb.core.registry.ObjectRegistry;
@@ -65,7 +66,12 @@ public class ADERegistrationController {
 			connection = dbPool.getConnection();
 			// disable database auto-commit in order to enable rolling back database transactions
 			connection.setAutoCommit(false);
-			connection.prepareStatement("SET search_path TO " + dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema() + ", public").execute();
+
+			if (dbPool.getActiveDatabaseAdapter().getDatabaseType() == DatabaseType.POSTGIS) {
+				connection.prepareStatement("SET search_path TO " +
+								dbPool.getActiveDatabaseAdapter().getConnectionDetails().getSchema() + ", public")
+						.execute();
+			}
 		} catch (SQLException e) {
 			throw new ADERegistrationException("Failed to connect to database.");
 		}	

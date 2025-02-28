@@ -37,10 +37,9 @@ import org.citydb.plugins.ade_manager.registry.pkg.envelope.EnvelopeScriptGenera
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 	private final String idType;
@@ -167,8 +166,12 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 		
 		// update envelope column of CITYOBJECT table
 		String update_block = "";
-		if (!citydbSpatialTable.isHookTable() && tableName.equalsIgnoreCase("cityobject")) {
-			update_block += brDent1 + "IF set_envelope <> 0 THEN" + 
+        boolean updateEnvelope = !citydbSpatialTable.isHookTable()
+                && (citydbSpatialTable.getSuperTable() != null
+                && citydbSpatialTable.getSuperTable().equalsIgnoreCase("cityobject")
+                || tableName.equalsIgnoreCase("cityobject"));
+		if (updateEnvelope) {
+			update_block += brDent1 + "IF set_envelope <> 0 AND caller = 0 THEN" +
 								brDent2 + "UPDATE " + wrapSchemaName("cityobject", schemaName) + " SET envelope = bbox WHERE id = co_id;" +
 							brDent1 + "END IF;" + br;	
 		}					
@@ -251,8 +254,7 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 	
 	private String union_spatialRefTypeProperties_envelope(String tableName, String schemaName,
 			List<AbstractTypeProperty<?>> spatialRefTypeProperties) throws SQLException {
-		String geom_block = "";
-		
+		Map<String, Set<AbstractType<?>>> blocks = new LinkedHashMap<>();
 		Iterator<AbstractTypeProperty<?>> iter = spatialRefTypeProperties.iterator();
 		while (iter.hasNext()) {
 			AbstractTypeProperty<?> spatialRefTypeProperty = iter.next();
@@ -262,24 +264,23 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 			
 			// register function
 			registerEnvelopeFunction(refTable, schemaName);
-			
+
+			String block = null;
 			if (propertyJoin instanceof Join) {
 				Join join = ((Join) propertyJoin);
 				TableRole toRole = join.getToRole();
 				if (toRole == TableRole.PARENT) {
 					String fk_column = join.getFromColumn();
-					geom_block += 
-							brDent2 + commentPrefix + spatialRefType.getPath() +
-							brDent2 + "SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(c.id, set_envelope) AS geom " +
+					block =
+							"SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(c.id, set_envelope) AS geom " +
 									  "FROM " + wrapSchemaName(tableName, schemaName) + " p, " + refTable + " c " +
 									  "WHERE p.id = co_id " +
 									  "AND p." + fk_column + " = " + "c.id";
 				}
 				else if (toRole == TableRole.CHILD) {
 					String fk_column = join.getToColumn();
-					geom_block += 
-							brDent2 + commentPrefix + spatialRefType.getPath() +
-							brDent2 + "SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(id, set_envelope) AS geom" +
+					block =
+							"SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(id, set_envelope) AS geom" +
 									  " FROM " + wrapSchemaName(refTable, schemaName) +
 									  " WHERE " + fk_column + " = co_id";
 				}
@@ -289,20 +290,24 @@ public class PostgisEnvelopeGeneratorGenerator extends EnvelopeScriptGenerator {
 				String joinTable = ((JoinTable) propertyJoin).getTable();
 				String p_fk_column = ((JoinTable) propertyJoin).getJoin().getFromColumn();
 				String c_fk_column = ((JoinTable) propertyJoin).getInverseJoin().getFromColumn();
-				geom_block += 
-						brDent2 + commentPrefix + spatialRefType.getPath() +
-						brDent2 + "SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(c.id, set_envelope) AS geom " +
+				block =
+						"SELECT " + wrapSchemaName(getFunctionName(refTable), schemaName) + "(c.id, set_envelope) AS geom " +
 								  "FROM " + wrapSchemaName(refTable, schemaName) + " c, " + wrapSchemaName(joinTable, schemaName) + " p2c " +
 								  "WHERE c.id = " + c_fk_column + 
 								  " AND p2c." + p_fk_column + " = co_id";
 			} 
 			else {/**/}
-			
-			if (iter.hasNext())
-				geom_block += brDent3 + "UNION ALL";				
+
+			if (block != null) {
+				blocks.computeIfAbsent(block, v -> new LinkedHashSet<>()).add(spatialRefType);
+			}
 		}
-		
-		return geom_block;
+
+		return blocks.entrySet().stream()
+				.map(e -> brDent2 + commentPrefix + e.getValue().stream()
+						.map(AbstractPathElement::getPath)
+						.collect(Collectors.joining(", ")) + brDent2 + e.getKey())
+				.collect(Collectors.joining(brDent3 + "UNION ALL"));
 	}
 
 	@Override
