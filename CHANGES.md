@@ -3,13 +3,13 @@ Change Log
 
 ### 2.3.1 - tba
 
-#### Changes
-* Updated to [Importer/Exporter](https://github.com/3dcitydb/importer-exporter) version 5.5.1.
-
 #### Fixes
 * Fixed references to sequences in create scripts to be schema-aware (PostgreSQL). [3dcitydb/energy-ade-citydb#11](https://github.com/3dcitydb/energy-ade-citydb/issues/11) 
 * Fixed creation of delete scripts when the same ADE is installed in multiple schemas (PostgreSQL). [3dcitydb/energy-ade-citydb#11](https://github.com/3dcitydb/energy-ade-citydb/issues/11)
 * Fixed creation of envelope scripts to prevent setting the envelope of sub-features to `NULL`.
+
+#### Miscellaneous
+* Updated to [Importer/Exporter](https://github.com/3dcitydb/importer-exporter) version 5.5.1.
 
 ### 2.3.0 - 2024-09-19
 
