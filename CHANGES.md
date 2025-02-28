@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-### 2.3.1 - tba
+### 2.3.1 - 2025-02-28
 
 #### Fixes
 * Fixed references to sequences in create scripts to be schema-aware (PostgreSQL). [3dcitydb/energy-ade-citydb#11](https://github.com/3dcitydb/energy-ade-citydb/issues/11) 
