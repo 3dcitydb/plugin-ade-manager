@@ -470,8 +470,12 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			}
 			else {	
 				ref_block += create_n_ref_delete(n_table_name, n_fk_column_name, schemaName, nRootRelation);	
-				if (nRootRelation == RelationType.AGGREGATION)
-					vars += brDent1 + n_table_name + "_ids " + idType + "[] := '{}';";
+				if (nRootRelation == RelationType.AGGREGATION) {
+					String var = n_table_name + "_ids " + idType + "[] := '{}';";
+					if (!vars.contains(var)) {
+						vars += brDent1 + n_table_name + "_ids " + idType + "[] := '{}';";
+					}
+				}
 			}	
 			// If the n_fk_column is not nullable and the table m exists, the table n should be an associative table 
 			// between the root table and table m
