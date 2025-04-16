@@ -471,9 +471,9 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			else {	
 				ref_block += create_n_ref_delete(n_table_name, n_fk_column_name, schemaName, nRootRelation);	
 				if (nRootRelation == RelationType.AGGREGATION) {
-					String var = n_table_name + "_ids " + idType + "[] := '{}';";
+					String var = n_table_name + "_ids";
 					if (!vars.contains(var)) {
-						vars += brDent1 + n_table_name + "_ids " + idType + "[] := '{}';";
+						vars += brDent1 + var + " " + idType + "[] := '{}';";
 					}
 				}
 			}	
@@ -486,7 +486,11 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 				// In case of composition or aggregation between the root table and table m, the corresponding 
 				// records in the tables n and m should be deleted using an explicit code-block created below 
 				if (mRootRelation != RelationType.ASSOCIATION) {
-					vars += brDent1 + m_table_name + "_ids " + idType + "[] := '{}';";
+                    String var = m_table_name + "_ids";
+                    if (!vars.contains(var)) {
+                        vars += brDent1 + var + " " + idType + "[] := '{}';";
+                    }
+
 					ref_block += create_n_m_ref_delete(n_table_name, 
 														n_fk_column_name, 
 														m_table_name,
@@ -747,7 +751,11 @@ public class PostgisDeleteGeneratorGenerator extends DeleteScriptGenerator {
 			}
 			fk_columns = tmpList.toArray(new String[0]);
 			if (fk_columns.length > 0) {
-				vars += brDent1 + ref_table_name + "_ids " + idType + "[] := '{}';";
+                String var = ref_table_name + "_ids";
+                if (!vars.contains(var)) {
+                    vars += brDent1 + var + " " + idType + "[] := '{}';";
+                }
+
 				collect_block += "," 
 							  + brDent2;
 				for (int i = 0; i < fk_columns.length; i++) {
