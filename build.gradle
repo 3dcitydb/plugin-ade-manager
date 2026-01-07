@@ -6,7 +6,7 @@ plugins {
 }
 
 group 'org.citydb.plugins'
-version '2.3.2'
+version '2.3.3'
 
 apply from: 'properties.gradle'
 
@@ -27,7 +27,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.citydb:impexp-client-gui:5.5.2'
+    implementation 'org.citydb:impexp-client-gui:5.5.3'
     implementation fileTree(dir: 'lib', include: '*.jar')
 }
 
